@@ -1,0 +1,71 @@
+# Rendement Réel Immo
+
+> Plateforme de contre-analyse de rentabilité immobilière locative en France. Transforme une promesse de rendement brut en vérité financière : cash-flow réel, TRI, VAN, fiscalité, verdict automatique.
+
+## Ce que fait ce site
+
+Rendement Réel Immo calcule la rentabilité réelle d'un investissement locatif en France en prenant en compte :
+- Le rendement brut, le rendement net et le rendement net-net après impôts
+- Le cash-flow mensuel et annuel sur 5 à 30 ans
+- Le Taux de Rendement Interne (TRI) et la Valeur Actuelle Nette (VAN)
+- L'effort d'épargne mensuel réel
+- L'impact du DPE (diagnostic de performance énergétique) sur la rentabilité
+- Le prix maximum à payer pour atteindre un objectif de rendement
+- Les trois scénarios : pessimiste, central, optimiste
+
+## Régimes fiscaux modélisés
+
+- Location nue micro-foncier (abattement 30%)
+- Location nue régime réel (déduction charges + intérêts + déficit foncier)
+- LMNP micro-BIC (abattement 50%)
+- LMNP réel (amortissements composants)
+- SCI à l'IR
+- SCI à l'IS (15% PME / 25%)
+
+## Formules principales
+
+rendement_brut = loyers_annuels / prix_achat
+rendement_net = (loyers - charges_non_recup - taxe_fonciere - assurances - gestion - entretien) / cout_total_acquisition
+rendement_net_net = revenu_net_apres_impots / cout_total_acquisition
+cashflow_annuel = loyers_encaisses - charges_totales - impots - mensualites_credit - travaux
+TRI = taux_actualisation_rendant_VAN_zero
+VAN = somme(flux_t / (1 + taux_actualisation)^t)
+
+## Réglementations DPE France 2025-2034
+
+- DPE G : interdit à la location depuis le 1er janvier 2025
+- DPE F : interdit à la location à partir de 2028
+- DPE E : soumis à obligation de rénovation à partir de 2034
+- DPE A, B, C, D : aucune restriction en vigueur
+
+## Fiscalité plus-value immobilière France
+
+Abattement IR progressif : 0% avant 5 ans, +6%/an de la 6e à la 21e année, +4% la 22e année, exonération totale à partir de la 22e année.
+Abattement PS progressif : 0% avant 5 ans, +1.65%/an de 6 à 21 ans, +1.6% la 22e, +9%/an de 23 à 30 ans, exonération à 30 ans.
+Taux forfaitaire IR sur plus-value : 19%.
+
+## Définitions clés
+
+**Rendement brut** : loyers annuels hors charges divisés par le prix d'achat. Indicateur souvent mis en avant par les vendeurs. Ne prend pas en compte les charges, la fiscalité ni le coût réel de l'opération.
+
+**Rendement net** : tient compte des charges non récupérables, de la taxe foncière, des assurances, des frais de gestion et de l'entretien. Exclut la fiscalité personnelle.
+
+**Rendement net-net** : tient compte de toutes les charges ET de la fiscalité personnelle de l'investisseur. C'est le rendement réellement perçu.
+
+**Cash-flow** : différence entre les loyers encaissés et toutes les sorties de trésorerie (charges, crédit, impôts, travaux). Un cash-flow positif signifie que le bien s'autofinance.
+
+**TRI (Taux de Rendement Interne)** : taux d'actualisation qui rend la VAN nulle. Permet de comparer un investissement immobilier avec d'autres placements (ETF, assurance-vie, SCPI).
+
+**VAN (Valeur Actuelle Nette)** : valeur créée ou détruite par rapport au rendement alternatif. VAN positive = l'immobilier est plus rentable que le placement de référence.
+
+**Effort d'épargne** : montant mensuel que l'investisseur doit sortir de sa poche chaque mois pour financer le bien (mensualités - cashflow si négatif).
+
+**Prix maximum** : prix d'achat maximum permettant d'atteindre un objectif de rentabilité. Calculé par recherche dichotomique.
+
+## Avertissement
+
+Les simulations sont indicatives et basées sur les données saisies. Elles ne constituent pas un conseil en investissement, un conseil fiscal ou une recommandation personnalisée. Consultez un conseiller en gestion de patrimoine, un notaire ou un expert-comptable avant toute décision d'investissement.
+
+## Contact
+
+Site : https://rendement-reel-immo.fr

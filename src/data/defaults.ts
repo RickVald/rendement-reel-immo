@@ -1,0 +1,80 @@
+import type { ProjectInput } from '@/lib/calculator/types'
+
+export const DEFAULT_INPUT: ProjectInput = {
+  bien: {
+    type: 'appartement',
+    ville: '',
+    codePostal: '',
+    surface: 40,
+    dpe: 'D',
+    anneeConstruction: 1990,
+    etat: 'bon_etat',
+    copropriete: true,
+  },
+  acquisition: {
+    prixAchat: 200000,
+    fraisAgenceInclus: false,
+    fraisAgence: 0,
+    fraisNotaire: 15600,    // 7.8% par défaut (ancien)
+    fraisCourtage: 1500,
+    fraisGarantieBancaire: 1500,
+    fraisDossierBancaire: 1000,
+    travauxInitiaux: 0,
+    mobilier: 0,
+    autresFrais: 0,
+  },
+  financement: {
+    apport: 30000,
+    montantEmprunte: 190000,
+    dureeCredit: 240,         // 20 ans
+    tauxNominal: 0.037,       // 3.7%
+    tauxAssurance: 0.003,     // 0.3%
+    differePeriode: 'aucun',
+    dureesDiffere: 0,
+  },
+  location: {
+    type: 'nue',
+    loyerMensuelHC: 750,
+    chargesRecuperables: 80,
+    vacanceLocativeMois: 1,
+    tauxImpayes: 0.01,
+    revalorisation: 0.015,
+    gestionLocative: false,
+    fraisGestionPct: 0.08,
+    gli: false,
+    tauxGli: 0.025,
+    assurancePnoAnnuelle: 200,
+    encadrementLoyers: false,
+  },
+  charges: {
+    taxeFonciere: 1200,
+    chargesCoproAnnuelles: 2400,
+    partNonRecuperable: 0.4,
+    entretienAnnuel: 500,
+    comptableAnnuel: 0,
+    cfeEventuelle: 0,
+    fraisBancairesAnnuels: 120,
+    fraisRelocation: 800,
+    autresChargesAnnuelles: 0,
+    augmentationAnnuellePct: 0.02,
+  },
+  travauxFuturs: {
+    travauxRecurrentsAnnuels: 300,
+    grosTravauxItems: [],
+  },
+  fiscalite: {
+    regime: 'reel_foncier',
+    tmi: 0.30,
+    autresRevenusFonciers: 0,
+    deficitFoncierDisponible: 0,
+    dureeAmortissementImmo: 30,
+    dureeAmortissementMobilier: 7,
+  },
+  revente: {
+    dureeDetentionAns: 20,
+    revalorisationAnnuelle: 0.02,
+    fraisVentePct: 0.06,
+    tauxActualisation: 0.05,
+    rendementAlternatif: 0.06,
+  },
+}
