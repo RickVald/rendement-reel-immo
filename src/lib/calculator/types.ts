@@ -157,12 +157,17 @@ export interface YearlyRow {
   capitalRembourseAnnuel: number
   mensualitesAnnuelles: number
   revenuImposable: number
+  // Détail fiscal
+  chargesDeduites: number
+  amortissements: number
+  baseImposable: number
+  ir: number
+  ps: number
   impots: number
   cashflowAnnuel: number
   cashflowCumule: number
   capitalRestantDu: number
   valeurEstimeeBien: number
-
   patrimoineNet: number
   produitNetReventePotentiel: number
   triSiReventeAnnee: number
@@ -180,6 +185,7 @@ export interface IndicateurResume {
 
 export interface SummaryKPIs {
   coutTotalAcquisition: number
+  cashTotalNecessaire: number  // = coutTotal - montantEmprunte (apport réel en cash)
   rendementBrut: number
   rendementNet: number
   rendementNetNet: number
@@ -188,10 +194,41 @@ export interface SummaryKPIs {
   cashflowCumule: number
   tri: number
   van: number
-  effortEpargne: number       // mensualité - cashflow mensuel
+  effortEpargne: number       // |cashflow négatif mensuel moyen|
   prixMaximum: number
   dependanceRevente: boolean   // TRI négatif sans revente
   scoreRisqueDpe: number       // 0-100
+}
+
+export interface ScoreRobustesse {
+  total: number          // /100
+  dependanceRevente: number   // /20
+  sensibiliteLoyer: number    // /15
+  sensibiliteTravaux: number  // /15
+  risqueDpe: number           // /15
+  vacanceLocative: number     // /10
+  margeSecurite: number       // /10
+  liquidite: number           // /10
+  horizonDetention: number    // /5
+  label: 'Très robuste' | 'Robuste' | 'Fragile' | 'Très fragile'
+}
+
+export interface NiveauConfiance {
+  donnee: string
+  source: string
+  fiabilite: 'élevée' | 'moyenne' | 'à vérifier' | 'estimation'
+  note?: string
+}
+
+export interface ComparaisonRegime {
+  regime: RegimeFiscal
+  label: string
+  impotsCumules20ans: number
+  cashflowMensuelMoyen: number
+  tri: number
+  van: number
+  rendementNetNet: number
+  verdict: 'optimal' | 'bon' | 'correct' | 'défavorable'
 }
 
 export type VerdictLabel =
@@ -247,6 +284,31 @@ export interface AIInterpretation {
   comparaison_alternatives: string
 }
 
+export interface SensibiliteRow {
+  variable: string
+  moins10: number   // TRI
+  central: number
+  plus10: number
+}
+
+export interface StressTest {
+  label: string
+  description: string
+  impact: string
+  valeur: number
+  unite: string
+  severite: 'faible' | 'modere' | 'severe'
+}
+
+export interface PointMort {
+  loyerPourCashflowNeutre: number
+  prixMaxPourTri4pct: number
+  prixMaxPourCashflowNeutre: number
+  travauxMaxSupportables: number
+  reventeMinPourVanPositive: number
+  dureeDetentionOptimale: number
+}
+
 export interface ProjectAnalysis {
   input: ProjectInput
   creditSchedule: CreditSchedule
@@ -256,5 +318,11 @@ export interface ProjectAnalysis {
   scenarios: ScenarioResult[]
   prixMax: PrixMaxResult
   indicateurs: IndicateurResume[]
+  comparaisonsRegimes?: ComparaisonRegime[]
+  sensibilite?: SensibiliteRow[]
+  stressTests?: StressTest[]
+  pointMort?: PointMort
+  scoreRobustesse?: ScoreRobustesse
+  niveauxConfiance?: NiveauConfiance[]
   aiInterpretation?: AIInterpretation
 }

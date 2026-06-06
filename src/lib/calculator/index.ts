@@ -1,4 +1,8 @@
-import type { ProjectInput, ProjectAnalysis, SummaryKPIs, IndicateurResume } from './types'
+import type {
+  ProjectInput, ProjectAnalysis, SummaryKPIs, IndicateurResume,
+  ComparaisonRegime, SensibiliteRow, StressTest, PointMort, RegimeFiscal,
+  ScoreRobustesse, NiveauConfiance
+} from './types'
 import { calculerCredit } from './credit'
 import { calculerCoutTotal } from './cashflow'
 import { genererTableauAnnuel } from './cashflow'
@@ -18,30 +22,18 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
   let rows = genererTableauAnnuel(input, creditSchedule.tableau, coutTotal)
 
   // 4. Calcul TRI par année
-  const apportInitial = input.financement.apport
-  const fraisCash = coutTotal - input.acquisition.prixAchat - input.financement.montantEmprunte
-  rows = calculerTRIParAnnee(apportInitial, fraisCash, input.acquisition.travauxInitiaux, rows)
+  // cashInitial = tout l'argent sorti de poche à t=0 (apport + frais + travaux + mobilier)
+  const apportInitial = coutTotal - input.financement.montantEmprunte
+  const fraisCash = 0   // déjà inclus dans apportInitial
+  rows = calculerTRIParAnnee(apportInitial, fraisCash, 0, rows)
 
   // 5. Produit net revente à la fin
   const dernierRow = rows[rows.length - 1]
   const produitNetRevente = dernierRow?.produitNetReventePotentiel ?? 0
 
   // 6. KPIs globaux
-  const tri = calculerTRI(
-    apportInitial,
-    fraisCash,
-    input.acquisition.travauxInitiaux,
-    rows,
-    produitNetRevente
-  )
-  const van = calculerVAN(
-    apportInitial,
-    fraisCash,
-    input.acquisition.travauxInitiaux,
-    rows,
-    produitNetRevente,
-    input.revente.tauxActualisation
-  )
+  const tri = calculerTRI(apportInitial, 0, 0, rows, produitNetRevente)
+  const van = calculerVAN(apportInitial, 0, 0, rows, produitNetRevente, input.revente.tauxActualisation)
 
   // Rendements (année 1)
   const impotAnnee1 = calculerImpotAnnee({
@@ -83,11 +75,11 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
   const cashflowMensuelMoyen = cashflowTotal / rows.length / 12
   const cashflowCumule = dernierRow?.cashflowCumule ?? 0
 
-  // Effort d'épargne mensuel = mensualités - cashflow si cashflow négatif
-  const effortEpargne = Math.max(0, creditSchedule.mensualiteTotale - cashflowMensuelMoyen)
+  // Effort d'épargne mensuel = cashflow négatif moyen (le cashflow intègre déjà le remboursement crédit)
+  const effortEpargne = Math.max(0, -cashflowMensuelMoyen)
 
   // Dépendance revente : TRI sans revente < 0
-  const triSansRevente = calculerTRI(apportInitial, fraisCash, input.acquisition.travauxInitiaux,
+  const triSansRevente = calculerTRI(apportInitial, 0, 0,
     rows.map(r => ({ ...r, produitNetReventePotentiel: 0 })), 0)
   const dependanceRevente = triSansRevente < 0
 
@@ -113,6 +105,7 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
 
   const summary: SummaryKPIs = {
     coutTotalAcquisition: Math.round(coutTotal),
+    cashTotalNecessaire: Math.round(apportInitial),
     rendementBrut: rendements.rendementBrut,
     rendementNet: rendements.rendementNet,
     rendementNetNet: rendements.rendementNetNet,
@@ -137,8 +130,8 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
     const cr2 = calculerCredit(newInput.financement)
     const rows2 = genererTableauAnnuel(newInput, cr2.tableau, ct2)
     const dernierRow2 = rows2[rows2.length - 1]
-    const tri2 = calculerTRI(apportInitial, fraisCash, input.acquisition.travauxInitiaux, rows2, dernierRow2?.produitNetReventePotentiel ?? 0)
-    const van2 = calculerVAN(apportInitial, fraisCash, input.acquisition.travauxInitiaux, rows2, dernierRow2?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
+    const tri2 = calculerTRI(apportInitial, 0, 0, rows2, dernierRow2?.produitNetReventePotentiel ?? 0)
+    const van2 = calculerVAN(apportInitial, 0, 0, rows2, dernierRow2?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
     const cf2 = rows2.reduce((s, r) => s + r.cashflowAnnuel, 0) / rows2.length / 12
     return {
       ...summary,
@@ -151,6 +144,24 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
   // 9. Indicateurs résumé
   const indicateurs = buildIndicateurs(summary)
 
+  // 10. Comparaison régimes fiscaux
+  const comparaisonsRegimes = calculerComparaisonsRegimes(input, creditSchedule, coutTotal, apportInitial)
+
+  // 11. Matrice de sensibilité
+  const sensibilite = calculerSensibilite(input, creditSchedule, coutTotal, apportInitial, rows, tri)
+
+  // 12. Stress tests
+  const stressTests = calculerStressTests(input, creditSchedule, coutTotal, apportInitial, rows, summary)
+
+  // 13. Point mort
+  const pointMort = calculerPointMort(input, creditSchedule, coutTotal, apportInitial, rows, summary)
+
+  // 14. Score de robustesse
+  const scoreRobustesse = calculerScoreRobustesse(input, summary, sensibilite)
+
+  // 15. Niveaux de confiance des données
+  const niveauxConfiance = genererNiveauxConfiance(input)
+
   return {
     input,
     creditSchedule,
@@ -160,6 +171,334 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
     scenarios,
     prixMax: prixMaxResult,
     indicateurs,
+    comparaisonsRegimes,
+    sensibilite,
+    stressTests,
+    pointMort,
+    scoreRobustesse,
+    niveauxConfiance,
+  }
+}
+
+// ─── Comparaison régimes fiscaux ─────────────────────────────────────────────
+
+const REGIME_LABELS: Record<string, string> = {
+  micro_foncier: 'Micro-foncier (abattement 30%)',
+  reel_foncier: 'Réel foncier (déduction charges)',
+  lmnp_micro_bic: 'LMNP micro-BIC (abattement 50%)',
+  lmnp_reel: 'LMNP réel (amortissements)',
+  sci_ir: 'SCI à l\'IR',
+  sci_is: 'SCI à l\'IS',
+}
+
+function calculerComparaisonsRegimes(
+  input: ProjectInput,
+  creditSchedule: any,
+  coutTotal: number,
+  apportInitial: number
+): ComparaisonRegime[] {
+  const regimes: RegimeFiscal[] = ['micro_foncier', 'reel_foncier', 'lmnp_micro_bic', 'lmnp_reel', 'sci_is']
+  const results: ComparaisonRegime[] = []
+
+  for (const regime of regimes) {
+    const newInput = { ...input, fiscalite: { ...input.fiscalite, regime } }
+    const rows2 = genererTableauAnnuel(newInput, creditSchedule.tableau, coutTotal)
+    const dernierRow2 = rows2[rows2.length - 1]
+    const produitNetRevente2 = dernierRow2?.produitNetReventePotentiel ?? 0
+    const tri2 = calculerTRI(apportInitial, 0, 0, rows2, produitNetRevente2)
+    const van2 = calculerVAN(apportInitial, 0, 0, rows2, produitNetRevente2, input.revente.tauxActualisation)
+    const cf2 = rows2.reduce((s, r) => s + r.cashflowAnnuel, 0) / rows2.length / 12
+    const impotsCumules = rows2.reduce((s, r) => s + (r.impots ?? 0), 0)
+
+    const impotAnnee1 = calculerImpotAnnee({
+      loyersEncaisses: input.location.loyerMensuelHC * 12 * (1 - input.location.tauxImpayes),
+      chargesDeductibles:
+        input.charges.chargesCoproAnnuelles * input.charges.partNonRecuperable +
+        input.charges.taxeFonciere + input.charges.entretienAnnuel + input.charges.autresChargesAnnuelles,
+      interets: creditSchedule.coutTotalInterets / (input.financement.dureeCredit / 12),
+      travauxDeductibles: 0,
+      annee: 1,
+      regime,
+      tmi: input.fiscalite.tmi,
+      autresRevenusFonciers: input.fiscalite.autresRevenusFonciers,
+      deficitFoncierDisponible: input.fiscalite.deficitFoncierDisponible,
+      dureeAmortissementImmo: input.fiscalite.dureeAmortissementImmo,
+      dureeAmortissementMobilier: input.fiscalite.dureeAmortissementMobilier,
+      coutTotalAcquisition: coutTotal,
+    })
+    const rend = calculerRendements(
+      input.location.loyerMensuelHC, coutTotal, input.acquisition.prixAchat,
+      input.charges.chargesCoproAnnuelles * input.charges.partNonRecuperable,
+      input.charges.taxeFonciere, input.location.assurancePnoAnnuelle,
+      input.location.gestionLocative ? input.location.loyerMensuelHC * 12 * input.location.fraisGestionPct : 0,
+      input.charges.entretienAnnuel, impotAnnee1.total
+    )
+
+    results.push({
+      regime,
+      label: REGIME_LABELS[regime] ?? regime,
+      impotsCumules20ans: Math.round(impotsCumules),
+      cashflowMensuelMoyen: Math.round(cf2),
+      tri: tri2,
+      van: van2,
+      rendementNetNet: rend.rendementNetNet,
+      verdict: 'correct',
+    })
+  }
+
+  // Marquer le meilleur régime (TRI max)
+  const bestTri = Math.max(...results.map(r => r.tri))
+  const worstTri = Math.min(...results.map(r => r.tri))
+  results.forEach(r => {
+    if (r.tri === bestTri) r.verdict = 'optimal'
+    else if (r.tri >= bestTri - 0.01) r.verdict = 'bon'
+    else if (r.tri <= worstTri + 0.005) r.verdict = 'défavorable'
+  })
+
+  return results
+}
+
+// ─── Matrice de sensibilité ───────────────────────────────────────────────────
+
+function calculerSensibilite(
+  input: ProjectInput,
+  creditSchedule: any,
+  coutTotal: number,
+  apportInitial: number,
+  rows: any[],
+  triCentral: number
+): SensibiliteRow[] {
+  const calc = (overrides: Partial<ProjectInput>) => {
+    const newInput = mergeDeep(input, overrides) as ProjectInput
+    const ct = calculerCoutTotal(newInput.acquisition)
+    const ap = ct - newInput.financement.montantEmprunte
+    const r2 = genererTableauAnnuel(newInput, creditSchedule.tableau, ct)
+    const d2 = r2[r2.length - 1]
+    return calculerTRI(ap, 0, 0, r2, d2?.produitNetReventePotentiel ?? 0)
+  }
+
+  return [
+    {
+      variable: "Prix d'achat",
+      moins10: calc({ acquisition: { ...input.acquisition, prixAchat: input.acquisition.prixAchat * 0.9 } }),
+      central: triCentral,
+      plus10: calc({ acquisition: { ...input.acquisition, prixAchat: input.acquisition.prixAchat * 1.1 } }),
+    },
+    {
+      variable: 'Loyer mensuel',
+      moins10: calc({ location: { ...input.location, loyerMensuelHC: input.location.loyerMensuelHC * 0.9 } }),
+      central: triCentral,
+      plus10: calc({ location: { ...input.location, loyerMensuelHC: input.location.loyerMensuelHC * 1.1 } }),
+    },
+    {
+      variable: 'Travaux initiaux',
+      moins10: calc({ acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux * 0.9 } }),
+      central: triCentral,
+      plus10: calc({ acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux * 1.1 } }),
+    },
+    {
+      variable: 'Prix de revente',
+      moins10: calc({ revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle - 0.02 } }),
+      central: triCentral,
+      plus10: calc({ revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle + 0.02 } }),
+    },
+    {
+      variable: 'Vacance locative',
+      moins10: calc({ location: { ...input.location, vacanceLocativeMois: Math.max(0, input.location.vacanceLocativeMois - 1) } }),
+      central: triCentral,
+      plus10: calc({ location: { ...input.location, vacanceLocativeMois: input.location.vacanceLocativeMois + 1 } }),
+    },
+    {
+      variable: 'Charges copropriété',
+      moins10: calc({ charges: { ...input.charges, chargesCoproAnnuelles: input.charges.chargesCoproAnnuelles * 0.9 } }),
+      central: triCentral,
+      plus10: calc({ charges: { ...input.charges, chargesCoproAnnuelles: input.charges.chargesCoproAnnuelles * 1.1 } }),
+    },
+  ]
+}
+
+// ─── Stress tests ─────────────────────────────────────────────────────────────
+
+function calculerStressTests(
+  input: ProjectInput,
+  creditSchedule: any,
+  coutTotal: number,
+  apportInitial: number,
+  rows: any[],
+  summary: SummaryKPIs
+): StressTest[] {
+  const cfCentralAnnuel = summary.cashflowAnnuelMoyen
+
+  // 6 mois sans locataire
+  const pertePourVacance6Mois = input.location.loyerMensuelHC * 6
+  const cfVacance = summary.cashflowCumule - pertePourVacance6Mois
+
+  // Travaux supplémentaires 15 000€
+  const newInputTravaux = { ...input, acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux + 15000 } }
+  const ct2 = calculerCoutTotal(newInputTravaux.acquisition)
+  const ap2 = ct2 - input.financement.montantEmprunte
+  const rows2 = genererTableauAnnuel(newInputTravaux, creditSchedule.tableau, ct2)
+  const triTravaux = calculerTRI(ap2, 0, 0, rows2, rows2[rows2.length - 1]?.produitNetReventePotentiel ?? 0)
+
+  // Revente 10% sous hypothèse
+  const newInputRevente = { ...input, revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle - 0.01 } }
+  const rows3 = genererTableauAnnuel(newInputRevente, creditSchedule.tableau, coutTotal)
+  const van3 = calculerVAN(apportInitial, 0, 0, rows3, rows3[rows3.length - 1]?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
+
+  // Taux de crédit +1 point
+  const newCr = calculerCredit({ ...input.financement, tauxNominal: input.financement.tauxNominal + 0.01 })
+  const rows4 = genererTableauAnnuel(input, newCr.tableau, coutTotal)
+  const cf4 = rows4.reduce((s: number, r: any) => s + r.cashflowAnnuel, 0) / rows4.length / 12
+
+  // Taxe foncière +30%
+  const newInputTF = { ...input, charges: { ...input.charges, taxeFonciere: input.charges.taxeFonciere * 1.3 } }
+  const rows5 = genererTableauAnnuel(newInputTF, creditSchedule.tableau, coutTotal)
+  const cf5 = rows5.reduce((s: number, r: any) => s + r.cashflowAnnuel, 0) / rows5.length / 12
+
+  // Loyer gelé (DPE F/G)
+  const isFG = ['F', 'G'].includes(input.bien.dpe)
+  const loyerGele = isFG ? input.location.loyerMensuelHC : null
+
+  return [
+    {
+      label: '6 mois sans locataire',
+      description: 'Vacance exceptionnelle (sinistre, travaux)',
+      impact: `Cash cumulé diminué de ${Math.round(pertePourVacance6Mois).toLocaleString('fr-FR')} €`,
+      valeur: Math.round(cfVacance),
+      unite: '€ cumulé',
+      severite: cfVacance < 0 ? 'severe' : 'modere',
+    },
+    {
+      label: 'Travaux supplémentaires +15 000 €',
+      description: 'Dépassement budget travaux (DPE, copropriété)',
+      impact: `TRI passe à ${(triTravaux * 100).toFixed(2)} %`,
+      valeur: triTravaux,
+      unite: 'TRI',
+      severite: triTravaux < 0 ? 'severe' : triTravaux < 0.03 ? 'modere' : 'faible',
+    },
+    {
+      label: 'Revente -1 pt/an de revalorisation',
+      description: 'Marché immobilier moins favorable',
+      impact: `VAN = ${Math.round(van3).toLocaleString('fr-FR')} €`,
+      valeur: Math.round(van3),
+      unite: '€ VAN',
+      severite: van3 < -50000 ? 'severe' : van3 < 0 ? 'modere' : 'faible',
+    },
+    {
+      label: 'Taux de crédit +1 %',
+      description: 'Remontée des taux ou renégociation défavorable',
+      impact: `CF mensuel moyen : ${Math.round(cf4)} €/mois`,
+      valeur: Math.round(cf4),
+      unite: '€/mois',
+      severite: cf4 < -500 ? 'severe' : cf4 < 0 ? 'modere' : 'faible',
+    },
+    {
+      label: 'Taxe foncière +30 %',
+      description: 'Hausse de la fiscalité locale (tendance 2020-2024)',
+      impact: `CF mensuel moyen : ${Math.round(cf5)} €/mois`,
+      valeur: Math.round(cf5),
+      unite: '€/mois',
+      severite: cf5 < -500 ? 'severe' : cf5 < 0 ? 'modere' : 'faible',
+    },
+    ...(isFG ? [{
+      label: 'Gel des loyers DPE F/G + interdiction 2028',
+      description: 'Loi Climat 2021 : DPE F interdit à la location à partir de 2028 sans travaux',
+      impact: `Loyer gelé à ${loyerGele} €/mois, revenus nuls à partir de 2028 sans travaux DPE`,
+      valeur: 0,
+      unite: '€/mois après 2028',
+      severite: 'severe' as const,
+    }] : []),
+  ]
+}
+
+// ─── Point mort ───────────────────────────────────────────────────────────────
+
+function calculerPointMort(
+  input: ProjectInput,
+  creditSchedule: any,
+  coutTotal: number,
+  apportInitial: number,
+  rows: any[],
+  summary: SummaryKPIs
+): PointMort {
+  // Loyer pour cashflow neutre (par dichotomie)
+  let loyerMin = 0, loyerMax = input.location.loyerMensuelHC * 3
+  for (let i = 0; i < 50; i++) {
+    const mid = (loyerMin + loyerMax) / 2
+    const r = genererTableauAnnuel({ ...input, location: { ...input.location, loyerMensuelHC: mid } }, creditSchedule.tableau, coutTotal)
+    const cf = r.reduce((s: number, x: any) => s + x.cashflowAnnuel, 0) / r.length / 12
+    if (cf >= 0) loyerMax = mid; else loyerMin = mid
+    if (loyerMax - loyerMin < 1) break
+  }
+  const loyerNeutre = Math.round((loyerMin + loyerMax) / 2)
+
+  // Prix max pour TRI >= 4%
+  const prixMaxTri4 = calculerPrixMaximum(
+    { type: 'tri', valeur: 0.04 },
+    input.acquisition.prixAchat,
+    (prix) => {
+      const ni = { ...input, acquisition: { ...input.acquisition, prixAchat: prix } }
+      const ct = calculerCoutTotal(ni.acquisition)
+      const ap = ct - ni.financement.montantEmprunte
+      const r2 = genererTableauAnnuel(ni, creditSchedule.tableau, ct)
+      const tri2 = calculerTRI(ap, 0, 0, r2, r2[r2.length - 1]?.produitNetReventePotentiel ?? 0)
+      const cf2 = r2.reduce((s: number, x: any) => s + x.cashflowAnnuel, 0) / r2.length / 12
+      return { rendementNet: 0, cashflowMensuel: cf2, tri: tri2 }
+    }
+  )
+
+  // Prix max pour cashflow neutre
+  const prixMaxCF = calculerPrixMaximum(
+    { type: 'cashflow', valeur: 0 },
+    input.acquisition.prixAchat,
+    (prix) => {
+      const ni = { ...input, acquisition: { ...input.acquisition, prixAchat: prix } }
+      const ct = calculerCoutTotal(ni.acquisition)
+      const r2 = genererTableauAnnuel(ni, creditSchedule.tableau, ct)
+      const cf2 = r2.reduce((s: number, x: any) => s + x.cashflowAnnuel, 0) / r2.length / 12
+      return { rendementNet: 0, cashflowMensuel: cf2, tri: 0 }
+    }
+  )
+
+  // Travaux max supportables pour que le projet reste non nul
+  let trvMin = 0, trvMax = 500000
+  for (let i = 0; i < 50; i++) {
+    const mid = (trvMin + trvMax) / 2
+    const ni = { ...input, acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux + mid } }
+    const ct = calculerCoutTotal(ni.acquisition)
+    const ap = ct - ni.financement.montantEmprunte
+    const r2 = genererTableauAnnuel(ni, creditSchedule.tableau, ct)
+    const tri2 = calculerTRI(ap, 0, 0, r2, r2[r2.length - 1]?.produitNetReventePotentiel ?? 0)
+    if (tri2 > 0) trvMin = mid; else trvMax = mid
+    if (trvMax - trvMin < 100) break
+  }
+  const travauxMax = Math.round((trvMin + trvMax) / 2 / 100) * 100
+
+  // Revente minimale pour VAN >= 0
+  let revMin = 0, revMax = coutTotal * 3
+  for (let i = 0; i < 50; i++) {
+    const mid = (revMin + revMax) / 2
+    const van = calculerVAN(apportInitial, 0, 0, rows, mid, input.revente.tauxActualisation)
+    if (van >= 0) revMax = mid; else revMin = mid
+    if (revMax - revMin < 100) break
+  }
+  const reventeMin = Math.round((revMin + revMax) / 2 / 100) * 100
+
+  // Durée de détention optimale (max patrimoine net ou TRI)
+  let bestAnnee = rows.length
+  let bestTri = -Infinity
+  rows.forEach((r, i) => {
+    const t = calculerTRI(apportInitial, 0, 0, rows.slice(0, i + 1), r.produitNetReventePotentiel)
+    if (t > bestTri) { bestTri = t; bestAnnee = i + 1 }
+  })
+
+  return {
+    loyerPourCashflowNeutre: loyerNeutre,
+    prixMaxPourTri4pct: prixMaxTri4.prixMaximum,
+    prixMaxPourCashflowNeutre: prixMaxCF.prixMaximum,
+    travauxMaxSupportables: travauxMax,
+    reventeMinPourVanPositive: reventeMin,
+    dureeDetentionOptimale: bestAnnee,
   }
 }
 
@@ -213,6 +552,95 @@ function mergeDeep(target: any, source: any): any {
     }
   }
   return result
+}
+
+// ─── Score de robustesse ──────────────────────────────────────────────────────
+
+function calculerScoreRobustesse(
+  input: ProjectInput,
+  summary: SummaryKPIs,
+  sensibilite: SensibiliteRow[]
+): ScoreRobustesse {
+  // Dépendance à la revente (20 pts) — crucial
+  const scoreDependance = summary.dependanceRevente ? 0
+    : summary.tri > 0.05 ? 20 : summary.tri > 0.02 ? 12 : 6
+
+  // Sensibilité au loyer (15 pts) — écart entre scénario -10% et central
+  const sensLoyer = sensibilite.find(s => s.variable === 'Loyer mensuel')
+  const ecartLoyer = sensLoyer ? Math.abs(sensLoyer.moins10 - sensLoyer.central) : 0.03
+  const scoreSensLoyer = ecartLoyer < 0.01 ? 15 : ecartLoyer < 0.02 ? 10 : ecartLoyer < 0.04 ? 5 : 0
+
+  // Sensibilité aux travaux (15 pts)
+  const sensTravaux = sensibilite.find(s => s.variable === 'Travaux initiaux')
+  const ecartTravaux = sensTravaux ? Math.abs(sensTravaux.plus10 - sensTravaux.central) : 0.02
+  const scoreSensTravaux = ecartTravaux < 0.005 ? 15 : ecartTravaux < 0.01 ? 10 : ecartTravaux < 0.02 ? 5 : 0
+
+  // Risque DPE (15 pts)
+  const scoreDpe = input.bien.dpe === 'G' ? 0
+    : input.bien.dpe === 'F' ? 3
+    : input.bien.dpe === 'E' ? 8
+    : input.bien.dpe === 'D' ? 12 : 15
+
+  // Vacance locative (10 pts)
+  const scoreVacance = input.location.vacanceLocativeMois <= 0.5 ? 10
+    : input.location.vacanceLocativeMois <= 1 ? 7
+    : input.location.vacanceLocativeMois <= 2 ? 4 : 0
+
+  // Marge de sécurité sur cash-flow (10 pts)
+  const margeRatio = summary.effortEpargne > 0
+    ? Math.min(summary.effortEpargne / (input.financement.apport || 1), 1)
+    : 0
+  const scoreMarge = summary.cashflowMensuelMoyen >= 200 ? 10
+    : summary.cashflowMensuelMoyen >= 0 ? 7
+    : summary.cashflowMensuelMoyen >= -200 ? 4
+    : summary.cashflowMensuelMoyen >= -500 ? 2 : 0
+
+  // Liquidité (10 pts) — taux LTV
+  const ltv = input.financement.montantEmprunte / input.acquisition.prixAchat
+  const scoreLiquidite = ltv < 0.7 ? 10 : ltv < 0.8 ? 7 : ltv < 0.9 ? 4 : 0
+
+  // Horizon de détention (5 pts)
+  const scoreHorizon = input.revente.dureeDetentionAns >= 15 ? 5
+    : input.revente.dureeDetentionAns >= 10 ? 3 : 1
+
+  const total = scoreDependance + scoreSensLoyer + scoreSensTravaux + scoreDpe
+    + scoreVacance + scoreMarge + scoreLiquidite + scoreHorizon
+
+  return {
+    total,
+    dependanceRevente: scoreDependance,
+    sensibiliteLoyer: scoreSensLoyer,
+    sensibiliteTravaux: scoreSensTravaux,
+    risqueDpe: scoreDpe,
+    vacanceLocative: scoreVacance,
+    margeSecurite: scoreMarge,
+    liquidite: scoreLiquidite,
+    horizonDetention: scoreHorizon,
+    label: total >= 70 ? 'Très robuste' : total >= 50 ? 'Robuste' : total >= 30 ? 'Fragile' : 'Très fragile',
+  }
+}
+
+// ─── Niveaux de confiance des données ────────────────────────────────────────
+
+function genererNiveauxConfiance(input: ProjectInput): NiveauConfiance[] {
+  const hasDpe = input.bien.dpe !== 'inconnu'
+  const hasTF = input.charges.taxeFonciere > 0
+  const hasDevis = input.acquisition.travauxInitiaux > 0
+  const isFG = ['F', 'G'].includes(input.bien.dpe)
+
+  return [
+    { donnee: "Prix d'achat", source: 'Saisi utilisateur', fiabilite: 'élevée' },
+    { donnee: 'Loyer mensuel', source: 'Saisi utilisateur', fiabilite: 'moyenne', note: 'À comparer aux loyers de marché locaux' },
+    { donnee: 'Taxe foncière', source: hasTF ? 'Saisi utilisateur' : 'Estimée', fiabilite: hasTF ? 'à vérifier' : 'estimation', note: 'Vérifier sur le dernier avis d\'imposition' },
+    { donnee: 'Travaux initiaux', source: hasDevis ? 'Saisi utilisateur' : 'Non renseigné', fiabilite: hasDevis ? 'à vérifier' : 'estimation', note: 'Exiger un devis d\'artisan avant signature' },
+    { donnee: 'Charges copropriété', source: 'Saisi utilisateur', fiabilite: 'à vérifier', note: 'Vérifier les 3 derniers PV d\'AG et relevés' },
+    { donnee: 'DPE', source: hasDpe ? `Classe ${input.bien.dpe} déclarée` : 'Non renseigné', fiabilite: hasDpe ? (isFG ? 'élevée' : 'moyenne') : 'estimation', note: isFG ? 'Risque réglementaire fort — exiger nouveau DPE' : 'Peut évoluer après travaux' },
+    { donnee: 'Travaux DPE', source: input.travauxFuturs.travauxDpeMontant ? 'Estimés' : 'Non renseignés', fiabilite: 'estimation', note: 'Estimation sans devis — fiabilité faible' },
+    { donnee: 'Revalorisation du bien', source: 'Hypothèse utilisateur', fiabilite: 'estimation', note: `${(input.revente.revalorisationAnnuelle * 100).toFixed(1)}%/an supposé — non garanti` },
+    { donnee: 'Fiscalité', source: 'Moteur de calcul 2025-2026', fiabilite: 'moyenne', note: 'Dépend du profil global — à valider avec un expert-comptable' },
+    { donnee: 'Vacance locative', source: 'Saisi utilisateur', fiabilite: 'à vérifier', note: 'Vérifier le taux de vacance local (observatoire loyers)' },
+    { donnee: 'Prix de revente', source: 'Hypothèse projection', fiabilite: 'estimation', note: 'Projections non garanties — très sensible au marché local' },
+  ]
 }
 
 export { calculerCoutTotal, estimerFraisNotaire } from './cashflow'

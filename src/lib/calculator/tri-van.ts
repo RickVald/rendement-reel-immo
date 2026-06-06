@@ -50,33 +50,45 @@ export function calculerTRIParAnnee(
   })
 }
 
-/** Méthode de bissection pour trouver le TRI */
-function bisectionIRR(flux: number[], precision = 0.00001): number {
-  // Vérifier si le projet a un TRI calculable
+/** Calcule la VAN à un taux donné */
+function npvAt(flux: number[], rate: number): number {
+  return flux.reduce((sum, f, t) => sum + f / Math.pow(1 + rate, t), 0)
+}
+
+/** Bissection sur un intervalle [lo, hi] où NPV change de signe */
+function bisect(flux: number[], lo: number, hi: number, iterations = 100): number {
+  let mid = lo
+  for (let i = 0; i < iterations; i++) {
+    mid = (lo + hi) / 2
+    if (hi - lo < 0.000001) break
+    const nm = npvAt(flux, mid)
+    if (Math.abs(nm) < 0.001) break
+    if (nm * npvAt(flux, lo) < 0) hi = mid
+    else lo = mid
+  }
+  return mid
+}
+
+/** Méthode de bissection robuste pour trouver le TRI */
+function bisectionIRR(flux: number[]): number {
   const hasPositive = flux.some((f) => f > 0)
   const hasNegative = flux.some((f) => f < 0)
   if (!hasPositive || !hasNegative) return 0
 
-  function npv(rate: number): number {
-    return flux.reduce((sum, f, t) => sum + f / Math.pow(1 + rate, t), 0)
+  const npv0 = npvAt(flux, 0)
+
+  if (npv0 >= 0) {
+    // TRI positif : chercher entre 0 et 500%
+    const npvHigh = npvAt(flux, 5)
+    if (npvHigh > 0) return 5  // TRI > 500%, cas extrême
+    return bisect(flux, 0, 5)
+  } else {
+    // TRI négatif : chercher entre -95% et 0
+    // On évite r proche de -100% pour éviter les problèmes numériques (1+r → 0)
+    const npvLow = npvAt(flux, -0.95)
+    if (npvLow < 0) return -0.95  // TRI < -95%, cas extrême
+    return bisect(flux, -0.95, 0)
   }
-
-  let low = -0.99
-  let high = 10.0
-  let mid = 0
-
-  for (let i = 0; i < 200; i++) {
-    mid = (low + high) / 2
-    const npvMid = npv(mid)
-    if (Math.abs(npvMid) < precision) break
-    if (npvMid * npv(low) < 0) {
-      high = mid
-    } else {
-      low = mid
-    }
-  }
-
-  return Math.round(mid * 10000) / 10000 // Précision 0.01%
 }
 
 /** Calcule la VAN (Valeur Actuelle Nette) */
