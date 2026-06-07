@@ -11,6 +11,15 @@ import { calculerImpotAnnee } from './fiscalite'
 import { genererVerdict, genererScenarios, scorerRisqueDpe } from './verdict'
 import { calculerFiscalitePlusValue } from './fiscalite'
 
+// Formateur sans toLocaleString pour éviter U+202F → '/' dans PDF Helvetica
+function fmtInt(n: number): string {
+  const abs = Math.abs(Math.round(n))
+  const s = abs.toString()
+  const parts: string[] = []
+  for (let i = s.length; i > 0; i -= 3) parts.unshift(s.slice(Math.max(0, i - 3), i))
+  return (n < 0 ? '-' : '') + parts.join(' ')
+}
+
 export function analyser(input: ProjectInput): ProjectAnalysis {
   // 1. Coût total d'acquisition
   const coutTotal = calculerCoutTotal(input.acquisition)
@@ -138,6 +147,7 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
       tri: tri2,
       van: van2,
       cashflowMensuelMoyen: Math.round(cf2),
+      patrimoineNet: dernierRow2?.patrimoineNet ?? 0,
     }
   })
 
@@ -363,7 +373,7 @@ function calculerStressTests(
     {
       label: '6 mois sans locataire',
       description: 'Vacance exceptionnelle (sinistre, travaux)',
-      impact: `Cash cumulé diminué de ${Math.round(pertePourVacance6Mois).toLocaleString('fr-FR')} €`,
+      impact: `Cash cumule diminue de ${fmtInt(pertePourVacance6Mois)} €`,
       valeur: Math.round(cfVacance),
       unite: '€ cumulé',
       severite: cfVacance < 0 ? 'severe' : 'modere',
@@ -379,7 +389,7 @@ function calculerStressTests(
     {
       label: 'Revente -1 pt/an de revalorisation',
       description: 'Marché immobilier moins favorable',
-      impact: `VAN = ${Math.round(van3).toLocaleString('fr-FR')} €`,
+      impact: `VAN = ${fmtInt(van3)} €`,
       valeur: Math.round(van3),
       unite: '€ VAN',
       severite: van3 < -50000 ? 'severe' : van3 < 0 ? 'modere' : 'faible',
@@ -616,7 +626,7 @@ function calculerScoreRobustesse(
     margeSecurite: scoreMarge,
     liquidite: scoreLiquidite,
     horizonDetention: scoreHorizon,
-    label: total >= 70 ? 'Très robuste' : total >= 50 ? 'Robuste' : total >= 30 ? 'Fragile' : 'Très fragile',
+    label: total >= 81 ? 'Très robuste' : total >= 66 ? 'Robuste' : total >= 51 ? 'Robustesse moyenne' : total >= 31 ? 'Fragile' : 'Très fragile',
   }
 }
 

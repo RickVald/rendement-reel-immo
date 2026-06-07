@@ -124,28 +124,48 @@ export function genererScenarios(
   kpis: SummaryKPIs,
   rows: YearlyRow[],
   inputBase: ProjectInput,
-  calculerKPIs: (overrides: Partial<ProjectInput>) => SummaryKPIs
+  calculerKPIs: (overrides: Partial<ProjectInput>) => SummaryKPIs & { patrimoineNet?: number }
 ): ScenarioResult[] {
+  const kpisPess = calculerKPIs({
+    location: {
+      ...inputBase.location,
+      vacanceLocativeMois: Math.min(12, inputBase.location.vacanceLocativeMois + 1.5),
+      revalorisation: Math.max(0, inputBase.location.revalorisation - 0.01),
+    },
+    charges: {
+      ...inputBase.charges,
+      augmentationAnnuellePct: inputBase.charges.augmentationAnnuellePct + 0.01,
+    },
+    revente: {
+      ...inputBase.revente,
+      revalorisationAnnuelle: Math.max(-0.01, inputBase.revente.revalorisationAnnuelle - 0.02),
+    },
+  })
+
+  const kpisOpt = calculerKPIs({
+    location: {
+      ...inputBase.location,
+      vacanceLocativeMois: Math.max(0, inputBase.location.vacanceLocativeMois - 0.5),
+      revalorisation: inputBase.location.revalorisation + 0.01,
+    },
+    charges: {
+      ...inputBase.charges,
+      augmentationAnnuellePct: Math.max(0, inputBase.charges.augmentationAnnuellePct - 0.005),
+    },
+    revente: {
+      ...inputBase.revente,
+      revalorisationAnnuelle: inputBase.revente.revalorisationAnnuelle + 0.01,
+    },
+  })
+
   const scenarios: ScenarioResult[] = [
     {
       label: 'Pessimiste' as const,
-      cashflowMensuel: 0,
-      ...calculerKPIs({
-        location: {
-          ...inputBase.location,
-          vacanceLocativeMois: Math.min(12, inputBase.location.vacanceLocativeMois + 1.5),
-          revalorisation: Math.max(0, inputBase.location.revalorisation - 0.01),
-        },
-        charges: {
-          ...inputBase.charges,
-          augmentationAnnuellePct: inputBase.charges.augmentationAnnuellePct + 0.01,
-        },
-        revente: {
-          ...inputBase.revente,
-          revalorisationAnnuelle: Math.max(-0.01, inputBase.revente.revalorisationAnnuelle - 0.02),
-        },
-      }),
-      patrimoineFinal: 0,
+      rendementNetNet: kpisPess.rendementNetNet,
+      cashflowMensuel: kpisPess.cashflowMensuelMoyen,
+      tri: kpisPess.tri,
+      van: kpisPess.van,
+      patrimoineFinal: kpisPess.patrimoineNet ?? 0,
     },
     {
       label: 'Central',
@@ -157,23 +177,11 @@ export function genererScenarios(
     },
     {
       label: 'Optimiste' as const,
-      cashflowMensuel: 0,
-      ...calculerKPIs({
-        location: {
-          ...inputBase.location,
-          vacanceLocativeMois: Math.max(0, inputBase.location.vacanceLocativeMois - 0.5),
-          revalorisation: inputBase.location.revalorisation + 0.01,
-        },
-        charges: {
-          ...inputBase.charges,
-          augmentationAnnuellePct: Math.max(0, inputBase.charges.augmentationAnnuellePct - 0.005),
-        },
-        revente: {
-          ...inputBase.revente,
-          revalorisationAnnuelle: inputBase.revente.revalorisationAnnuelle + 0.01,
-        },
-      }),
-      patrimoineFinal: 0,
+      rendementNetNet: kpisOpt.rendementNetNet,
+      cashflowMensuel: kpisOpt.cashflowMensuelMoyen,
+      tri: kpisOpt.tri,
+      van: kpisOpt.van,
+      patrimoineFinal: kpisOpt.patrimoineNet ?? 0,
     },
   ]
 
@@ -189,4 +197,12 @@ export function scorerRisqueDpe(dpe: string): number {
 }
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
-const eur = (v: number) => `${Math.round(v).toLocaleString('fr-FR')} €`
+// Manuel pour éviter U+202F (narrow no-break space) de toLocaleString → '/' dans PDF Helvetica
+function fmtNum(n: number): string {
+  const abs = Math.abs(Math.round(n))
+  const s = abs.toString()
+  const parts: string[] = []
+  for (let i = s.length; i > 0; i -= 3) parts.unshift(s.slice(Math.max(0, i - 3), i))
+  return (n < 0 ? '-' : '') + parts.join(' ')
+}
+const eur = (v: number) => `${fmtNum(v)} €`

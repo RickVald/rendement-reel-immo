@@ -173,7 +173,7 @@ export function RapportPDF({
               { q: 'Le rendement net-net est-il suffisant (>= 3 %) ?', v: pct(summary.rendementNetNet), ok: summary.rendementNetNet >= 0.03 },
               { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: pct(summary.tri), ok: summary.tri >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
-              { q: 'Le projet dépend-il de la revente ?',     v: summary.dependanceRevente ? 'Oui — risque' : 'Non — autonome', ok: !summary.dependanceRevente },
+              { q: 'Le projet dépend-il de la revente ?',     v: summary.dependanceRevente ? 'Oui — risque' : summary.tri < 0 ? 'Non, mais TRI negatif' : 'Non — autonome', ok: !summary.dependanceRevente && summary.tri >= 0 },
               { q: 'Le DPE crée-t-il un risque réglementaire ?', v: isFG ? `Oui — DPE ${input.bien.dpe}, risque location 2028` : `Non — DPE ${input.bien.dpe} conforme`, ok: !isFG },
               { q: 'L\'effort mensuel est-il supportable (< 300 €) ?', v: `${eur(summary.effortEpargne)}/mois`, ok: summary.effortEpargne < 300 },
               { q: 'Le plan de financement est-il cohérent ?', v: gapFinancement <= 0 ? 'Oui — apport suffisant' : `Ecart : ${eur(gapFinancement)} a couvrir`, ok: gapFinancement <= 0 },
@@ -230,7 +230,7 @@ export function RapportPDF({
                   <View style={S.card}>
                     {verdict.recommandations.slice(0, 3).map((r, i) => (
                       <View key={i} style={S.listItem}>
-                        <Text style={S.listBullet}>→</Text>
+                        <Text style={S.listBullet}>-</Text>
                         <Text style={S.listText}>{r}</Text>
                       </View>
                     ))}
@@ -297,9 +297,11 @@ export function RapportPDF({
                 arg: summary.dependanceRevente ? '"Bonne opération patrimoniale"' : '"Projet auto-financé"',
                 reel: summary.dependanceRevente
                   ? `TRI sans revente : negatif — le projet ne tient que si le bien se revalorise`
+                  : summary.tri < 0
+                  ? `Pas de dependance a la revente, mais TRI global reste negatif (${pct(summary.tri)}) — le projet detruit de la valeur`
                   : `Autonome : TRI positif meme sans plus-value de revente`,
-                ecart: summary.dependanceRevente ? 'Dependant revente' : 'Autonome',
-                bad: summary.dependanceRevente,
+                ecart: summary.dependanceRevente ? 'Dependant revente' : summary.tri < 0 ? 'TRI negatif' : 'Autonome',
+                bad: summary.dependanceRevente || summary.tri < 0,
               },
               ...(isFG ? [{
                 arg: `"DPE ${input.bien.dpe} gérable avec des travaux"`,
@@ -344,7 +346,7 @@ export function RapportPDF({
             {gapFinancement > 0 && (
               <View style={[S.alertBox, { marginTop: 8 }]}>
                 <Text style={S.alertText}>
-                  ⚠ Le plan de financement présente un écart de {eur(gapFinancement)} entre le cash total nécessaire
+                  ! Le plan de financement présente un écart de {eur(gapFinancement)} entre le cash total nécessaire
                   ({eur(summary.cashTotalNecessaire)}) et l'apport déclaré ({eur(input.financement.apport)}).
                   Cet écart doit être comblé par un apport complémentaire, une réduction des frais, ou une augmentation de l'emprunt.
                 </Text>
@@ -410,7 +412,7 @@ export function RapportPDF({
                   <Text style={S.cardTitle}>Recommandations</Text>
                   {verdict.recommandations.map((r, i) => (
                     <View key={i} style={S.listItem}>
-                      <Text style={S.listBullet}>→</Text>
+                      <Text style={S.listBullet}>-</Text>
                       <Text style={S.listText}>{r}</Text>
                     </View>
                   ))}
@@ -422,8 +424,8 @@ export function RapportPDF({
                 <View style={[S.card, { marginTop: 10 }]}>
                   <Text style={S.cardTitle}>Seuils de viabilité (point mort)</Text>
                   <HypRow label="Loyer pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois`} />
-                  <HypRow label="Prix max pour TRI >= 4 %" value={eur(pointMort.prixMaxPourTri4pct)} />
-                  <HypRow label="Prix max pour CF neutre" value={eur(pointMort.prixMaxPourCashflowNeutre)} />
+                  <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                  <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   <HypRow label="Travaux sup. max supportables" value={eur(pointMort.travauxMaxSupportables)} />
                   <HypRow label="Revente min pour VAN >= 0" value={eur(pointMort.reventeMinPourVanPositive)} />
                   <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} ans`} highlight />
@@ -454,12 +456,12 @@ export function RapportPDF({
                 {/* Score robustesse */}
                 <Text style={S.sectionTitle}>Score de robustesse</Text>
                 <View style={[S.verdictBanner, {
-                  backgroundColor: scoreRobustesse.total >= 70 ? '#ecfdf5' : scoreRobustesse.total >= 50 ? '#fffbeb' : scoreRobustesse.total >= 30 ? '#fff7ed' : '#fef2f2',
-                  borderColor: scoreRobustesse.total >= 70 ? COLORS.emerald : scoreRobustesse.total >= 50 ? COLORS.amber : COLORS.red,
+                  backgroundColor: scoreRobustesse.total >= 81 ? '#ecfdf5' : scoreRobustesse.total >= 66 ? '#f0fdf4' : scoreRobustesse.total >= 51 ? '#fffbeb' : scoreRobustesse.total >= 31 ? '#fff7ed' : '#fef2f2',
+                  borderColor: scoreRobustesse.total >= 81 ? COLORS.emerald : scoreRobustesse.total >= 66 ? COLORS.green : scoreRobustesse.total >= 51 ? COLORS.amber : COLORS.red,
                   borderWidth: 1, marginBottom: 10
                 }]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: scoreRobustesse.total >= 70 ? COLORS.emeraldDark : scoreRobustesse.total >= 50 ? '#78350f' : COLORS.red }}>
+                    <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: scoreRobustesse.total >= 66 ? COLORS.emeraldDark : scoreRobustesse.total >= 51 ? '#78350f' : COLORS.red }}>
                       {scoreRobustesse.label}
                     </Text>
                     <Text style={{ fontSize: 8, color: COLORS.slate500, marginTop: 2 }}>
@@ -544,7 +546,7 @@ export function RapportPDF({
                   duree={input.revente.dureeDetentionAns}
                 />
                 <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
-                  Hypothèse : Livret A à 1,5 % (taux Banque de France depuis fév. 2026). Alternatifs : capital initial + effort mensuel réinvestis au même taux annuel. Immo : patrimoine net à la revente (scénario central). Ces projections ne constituent pas un conseil en investissement.
+                  * Placement securise : hypothese theorique de placement au taux du Livret A (1,5 %/an, Banque de France fev. 2026), sans prise en compte des plafonds reglementaires (23 950 EUR pour un Livret A). Alternatifs : capital + effort mensuel reinvestis au meme taux. Immo : patrimoine net a la revente (scenario central). Ces projections ne constituent pas un conseil en investissement.
                 </Text>
               </View>
             </View>
@@ -673,7 +675,7 @@ export function RapportPDF({
             {input.location.type === 'nue' && (
               <View style={[S.alertBox, { marginBottom: 10, backgroundColor: '#fffbeb', borderColor: COLORS.amber }]}>
                 <Text style={[S.alertText, { color: '#92400e' }]}>
-                  ⚠ Les régimes LMNP (micro-BIC et réel) supposent une location MEUBLÉE — bail, mobilier réglementaire,
+                  ! Les régimes LMNP (micro-BIC et réel) supposent une location MEUBLÉE — bail, mobilier réglementaire,
                   comptabilité LMNP. Ils ne sont pas applicables au projet tel que saisi (location nue).
                   Ces colonnes sont affichées à titre d'information sur le gain potentiel d'un changement d'exploitation,
                   pas comme régimes directement accessibles. De plus, la réintégration des amortissements à la revente
@@ -699,21 +701,34 @@ export function RapportPDF({
                   <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isSelected ? { borderLeftWidth: 3, borderLeftColor: COLORS.indigo } : {}]}>
                     <View style={[S.tableCell, { flex: 2.5, flexDirection: 'column' }]}>
                       <Text style={[{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: isOptimal ? COLORS.emerald : COLORS.slate700 }]}>{REGIME_SHORT[r.regime]}</Text>
-                      {isSelected && <Text style={{ fontSize: 5.5, color: COLORS.indigo }}>◀ régime retenu</Text>}
-                      {isOptimal && !isSelected && <Text style={{ fontSize: 5.5, color: COLORS.emerald }}>★ optimal simulé</Text>}
+                      {isSelected && <Text style={{ fontSize: 5.5, color: COLORS.indigo }}>&lt; regime retenu</Text>}
+                      {isOptimal && !isSelected && <Text style={{ fontSize: 5.5, color: COLORS.emerald }}>* meilleure option</Text>}
                     </View>
                     <Text style={[S.tableCell, { color: COLORS.red, fontFamily: 'Helvetica-Bold' }]}>{eur(r.impotsCumules20ans)}</Text>
                     <Text style={[S.tableCell, r.cashflowMensuelMoyen >= 0 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Helvetica-Bold' }]}>{sign(r.cashflowMensuelMoyen)}</Text>
                     <Text style={[S.tableCell, r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Helvetica-Bold' }]}>{pct(r.tri)}</Text>
                     <Text style={[S.tableCell, r.van > 0 ? S.tableCellGood : S.tableCellBad]}>{eur(r.van)}</Text>
                     <Text style={[S.tableCell, r.rendementNetNet >= 0.03 ? S.tableCellGood : S.tableCellBad]}>{pct(r.rendementNetNet)}</Text>
-                    <Text style={[S.tableCell, { fontFamily: 'Helvetica-Bold' }, r.verdict === 'optimal' ? S.tableCellGood : r.verdict === 'défavorable' ? S.tableCellBad : {}]}>
-                      {r.verdict === 'optimal' ? '★ Optimal' : r.verdict === 'bon' ? 'Bon' : r.verdict === 'correct' ? 'Correct' : 'Défavorable'}
+                    <Text style={[S.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 6.5 }, r.verdict === 'optimal' ? S.tableCellGood : r.verdict === 'défavorable' ? S.tableCellBad : {}]}>
+                      {r.verdict === 'optimal'
+                        ? (comparaisonsRegimes.every(x => x.van < 0) ? 'Moins defavorable' : 'Meilleur')
+                        : r.verdict === 'bon' ? 'Moins def.'
+                        : r.verdict === 'correct' ? 'Neutre'
+                        : 'Defavorable'}
                     </Text>
                   </View>
                 )
               })}
             </View>
+
+            {/* Note contexte verdicts */}
+            {comparaisonsRegimes.every(x => x.van < 0) && (
+              <View style={[S.alertBox, { marginTop: 6, marginBottom: 4 }]}>
+                <Text style={[S.alertText, { fontStyle: 'italic' }]}>
+                  ! Tous les regimes presentent une VAN negative dans ce projet. Le verdict "Moins defavorable" designe le regime le moins penalisant — pas un regime rentable. Un changement de regime fiscal ne suffit pas a rendre ce projet viable.
+                </Text>
+              </View>
+            )}
 
             {/* Description des régimes */}
             <View style={{ marginTop: 16 }}>
@@ -815,7 +830,7 @@ export function RapportPDF({
           {isFG && (
             <View style={[S.alertBox, { marginTop: 8 }]}>
               <Text style={S.alertText}>
-                ⚠ DPE {input.bien.dpe} — Gel des loyers applicable depuis 2022 pour les biens F/G (loi Climat 2021).
+                ! DPE {input.bien.dpe} — Gel des loyers applicable depuis 2022 pour les biens F/G (loi Climat 2021).
                 Interdiction de louer les DPE G depuis le 1er janvier 2025. Les DPE F seront interdits à partir de 2028,
                 les DPE E à partir de 2034. Des travaux de rénovation énergétique seront obligatoires. La revalorisation annuelle
                 des loyers appliquée dans cette simulation (+{pct(input.location.revalorisation)}/an) peut être juridiquement fragile
@@ -879,7 +894,7 @@ export function RapportPDF({
           {gapFinancement > 0 && (
             <View style={[S.alertBox, { marginBottom: 10 }]}>
               <Text style={S.alertText}>
-                ⚠ Ecart de financement : {eur(gapFinancement)} entre le cash total nécessaire ({eur(summary.cashTotalNecessaire)})
+                ! Ecart de financement : {eur(gapFinancement)} entre le cash total nécessaire ({eur(summary.cashTotalNecessaire)})
                 et l'apport déclaré ({eur(input.financement.apport)}). Ce montant doit être prévu.
               </Text>
             </View>
@@ -988,8 +1003,8 @@ export function RapportPDF({
                 <View style={{ flexDirection: 'row', gap: 16 }}>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Loyer minimum pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois (actuel : ${eur(input.location.loyerMensuelHC)}/mois)`} />
-                    <HypRow label="Prix max pour TRI >= 4 %" value={eur(pointMort.prixMaxPourTri4pct)} />
-                    <HypRow label="Prix max pour CF neutre" value={eur(pointMort.prixMaxPourCashflowNeutre)} />
+                    <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                    <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Travaux sup. max sans dégrader le TRI" value={eur(pointMort.travauxMaxSupportables)} />
@@ -1047,7 +1062,7 @@ export function RapportPDF({
             <View style={[S.card, { marginBottom: 14 }]}>
               {(ai.conseils_negociation ?? []).map((c, i) => (
                 <View key={i} style={S.listItem}>
-                  <Text style={[S.listBullet, S.listBulletArrow]}>→</Text>
+                  <Text style={[S.listBullet, S.listBulletArrow]}>-</Text>
                   <Text style={S.listText}>{sanitize(c)}</Text>
                 </View>
               ))}
@@ -1226,7 +1241,7 @@ export function RapportPDF({
                           : row.annee < travauxDpeAn
                           ? `Gel loyers (${input.bien.dpe})`
                           : row.annee === travauxDpeAn
-                          ? 'Travaux → DPE amélioré'
+                          ? 'Travaux DPE ameliores'
                           : 'Revalorisation normale'
                       return (
                         <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
@@ -1286,7 +1301,7 @@ export function RapportPDF({
                   <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                     <Text style={[S.tableCell, { flex: 3, fontSize: 7 }]}>{item.point}</Text>
                     <Text style={[S.tableCell, { flex: 1, fontFamily: 'Helvetica-Bold', fontSize: 7 }, item.done ? S.tableCellGood : { color: COLORS.slate400 }]}>
-                      {item.done ? '✓ Oui' : '○ A vérif.'}
+                      {item.done ? 'Oui' : 'A verif.'}
                     </Text>
                   </View>
                 ))}
@@ -1320,8 +1335,8 @@ export function RapportPDF({
                         <Text style={[S.tableCell, { flex: 1, fontSize: 6.5, fontFamily: 'Helvetica-Bold' }, { color: fiabColor }]}>
                           {nc.fiabilite === 'élevée' ? '●● Elevee'
                             : nc.fiabilite === 'moyenne' ? '● Moyenne'
-                            : nc.fiabilite === 'à vérifier' ? '○ A verif.'
-                            : '△ Estimee'}
+                            : nc.fiabilite === 'à vérifier' ? 'A verif.'
+                            : '~ Estimee'}
                         </Text>
                       </View>
                     )
@@ -1362,7 +1377,7 @@ export function RapportPDF({
                 <Text style={S.listText}>
                   Methode de bissection appliquee aux flux de tresorerie annuels (cash-flows + produit net de revente),
                   taux qui annule la VAN. Investissement initial = cout total - emprunt.
-                  Precision : 0,0001 %. 100 iterations max. Plus-value calculee sur la valeur estimee du bien.
+                  Precision : 0,0001 %. 100 iterations max. Plus-value brute estimee sur la valeur revalorisant du bien ; fiscalite de plus-value immobiliere integree (abattements progressifs 6%/an de la 6e a la 21e annee, exoneration apres 22 ans pour IR).
                 </Text>
               </View>
               <View style={S.card}>
@@ -1393,8 +1408,8 @@ export function RapportPDF({
                 <Text style={[S.listText, { marginBottom: 2 }]}>Version moteur de calcul : 2.0 — Juin 2026</Text>
                 <Text style={[S.listText, { marginBottom: 2 }]}>Referentiel fiscal : 2025-2026 (PS : 17,2 %)</Text>
                 <Text style={[S.listText, { marginBottom: 2 }]}>DPE : Loi Climat 2021 — decences energetiques 2025/2028/2034</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Plus-value de cession : non calculee (regimes reels propres a chaque situation)</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Amortissements LMNP : non reintegres a la revente dans ce rapport</Text>
+                <Text style={[S.listText, { marginBottom: 2 }]}>Plus-value brute : estimee selon valeur revalorisant + fiscalite abattements IR (6 %/an de la 6e a la 21e annee)</Text>
+                <Text style={[S.listText, { marginBottom: 2 }]}>Reintagration amortissements LMNP reel : non calculee (specifique a chaque situation patrimoniale)</Text>
                 <Text style={S.listText}>Tous les chiffres sont arrondis a l'euro pres. Credit : amortissement a la francaise.</Text>
               </View>
             </View>

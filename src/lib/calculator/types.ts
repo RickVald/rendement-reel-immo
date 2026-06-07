@@ -210,7 +210,7 @@ export interface ScoreRobustesse {
   margeSecurite: number       // /10
   liquidite: number           // /10
   horizonDetention: number    // /5
-  label: 'Très robuste' | 'Robuste' | 'Fragile' | 'Très fragile'
+  label: 'Très robuste' | 'Robuste' | 'Robustesse moyenne' | 'Fragile' | 'Très fragile'
 }
 
 export interface NiveauConfiance {
