@@ -46,7 +46,7 @@ export function calculerTRIParAnnee(
       sousEnsemble,
       row.produitNetReventePotentiel
     )
-    return { ...row, triSiRevente: tri }
+    return { ...row, triSiReventeAnnee: tri }
   })
 }
 

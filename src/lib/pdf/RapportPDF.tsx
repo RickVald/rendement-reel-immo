@@ -240,19 +240,6 @@ export function RapportPDF({
             </View>
           </View>
 
-          {/* Alertes */}
-          {verdict.alertes.length > 0 && (
-            <View>
-              <Text style={S.subTitle}>Points d'attention critiques</Text>
-              {verdict.alertes.map((a, i) => (
-                <View key={i} style={S.alertBox}>
-                  <Text style={{ fontSize: 8, color: COLORS.amber }}>!</Text>
-                  <Text style={S.alertText}>{a}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
         </View>
         <PageFooter />
       </Page>
@@ -871,46 +858,8 @@ export function RapportPDF({
             ))}
           </View>
 
-          {gapFinancement > 0 && (
-            <View style={[S.alertBox, { marginBottom: 10 }]}>
-              <Text style={S.alertText}>
-                ⚠ Ecart de financement : {eur(gapFinancement)} entre le cash total nécessaire ({eur(summary.cashTotalNecessaire)})
-                et l'apport déclaré ({eur(input.financement.apport)}). Ce montant doit être prévu.
-              </Text>
-            </View>
-          )}
-
-          <Text style={S.sectionTitle}>Tableau de dette annuel</Text>
-          <View style={S.table}>
-            <View style={S.tableHeader}>
-              {['Année','Mensualités versées','dont Intérêts','dont Assurance','Capital remboursé','Capital restant dû'].map((h,i)=>(
-                <Text key={i} style={S.tableHeaderCell}>{h}</Text>
-              ))}
-            </View>
-            {yearlyTable.map((row, i) => {
-              const assur = row.mensualitesAnnuelles - row.interetsAnnuels - row.capitalRembourseAnnuel
-              return (
-                <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                  <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
-                  <Text style={S.tableCell}>{fmt(row.mensualitesAnnuelles)}</Text>
-                  <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.interetsAnnuels)}</Text>
-                  <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(Math.max(0, assur))}</Text>
-                  <Text style={[S.tableCell, S.tableCellGood]}>{fmt(row.capitalRembourseAnnuel)}</Text>
-                  <Text style={[S.tableCell, S.tableCellBold]}>{fmt(row.capitalRestantDu)}</Text>
-                </View>
-              )
-            })}
-            <View style={[S.tableRow, S.tableRowTotal]}>
-              <Text style={[S.tableCell, S.tableCellBold]}>Total</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+r.mensualitesAnnuelles,0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+r.interetsAnnuels,0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+Math.max(0,r.mensualitesAnnuelles-r.interetsAnnuels-r.capitalRembourseAnnuel),0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+r.capitalRembourseAnnuel,0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>—</Text>
-            </View>
-          </View>
-
-          <View style={[S.card, { marginTop: 10 }]}>
+          {/* Effort mensuel — avant le tableau pour éviter les pages quasi-vides */}
+          <View style={[S.card, { marginBottom: 10 }]} wrap={false}>
             <Text style={S.cardTitle}>Effort mensuel réel</Text>
             <View style={{ flexDirection: 'row', gap: 16 }}>
               <View style={{ flex: 1 }}>
@@ -925,6 +874,50 @@ export function RapportPDF({
                 <HypRow label="Différé de remboursement" value={input.financement.differePeriode === 'aucun' ? 'Aucun' : `${input.financement.differePeriode} — ${input.financement.dureesDiffere} mois`} />
               </View>
             </View>
+          </View>
+
+          {gapFinancement > 0 && (
+            <View style={[S.alertBox, { marginBottom: 10 }]}>
+              <Text style={S.alertText}>
+                ⚠ Ecart de financement : {eur(gapFinancement)} entre le cash total nécessaire ({eur(summary.cashTotalNecessaire)})
+                et l'apport déclaré ({eur(input.financement.apport)}). Ce montant doit être prévu.
+              </Text>
+            </View>
+          )}
+
+          <Text style={S.sectionTitle}>Tableau de dette annuel</Text>
+          <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 6 }}>
+            Années 1–10 + milestones (15, 20). Tableau complet sur 20 ans disponible sur demande.
+          </Text>
+          <View style={S.table}>
+            <View style={S.tableHeader}>
+              {['Année','Mensualités versées','dont Intérêts','dont Assurance','Capital remboursé','Capital restant dû'].map((h,i)=>(
+                <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+              ))}
+            </View>
+            {yearlyTable
+              .filter(row => row.annee <= 10 || row.annee === 15 || row.annee === yearlyTable.length)
+              .map((row, i) => {
+              const assur = row.mensualitesAnnuelles - row.interetsAnnuels - row.capitalRembourseAnnuel
+              return (
+                <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                  <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
+                  <Text style={S.tableCell}>{fmt(row.mensualitesAnnuelles)}</Text>
+                  <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.interetsAnnuels)}</Text>
+                  <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(Math.max(0, assur))}</Text>
+                  <Text style={[S.tableCell, S.tableCellGood]}>{fmt(row.capitalRembourseAnnuel)}</Text>
+                  <Text style={[S.tableCell, S.tableCellBold]}>{fmt(row.capitalRestantDu)}</Text>
+                </View>
+              )
+            })}
+          </View>
+          {/* Totaux crédit en ligne courte sous le tableau — évite une page quasi-vide */}
+          <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }} wrap={false}>
+            <Text style={{ fontSize: 7, color: COLORS.slate500, flex: 1 }}>
+              Total mensualités versées : <Text style={{ fontFamily: 'Helvetica-Bold', color: COLORS.slate700 }}>{eur(yearlyTable.reduce((s,r)=>s+r.mensualitesAnnuelles,0))}</Text>
+              {' · '}dont intérêts : <Text style={{ fontFamily: 'Helvetica-Bold', color: COLORS.red }}>{eur(yearlyTable.reduce((s,r)=>s+r.interetsAnnuels,0))}</Text>
+              {' · '}Capital remboursé : <Text style={{ fontFamily: 'Helvetica-Bold', color: COLORS.emerald }}>{eur(yearlyTable.reduce((s,r)=>s+r.capitalRembourseAnnuel,0))}</Text>
+            </Text>
           </View>
 
         </View>
@@ -1182,13 +1175,25 @@ export function RapportPDF({
           </View>
 
           {(input.travauxFuturs.travauxRecurrentsAnnuels > 0 || input.travauxFuturs.grosTravauxItems.length > 0 || input.travauxFuturs.travauxDpeMontant) && (
-            <View style={S.card}>
-              <Text style={S.cardTitle}>8. Travaux futurs</Text>
+            <View style={S.card} wrap={false}>
+              <Text style={S.cardTitle}>8. Travaux futurs & Calendrier DPE</Text>
               <View style={{ flexDirection: 'row', gap: 16 }}>
                 <View style={{ flex: 1 }}>
                   <HypRow label="Travaux récurrents annuels" value={eur(input.travauxFuturs.travauxRecurrentsAnnuels)} />
                   {input.travauxFuturs.travauxDpeAnnee && (
-                    <HypRow label={`Travaux DPE (an ${input.travauxFuturs.travauxDpeAnnee})`} value={eur(input.travauxFuturs.travauxDpeMontant ?? 0)} />
+                    <HypRow label={`Travaux DPE prévus (année ${input.travauxFuturs.travauxDpeAnnee})`} value={eur(input.travauxFuturs.travauxDpeMontant ?? 0)} highlight />
+                  )}
+                  {input.travauxFuturs.travauxDpeAnnee && (
+                    <HypRow label="Impact modélisé" value="Travaux intégrés dans CF an " />
+                  )}
+                  {isFG && (
+                    <>
+                      <HypRow label="Gel des loyers F/G depuis" value="Août 2022 (loi Climat 2021)" />
+                      <HypRow label={`Interdiction location DPE ${input.bien.dpe}`} value={input.bien.dpe === 'G' ? 'Depuis 1er jan. 2025' : 'À partir du 1er jan. 2028'} />
+                      <HypRow label="Comportement sans travaux" value={input.bien.dpe === 'G' ? 'Loyers = 0 dès an 1' : 'Loyers = 0 à partir an 3'} />
+                      <HypRow label="Revalorisation avant travaux" value="Gelée (0 %/an)" />
+                      <HypRow label="Revalorisation après travaux" value={`${pct(input.location.revalorisation)}/an (reprend)`} />
+                    </>
                   )}
                 </View>
                 {input.travauxFuturs.grosTravauxItems.length > 0 && (
@@ -1199,6 +1204,47 @@ export function RapportPDF({
                   </View>
                 )}
               </View>
+
+              {/* Tableau d'impact DPE sur les loyers (5 premières années) */}
+              {isFG && yearlyTable.length > 0 && (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={[S.cardTitle, { marginBottom: 4 }]}>Impact DPE sur les encaissements (5 premières années)</Text>
+                  <View style={S.table}>
+                    <View style={S.tableHeader}>
+                      <Text style={[S.tableHeaderCell, { flex: 0.6 }]}>An</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 2 }]}>Statut DPE</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>Loyers encaissés</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>Travaux DPE</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>Cash-flow</Text>
+                    </View>
+                    {yearlyTable.slice(0, 5).map((row, i) => {
+                      const travauxDpeAn = input.travauxFuturs.travauxDpeAnnee ?? Infinity
+                      const anneeInterdiction = input.bien.dpe === 'G' ? 1 : 3
+                      const statutDpe =
+                        row.annee < travauxDpeAn && row.annee >= anneeInterdiction
+                          ? 'Location interdite'
+                          : row.annee < travauxDpeAn
+                          ? `Gel loyers (${input.bien.dpe})`
+                          : row.annee === travauxDpeAn
+                          ? 'Travaux → DPE amélioré'
+                          : 'Revalorisation normale'
+                      return (
+                        <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                          <Text style={[S.tableCell, { flex: 0.6 }]}>{row.annee}</Text>
+                          <Text style={[S.tableCell, { flex: 2, fontSize: 7 }]}>{statutDpe}</Text>
+                          <Text style={[S.tableCell, { flex: 1.2 }]}>{eur(row.loyersEncaisses)}</Text>
+                          <Text style={[S.tableCell, { flex: 1.2, color: row.travauxAnnee > 0 ? COLORS.red : COLORS.slate700 }]}>
+                            {row.travauxAnnee > 0 ? `-${eur(row.travauxAnnee)}` : '—'}
+                          </Text>
+                          <Text style={[S.tableCell, { flex: 1.2, color: row.cashflowAnnuel < 0 ? COLORS.red : COLORS.green }]}>
+                            {sign(row.cashflowAnnuel)}
+                          </Text>
+                        </View>
+                      )
+                    })}
+                  </View>
+                </View>
+              )}
             </View>
           )}
         </View>
