@@ -645,3 +645,115 @@ function genererNiveauxConfiance(input: ProjectInput): NiveauConfiance[] {
 
 export { calculerCoutTotal, estimerFraisNotaire } from './cashflow'
 export type { ProjectInput, ProjectAnalysis } from './types'
+
+// ─── Validation automatique des cohérences du moteur ────────────────────────
+// Ces tests servent à détecter tout bug de calcul AVANT génération du PDF.
+// Retourne un tableau d'erreurs (vide = tout est cohérent).
+
+export interface ValidationResult {
+  passed: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+export function validerAnalyse(a: import('./types').ProjectAnalysis): ValidationResult {
+  const errors: string[] = []
+  const warnings: string[] = []
+  const { input, summary, yearlyTable, creditSchedule } = a
+
+  // ── Tests bloquants : cohérence arithmétique fondamentale ─────────────────
+
+  // Test 1 — Coût total (tolérance 5% car arrondi des frais de notaire peut varier)
+  const coutAttendu = calculerCoutTotal(input.acquisition)
+  if (Math.abs(summary.coutTotalAcquisition - coutAttendu) / Math.max(coutAttendu, 1) > 0.05) {
+    errors.push(`Cout total incohérent : summary=${summary.coutTotalAcquisition} vs recalculé=${Math.round(coutAttendu)} (écart > 5%)`)
+  }
+
+  // Test 2 — Cash nécessaire = coût total - emprunt (tolérance 5%)
+  const cashAttendu = coutAttendu - input.financement.montantEmprunte
+  if (Math.abs(summary.cashTotalNecessaire - cashAttendu) / Math.max(Math.abs(cashAttendu), 1) > 0.05) {
+    errors.push(`Cash nécessaire incohérent : summary=${summary.cashTotalNecessaire} vs attendu=${Math.round(cashAttendu)} (écart > 5%)`)
+  }
+
+  // Test 3 — Capital restant dû décroissant (ne peut pas augmenter)
+  if (yearlyTable.length > 1) {
+    for (let i = 1; i < yearlyTable.length; i++) {
+      const prev = yearlyTable[i - 1].capitalRestantDu
+      const curr = yearlyTable[i].capitalRestantDu
+      if (curr > prev + 100) {   // tolérance 100€ pour arrondis
+        errors.push(`Capital restant dû croissant à l'année ${i + 1} : ${prev} -> ${curr}`)
+        break
+      }
+    }
+  }
+
+  // Test 4 — Cashflow cumulé = somme des cashflows annuels (tolérance 1%)
+  const sommeCf = yearlyTable.reduce((s, r) => s + r.cashflowAnnuel, 0)
+  const cfCumuleFinal = yearlyTable[yearlyTable.length - 1]?.cashflowCumule ?? 0
+  const cfTol = Math.max(Math.abs(cfCumuleFinal) * 0.01, 100)
+  if (Math.abs(sommeCf - cfCumuleFinal) > cfTol) {
+    errors.push(`Cashflow cumulé incohérent : somme=${Math.round(sommeCf)} vs dernière ligne=${cfCumuleFinal} (écart > 1%)`)
+  }
+
+  // ── Avertissements : qualité des données ────────────────────────────────────
+
+  // Avert 1 — Mensualité crédit (formule annuité constante, tolérance 5%)
+  if (input.financement.montantEmprunte > 0 && input.financement.dureeCredit > 0) {
+    const r = input.financement.tauxNominal / 12
+    const n = input.financement.dureeCredit
+    const mensAttendue = r > 0
+      ? input.financement.montantEmprunte * r / (1 - Math.pow(1 + r, -n))
+      : input.financement.montantEmprunte / n
+    const assurance = input.financement.montantEmprunte * input.financement.tauxAssurance / 12
+    const mensAttendueTotale = mensAttendue + assurance
+    if (Math.abs(creditSchedule.mensualiteTotale - mensAttendueTotale) / mensAttendueTotale > 0.05) {
+      warnings.push(`Mensualité crédit : reçue=${creditSchedule.mensualiteTotale.toFixed(0)}€ vs formule=${mensAttendueTotale.toFixed(0)}€ (écart > 5%)`)
+    }
+  }
+
+  // Avert 2 — Travaux DPE visibles dans le tableau
+  if (input.travauxFuturs.travauxDpeAnnee && input.travauxFuturs.travauxDpeMontant) {
+    const annee = input.travauxFuturs.travauxDpeAnnee
+    const row = yearlyTable.find(r => r.annee === annee)
+    if (row && row.travauxAnnee < input.travauxFuturs.travauxDpeMontant * 0.9) {
+      warnings.push(`Travaux DPE (${input.travauxFuturs.travauxDpeMontant}€) a l'année ${annee} non visibles dans le tableau (travauxAnnee=${row.travauxAnnee})`)
+    }
+  }
+
+  // Avert 3 — Valeur bien croissante (si revalorisation > 0)
+  if (input.revente.revalorisationAnnuelle > 0 && yearlyTable.length > 1) {
+    const v1 = yearlyTable[0].valeurEstimeeBien
+    const vN = yearlyTable[yearlyTable.length - 1].valeurEstimeeBien
+    if (vN <= v1) {
+      warnings.push(`Valeur du bien non croissante : an1=${v1} -> an${yearlyTable.length}=${vN} malgré revalorisation ${input.revente.revalorisationAnnuelle * 100}%`)
+    }
+  }
+
+  // Avert 4 — Loyers annuels croissants (si pas DPE F/G et revalorisation > 0)
+  const isDpeFG = ['F', 'G'].includes(input.bien.dpe)
+  if (!isDpeFG && input.location.revalorisation > 0 && yearlyTable.length > 1) {
+    const l1 = yearlyTable[0].loyersTheoriques
+    const lN = yearlyTable[yearlyTable.length - 1].loyersTheoriques
+    if (lN <= l1) {
+      warnings.push(`Loyers non croissants : an1=${l1} -> an${yearlyTable.length}=${lN} malgré revalorisation ${input.location.revalorisation * 100}%`)
+    }
+  }
+
+  // Avert 5 — DPE F/G : loyers bloqués à 0 après l'année d'interdiction (si pas de travaux)
+  if (isDpeFG && !input.travauxFuturs.travauxDpeAnnee) {
+    const ANNEE_ACHAT = new Date().getFullYear()
+    const anneeInterdiction = input.bien.dpe === 'G'
+      ? Math.max(1, 2025 - ANNEE_ACHAT + 1)
+      : Math.max(1, 2028 - ANNEE_ACHAT + 1)
+    const rowInterdiction = yearlyTable.find(r => r.annee === anneeInterdiction)
+    if (rowInterdiction && rowInterdiction.loyersEncaisses > 0) {
+      warnings.push(`DPE ${input.bien.dpe} : loyers non nuls a l'année ${anneeInterdiction} (interdiction de location non modélisée)`)
+    }
+  }
+
+  return {
+    passed: errors.length === 0,
+    errors,
+    warnings,
+  }
+}

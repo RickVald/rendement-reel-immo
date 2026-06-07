@@ -19,16 +19,66 @@ export function genererTableauAnnuel(
   const rows: YearlyRow[] = []
   const duree = revente.dureeDetentionAns
 
+  // ── DPE F/G — gel des loyers + interdiction de location ──────────────────
+  // Loi Énergie-Climat 2021 et décrets d'application :
+  //   - Gel des loyers F/G en vigueur depuis août 2022 (revalorisation = 0 avant travaux)
+  //   - DPE G : interdiction de louer depuis le 1er janvier 2025
+  //   - DPE F : interdiction de louer à partir du 1er janvier 2028
+  const ANNEE_ACHAT = new Date().getFullYear()
+  const isDpeG = input.bien.dpe === 'G'
+  const isDpeF = input.bien.dpe === 'F'
+  const isDpeFG = isDpeF || isDpeG
+  const travauxDpeAnneeOk: number = input.travauxFuturs.travauxDpeAnnee ?? Infinity
+
+  // Première année (1-basée) où la location devient illégale sans travaux
+  // Si l'année calculée est ≤ 0, l'interdiction est immédiate (dès l'année 1)
+  const anneeInterdiction: number = isDpeG
+    ? Math.max(1, 2025 - ANNEE_ACHAT + 1)   // 2025 → an 1 si achat 2026
+    : isDpeF
+    ? Math.max(1, 2028 - ANNEE_ACHAT + 1)   // 2028 → an 3 si achat 2026
+    : Infinity
+  // ─────────────────────────────────────────────────────────────────────────
+
   let cashflowCumule = 0
   let deficitFoncierRestant = fiscalite.deficitFoncierDisponible
 
   for (let annee = 1; annee <= duree; annee++) {
     // ── Loyers ──
-    const revalorisation = Math.pow(1 + location.revalorisation, annee - 1)
-    const loyersTheorique = location.loyerMensuelHC * 12 * revalorisation
-    const vacanceEuros = location.loyerMensuelHC * revalorisation * location.vacanceLocativeMois
-    const impayesEuros = loyersTheorique * location.tauxImpayes
-    const loyersEncaisses = loyersTheorique - vacanceEuros - impayesEuros
+
+    // Facteur de revalorisation :
+    //  - DPE F/G avant travaux → gel (facteur = 1.0)
+    //  - DPE F/G après travaux → reprise depuis l'année des travaux
+    //  - Autres → croissance normale depuis l'année 1
+    let revalorFactor: number
+    if (isDpeFG) {
+      if (annee < travauxDpeAnneeOk) {
+        revalorFactor = 1.0                                                    // gel loyers
+      } else {
+        revalorFactor = Math.pow(1 + location.revalorisation, annee - travauxDpeAnneeOk)
+      }
+    } else {
+      revalorFactor = Math.pow(1 + location.revalorisation, annee - 1)
+    }
+
+    const loyersTheorique = location.loyerMensuelHC * 12 * revalorFactor
+
+    // Interdiction de louer : bien classé F/G, année ≥ seuil légal, travaux non encore réalisés
+    const locationInterdite = isDpeFG && annee >= anneeInterdiction && annee < travauxDpeAnneeOk
+
+    let vacanceEuros: number
+    let impayesEuros: number
+    let loyersEncaisses: number
+
+    if (locationInterdite) {
+      // Bien interdit à la location : 0 € encaissé, toute la perte = "vacance forcée"
+      vacanceEuros   = loyersTheorique
+      impayesEuros   = 0
+      loyersEncaisses = 0
+    } else {
+      vacanceEuros   = location.loyerMensuelHC * revalorFactor * location.vacanceLocativeMois
+      impayesEuros   = loyersTheorique * location.tauxImpayes
+      loyersEncaisses = loyersTheorique - vacanceEuros - impayesEuros
+    }
 
     // ── Charges locatives ──
     const augCharge = Math.pow(1 + charges.augmentationAnnuellePct, annee - 1)

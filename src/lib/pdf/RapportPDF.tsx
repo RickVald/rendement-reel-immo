@@ -544,19 +544,20 @@ export function RapportPDF({
                 />
 
                 {/* Comparaison placements */}
-                <Text style={[S.sectionTitle, { marginTop: 12 }]}>Comparaison placements alternatifs</Text>
+                <Text style={[S.sectionTitle, { marginTop: 12 }]}>Arbitrage patrimonial — même effort, placements différents</Text>
                 <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 4 }}>
-                  Valeur finale de l'apport ({eur(input.financement.apport)}) placé sur {input.revente.dureeDetentionAns} ans
+                  Cash total : {eur(summary.cashTotalNecessaire)} + effort mensuel {eur(summary.effortEpargne)}/mois sur {input.revente.dureeDetentionAns} ans — valeur finale estimée
                 </Text>
                 <ComparaisonPlacementsChart
                   tri={summary.tri}
                   rendementAlternatif={input.revente.rendementAlternatif}
-                  apport={input.financement.apport}
+                  cashNecessaire={summary.cashTotalNecessaire}
+                  effortEpargne={summary.effortEpargne}
+                  patrimoineFinal={scenarios?.find(s => s.label === 'Central')?.patrimoineFinal ?? 0}
                   duree={input.revente.dureeDetentionAns}
-                  cashflowCumule={summary.cashflowCumule}
                 />
                 <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
-                  Note : la comparaison porte uniquement sur l'apport investi, sans les loyers. TRI immo = {pct(summary.tri)}.
+                  Hypothèse : Livret A à 1,5 % (taux Banque de France depuis fév. 2026). Alternatifs : capital initial + effort mensuel réinvestis au même taux annuel. Immo : patrimoine net à la revente (scénario central). Ces projections ne constituent pas un conseil en investissement.
                 </Text>
               </View>
             </View>
@@ -677,10 +678,22 @@ export function RapportPDF({
           <View style={S.body}>
 
             <Text style={S.sectionTitle}>Simulation automatique des régimes fiscaux applicables</Text>
-            <Text style={{ fontSize: 7.5, color: COLORS.slate500, marginBottom: 12, lineHeight: 1.5 }}>
+            <Text style={{ fontSize: 7.5, color: COLORS.slate500, marginBottom: 6, lineHeight: 1.5 }}>
               Chaque régime est simulé avec les mêmes hypothèses de revenus, charges, crédit et revente.
               Les résultats dépendent de votre éligibilité réelle. Validation par un expert-comptable recommandée.
             </Text>
+            {/* Avertissement LMNP — mode d'exploitation différent */}
+            {input.location.type === 'nue' && (
+              <View style={[S.alertBox, { marginBottom: 10, backgroundColor: '#fffbeb', borderColor: COLORS.amber }]}>
+                <Text style={[S.alertText, { color: '#92400e' }]}>
+                  ⚠ Les régimes LMNP (micro-BIC et réel) supposent une location MEUBLÉE — bail, mobilier réglementaire,
+                  comptabilité LMNP. Ils ne sont pas applicables au projet tel que saisi (location nue).
+                  Ces colonnes sont affichées à titre d'information sur le gain potentiel d'un changement d'exploitation,
+                  pas comme régimes directement accessibles. De plus, la réintégration des amortissements à la revente
+                  (régime LMNP réel) n'est pas calculée ici et peut réduire significativement l'avantage affiché.
+                </Text>
+              </View>
+            )}
 
             <View style={S.table}>
               <View style={S.tableHeader}>
