@@ -5,7 +5,8 @@ import {
   capitalRembourseAnnee,
   mensualitesTotalesAnnee,
 } from './credit'
-import { calculerImpotAnnee } from './fiscalite'
+import { calculerImpotAnnee, calculerFiscalitePlusValue } from './fiscalite'
+import { calculerAvantageDispositif } from './dispositifs'
 
 /**
  * Génère le tableau annuel complet sur la durée de détention.
@@ -41,6 +42,12 @@ export function genererTableauAnnuel(
 
   let cashflowCumule = 0
   let deficitFoncierRestant = fiscalite.deficitFoncierDisponible
+  // LMNP réel : suivi des amortissements reportés et cumulés utilisés
+  let amortissementsReportesLMNP = 0
+  let amortissementsCumulesUtilises = 0       // total (immo + mobilier) — pour info
+  let amortissementsCumulesUtilisesImmo = 0   // immo uniquement — pour prix de revient fiscal PV (LF 2025)
+  // Jeanbrun : amortissements cumulés déduits (pour PV réintégration — même méca que LMNP réel)
+  let jeanbrunAmortCumul = 0
 
   for (let annee = 1; annee <= duree; annee++) {
     // ── Loyers ──
@@ -119,7 +126,26 @@ export function genererTableauAnnuel(
     const chargesDeductibles =
       gestionLocativeEuros + assurances + taxeFonciere + chargesCopro + entretien + autresCharges
 
+    // ── Amortissement Jeanbrun (art. 31 CGI, LF 2026) ──
+    // Base amortissable = 80% du coût total (prix + travaux pour l'ancien)
+    // Durée = engagement (9 ans minimum) → amort. linéaire sur la durée
+    let jeanbrunAmortAnnee = 0
+    const dispositif = fiscalite.dispositif ?? 'aucun'
+    if (dispositif === 'jeanbrun' && fiscalite.dispositifParams) {
+      const dp = fiscalite.dispositifParams
+      const baseJeanbrun = dispositif === 'jeanbrun'
+        ? (dp.jeanbrun_typeBien === 'ancien'
+          ? (input.acquisition.prixAchat + (dp.jeanbrun_montantTravauxAncien ?? 0)) * 0.80
+          : input.acquisition.prixAchat * 0.80)
+        : 0
+      const dureeJeanbrun = Math.max(9, dp.jeanbrun_engagementAns ?? 9)
+      if (annee <= dureeJeanbrun && baseJeanbrun > 0) {
+        jeanbrunAmortAnnee = baseJeanbrun / dureeJeanbrun
+      }
+    }
+
     // ── Impôts ──
+    const deficitRenforceActif = dispositif === 'deficit_foncier_renforce'
     const impot = calculerImpotAnnee({
       loyersEncaisses,
       chargesDeductibles,
@@ -134,16 +160,66 @@ export function genererTableauAnnuel(
       dureeAmortissementMobilier: fiscalite.dureeAmortissementMobilier,
       amortissementMobilier: fiscalite.amortissementMobilier,
       coutTotalAcquisition,
+      amortissementsReportesDisponibles: amortissementsReportesLMNP,
+      deficitRenforceActif,
+      jeanbrunAmortissement: jeanbrunAmortAnnee,
     })
-    if (impot.deficitReporte < 0) {
+
+    // ── Mise à jour du stock de déficit foncier reportable ──
+    if (impot.deficitFoncierGenere > 0) {
+      // Nouveau déficit créé cette année : ajouter la fraction non-imputée au carry-forward
+      deficitFoncierRestant += (impot.deficitFoncierGenere - impot.deficitFoncierImpute)
+    } else if (impot.deficitReporte < 0) {
+      // Déficit carry-forward existant consommé (bénéfice année courante)
       deficitFoncierRestant = Math.max(0, deficitFoncierRestant + impot.deficitReporte)
     }
+    // Suivi cumul Jeanbrun (pour PV réintégration)
+    jeanbrunAmortCumul += jeanbrunAmortAnnee
+    // Mise à jour suivi LMNP réel
+    amortissementsReportesLMNP = impot.amortissementsReportes
+    amortissementsCumulesUtilises += impot.amortissementsUtilises
+    // Fraction immo = amortImmoAn / (amortImmoAn + amortMobAn) — pour PV réintégration (LF 2025)
+    if (fiscalite.regime === 'lmnp_reel' && impot.amortissementsUtilises > 0) {
+      const baseImmo = coutTotalAcquisition * 0.85
+      const amortImmoAn = fiscalite.dureeAmortissementImmo > 0 ? baseImmo / fiscalite.dureeAmortissementImmo : 0
+      const amortMobAn = (fiscalite.amortissementMobilier ?? 0) > 0 && fiscalite.dureeAmortissementMobilier > 0
+        ? (fiscalite.amortissementMobilier ?? 0) / fiscalite.dureeAmortissementMobilier : 0
+      const totalAn = amortImmoAn + amortMobAn
+      const fracImmo = totalAn > 0 ? amortImmoAn / totalAn : 1
+      amortissementsCumulesUtilisesImmo += Math.round(impot.amortissementsUtilises * fracImmo)
+    }
+
+    // ── Réduction fiscale dispositif (Denormandie, Loc'Avantages, Malraux…) ──
+    // Jeanbrun : avantage fiscal = amortissement déduit (déjà dans impot.total) — réduction = 0
+    const reductionDispositif = dispositif === 'jeanbrun'
+      ? 0
+      : calculerAvantageDispositif(
+          dispositif,
+          fiscalite.dispositifParams,
+          input,
+          annee,
+          loyersEncaisses,
+          fiscalite.tmi,
+        )
+    // ── Avantage théorique / utilisable / perdu (Phase 3 — rules engine) ──
+    // Pour les dispositifs déduction (Jeanbrun, déficit), l'économie fiscale est
+    // déjà dans impot.total ; on expose 0 ici pour ne pas double-compter.
+    const isDeductionDispositif = dispositif === 'jeanbrun'
+    const avantageTheorique = isDeductionDispositif ? 0 : reductionDispositif
+    const irDisponible = fiscalite.irBrutAnnuel !== undefined
+      ? Math.max(0, fiscalite.irBrutAnnuel - (fiscalite.nichesDejaConsommees ?? 0))
+      : Infinity
+    const avantageUtilise = isFinite(irDisponible)
+      ? Math.min(avantageTheorique, Math.max(0, irDisponible))
+      : avantageTheorique
+    const avantagePerdou = Math.max(0, avantageTheorique - avantageUtilise)
+
+    // L'impôt net ne peut pas être négatif (la réduction n'est pas remboursable)
+    const impotsNets = Math.max(0, impot.total - avantageUtilise)
 
     // ── Cash-flow annuel ──
-    const chargesTotal =
-      chargesDeductibles + fraisRelocation + travauxAnnee - travauxDeductibles + travauxDeductibles
     const cashflowAnnuel =
-      loyersEncaisses - chargesDeductibles - fraisRelocation - travauxAnnee - impot.total - mensualitesAnnuelles
+      loyersEncaisses - chargesDeductibles - fraisRelocation - travauxAnnee - impotsNets - mensualitesAnnuelles
 
     cashflowCumule += cashflowAnnuel
 
@@ -156,14 +232,21 @@ export function genererTableauAnnuel(
 
     // ── Produit net de revente potentiel ──
     const fraisVente = valeurEstimee * revente.fraisVentePct
-    const { calculerFiscalitePlusValue } = require('./fiscalite')
+    // Frais d'acquisition retenus par le BOFiP art. 150 VB pour le prix de revient fiscal :
+    // notaire + agence acquéreur + travaux sur justificatifs.
+    // Exclus : courtage, garantie bancaire, frais dossier, mobilier (actif distinct), autresFrais.
+    const fraisAcquisitionBOFIP = input.acquisition.fraisNotaire
+      + input.acquisition.fraisAgence
+      + input.acquisition.travauxInitiaux
     const fiscalitePV = calculerFiscalitePlusValue(
       input.acquisition.prixAchat,
       valeurEstimee,
-      coutTotalAcquisition - input.acquisition.prixAchat,
+      fraisAcquisitionBOFIP,
       fraisVente,
       annee,
-      input.location.type
+      input.location.type,
+      amortissementsCumulesUtilisesImmo,  // immeuble uniquement — mobilier "à qualifier" (notaire)
+      fiscalite.regime
     )
     const produitNetRevente = valeurEstimee - fraisVente - fiscalitePV - capitalRestant
 
@@ -183,10 +266,20 @@ export function genererTableauAnnuel(
       revenuImposable: Math.round(impot.revenuImposable),
       chargesDeduites: Math.round(impot.chargesDeduites),
       amortissements: Math.round(impot.amortissements),
+      amortissementsUtilises: Math.round(impot.amortissementsUtilises),
+      amortissementsReportes: Math.round(amortissementsReportesLMNP),
       baseImposable: Math.round(impot.baseImposable),
       ir: Math.round(impot.ir),
       ps: Math.round(impot.ps),
-      impots: Math.round(impot.total),
+      reductionDispositif: Math.round(reductionDispositif),
+      amortissementJeanbrun: Math.round(jeanbrunAmortAnnee),
+      deficitFoncierGenere: Math.round(impot.deficitFoncierGenere),
+      deficitFoncierImpute: Math.round(impot.deficitFoncierImpute),
+      deficitFoncierCumul: Math.round(deficitFoncierRestant),
+      avantageTheorique: Math.round(avantageTheorique),
+      avantageUtilise: Math.round(avantageUtilise),
+      avantagePerdou: Math.round(avantagePerdou),
+      impots: Math.round(impotsNets),
       cashflowAnnuel: Math.round(cashflowAnnuel),
       cashflowCumule: Math.round(cashflowCumule),
       capitalRestantDu: Math.round(capitalRestant),
@@ -201,17 +294,19 @@ export function genererTableauAnnuel(
 }
 
 /** Calcule le coût total d'acquisition */
+function n(v: number | undefined | null): number { return (v == null || isNaN(v as number) || !isFinite(v as number)) ? 0 : (v as number) }
+
 export function calculerCoutTotal(a: ProjectInput['acquisition']): number {
   return (
-    a.prixAchat +
-    (a.fraisAgenceInclus ? 0 : a.fraisAgence) +
-    a.fraisNotaire +
-    a.fraisCourtage +
-    a.fraisGarantieBancaire +
-    a.fraisDossierBancaire +
-    a.travauxInitiaux +
-    a.mobilier +
-    a.autresFrais
+    n(a.prixAchat) +
+    (a.fraisAgenceInclus ? 0 : n(a.fraisAgence)) +
+    n(a.fraisNotaire) +
+    n(a.fraisCourtage) +
+    n(a.fraisGarantieBancaire) +
+    n(a.fraisDossierBancaire) +
+    n(a.travauxInitiaux) +
+    n(a.mobilier) +
+    n(a.autresFrais)
   )
 }
 

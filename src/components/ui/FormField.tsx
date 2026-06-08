@@ -31,7 +31,7 @@ export function Input({ label, hint, prefix, suffix, error, className, ...props 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label: string
   hint?: string
-  options: { value: string; label: string }[]
+  options: { value: string; label: string; disabled?: boolean }[]
 }
 
 export function Select({ label, hint, options, ...props }: SelectProps) {
@@ -44,7 +44,7 @@ export function Select({ label, hint, options, ...props }: SelectProps) {
         {...props}
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>
         ))}
       </select>
     </div>
@@ -60,16 +60,16 @@ interface ToggleProps {
 
 export function Toggle({ label, hint, checked, onChange }: ToggleProps) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div>
-        <div className="text-sm font-medium text-slate-700">{label}</div>
-        {hint && <div className="text-xs text-slate-400">{hint}</div>}
+    <div className="flex items-start justify-between gap-3 w-full">
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-slate-700 leading-snug">{label}</div>
+        {hint && <div className="text-xs text-slate-400 mt-0.5 leading-snug">{hint}</div>}
       </div>
       <button
         type="button"
         onClick={() => onChange(!checked)}
         className={clsx(
-          'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none',
+          'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none mt-0.5',
           checked ? 'bg-emerald-500' : 'bg-slate-200'
         )}
       >

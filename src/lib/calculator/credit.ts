@@ -13,6 +13,8 @@ export function calculerCredit(f: FinancementInput): CreditSchedule {
       mensualiteTotale: 0,
       coutTotalCredit: 0,
       coutTotalInterets: 0,
+      coutTotalAssurance: 0,
+      coutReel: 0,
       tableau: [],
     }
   }
@@ -92,6 +94,8 @@ export function calculerCredit(f: FinancementInput): CreditSchedule {
     mensualiteTotale: Math.round((mensualiteHA + assuranceMensuelle) * 100) / 100,
     coutTotalCredit: Math.round((totalInterets + totalAssurance + montantEmprunte) * 100) / 100,
     coutTotalInterets: Math.round(totalInterets * 100) / 100,
+    coutTotalAssurance: Math.round(totalAssurance * 100) / 100,
+    coutReel: Math.round((totalInterets + totalAssurance) * 100) / 100,  // vrai coût = intérêts + assurance
     tableau,
   }
 }

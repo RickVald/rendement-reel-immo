@@ -3,19 +3,20 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { StepIndicator } from './StepIndicator'
-import { Step1, Step2, Step3, Step4, Step5, Step6, Step7, Step8 } from './steps'
+import { Step1, StepPF, Step2, Step3, Step4, Step5, Step6, Step7, Step8 } from './steps'
 import { DEFAULT_INPUT } from '@/data/defaults'
 import type { ProjectInput } from '@/lib/calculator/types'
 
 const STEP_TITLES = [
   { n: 1, title: 'Le bien', sub: 'Type, surface, DPE, localisation' },
-  { n: 2, title: 'Acquisition', sub: 'Prix, frais de notaire, travaux initiaux' },
-  { n: 3, title: 'Financement', sub: 'Apport, crédit, taux, mensualités' },
-  { n: 4, title: 'Location', sub: 'Loyer, vacance, gestion' },
-  { n: 5, title: 'Charges', sub: 'Taxe foncière, copropriété, entretien' },
-  { n: 6, title: 'Travaux futurs', sub: 'DPE, gros travaux, récurrents' },
-  { n: 7, title: 'Fiscalité', sub: 'Régime, TMI, déficit foncier' },
-  { n: 8, title: 'Revente', sub: 'Durée, revalorisation, hypothèses' },
+  { n: 2, title: 'Profil fiscal', sub: 'TMI, résidence fiscale, revenus existants' },
+  { n: 3, title: 'Acquisition', sub: 'Prix, frais de notaire, travaux initiaux' },
+  { n: 4, title: 'Financement', sub: 'Apport, crédit, taux, mensualités' },
+  { n: 5, title: 'Location', sub: 'Loyer, vacance, gestion' },
+  { n: 6, title: 'Charges', sub: 'Taxe foncière, copropriété, entretien' },
+  { n: 7, title: 'Travaux futurs', sub: 'DPE, gros travaux, récurrents' },
+  { n: 8, title: 'Fiscalité', sub: 'Dispositif, régime, amortissements' },
+  { n: 9, title: 'Revente', sub: 'Durée, revalorisation, hypothèses' },
 ]
 
 export function SimulatorForm() {
@@ -30,12 +31,12 @@ export function SimulatorForm() {
   }
 
   const stepProps = { data, onChange: updateData }
-  const STEPS = [Step1, Step2, Step3, Step4, Step5, Step6, Step7, Step8]
+  const STEPS = [Step1, StepPF, Step2, Step3, Step4, Step5, Step6, Step7, Step8]
   const CurrentStep = STEPS[step - 1]
   const currentTitle = STEP_TITLES[step - 1]
 
   const handleNext = () => {
-    if (step < 8) setStep(s => s + 1)
+    if (step < 9) setStep(s => s + 1)
   }
 
   const handleBack = () => {
@@ -101,10 +102,10 @@ export function SimulatorForm() {
           </button>
 
           <div className="text-xs text-slate-400">
-            {step} / 8
+            {step} / 9
           </div>
 
-          {step < 8 ? (
+          {step < 9 ? (
             <button
               type="button"
               onClick={handleNext}

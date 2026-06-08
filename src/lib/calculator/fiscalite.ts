@@ -5,8 +5,12 @@ const PS_RATE = 0.172  // Prélèvements sociaux
 export interface ImpotAnnee {
   revenuImposable: number
   chargesDeduites: number
-  amortissements: number
-  deficitReporte: number
+  amortissements: number          // amortissement théorique de l'année (LMNP réel ou Jeanbrun)
+  amortissementsUtilises: number  // amortissements effectivement déduits (LMNP réel)
+  amortissementsReportes: number  // surplus LMNP non utilisé, reporté sans limite
+  deficitReporte: number          // >0 si nouveau déficit généré, <0 si déficit existant consommé
+  deficitFoncierGenere: number    // nouveau déficit foncier créé cette année (> 0, avant imputation)
+  deficitFoncierImpute: number    // partie immédiatement imputée sur revenu global (max 10 700/21 400€)
   baseImposable: number
   ir: number
   ps: number
@@ -15,19 +19,24 @@ export interface ImpotAnnee {
 
 interface FiscaliteParams {
   loyersEncaisses: number
-  chargesDeductibles: number    // charges réelles déductibles
+  chargesDeductibles: number    // charges réelles déductibles (hors amortissements)
   interets: number              // intérêts du crédit (déductibles réel)
   travauxDeductibles: number
   annee: number
   regime: RegimeFiscal
   tmi: number
   autresRevenusFonciers: number
-  deficitFoncierDisponible: number  // déficit reportable restant
+  deficitFoncierDisponible: number  // déficit reportable restant (stock initial + carry-forward)
   valeurImmeuble?: number       // pour amortissement LMNP réel
   amortissementMobilier?: number
   dureeAmortissementImmo: number
   dureeAmortissementMobilier: number
   coutTotalAcquisition?: number // pour base amortissement
+  amortissementsReportesDisponibles?: number  // amortissements reportés des années précédentes (LMNP réel)
+  /** Plafond d'imputation majoré à 21 400 €/an (déficit foncier renforcé, travaux réno énergie 2023-2026) */
+  deficitRenforceActif?: boolean
+  /** Amortissement Jeanbrun à déduire du revenu foncier cette année (LF 2026) */
+  jeanbrunAmortissement?: number
 }
 
 /**
@@ -63,7 +72,11 @@ function microFoncier(p: FiscaliteParams): ImpotAnnee {
     revenuImposable: p.loyersEncaisses,
     chargesDeduites: abattement,
     amortissements: 0,
+    amortissementsUtilises: 0,
+    amortissementsReportes: 0,
     deficitReporte: 0,
+    deficitFoncierGenere: 0,
+    deficitFoncierImpute: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -71,37 +84,81 @@ function microFoncier(p: FiscaliteParams): ImpotAnnee {
   }
 }
 
-/** Réel foncier : déduction charges réelles + intérêts + travaux, déficit foncier */
+/**
+ * Réel foncier : déduction charges réelles + intérêts + travaux + amortissement Jeanbrun.
+ *
+ * Mécanique du déficit foncier (art. 156 CGI) :
+ *  - La fraction hors intérêts d'emprunt est imputable sur le revenu global (plafond 10 700 €/an,
+ *    ou 21 400 €/an si déficit foncier renforcé actif).
+ *  - La fraction due aux intérêts est reportable sur les revenus fonciers des 10 années suivantes.
+ *  - Le déficit BIC (Jeanbrun, art. 31 CGI) suit les mêmes règles que le réel foncier.
+ *
+ * Algorithme :
+ *  1. Résultat hors intérêts  = loyers - charges - travaux - amortJeanbrun
+ *  2. Résultat total          = résultat hors intérêts - intérêts
+ *  3. Si résultat total ≥ 0 : utilise le déficit carry-forward disponible
+ *  4. Si résultat total < 0 :
+ *     a. deficitHorsInterets = max(0, -résultat hors intérêts)  → imputable sur rev. global
+ *     b. imputationGlobale   = min(deficitHorsInterets, plafond)  (10 700 ou 21 400)
+ *     c. surplus (reste) → reportable sur rev. fonciers 10 ans
+ */
 function reelFoncier(p: FiscaliteParams): ImpotAnnee {
-  const totalDeductions = p.chargesDeductibles + p.interets + p.travauxDeductibles
-  let resultatFoncier = p.loyersEncaisses + p.autresRevenusFonciers - totalDeductions
+  const plafondImputation = p.deficitRenforceActif ? 21_400 : 10_700
+  const jeanbrunAmort = p.jeanbrunAmortissement ?? 0
 
-  // Application du déficit foncier disponible
-  let deficitUtilise = 0
-  if (resultatFoncier < 0) {
-    // Déficit foncier imputable sur revenu global : max 10 700€/an (hors intérêts)
-    const deficitHorsInterets = Math.max(0,
-      p.loyersEncaisses - (p.chargesDeductibles + p.travauxDeductibles))
-    const imputationGlobale = Math.min(Math.abs(deficitHorsInterets), 10700)
-    deficitUtilise = Math.abs(resultatFoncier)
-    resultatFoncier = -imputationGlobale // seulement imputable sur revenu global
-  } else if (p.deficitFoncierDisponible > 0) {
-    const utilise = Math.min(p.deficitFoncierDisponible, resultatFoncier)
-    resultatFoncier -= utilise
-    deficitUtilise = -utilise
+  // Déductions totales (intérêts séparés car règles différentes)
+  const deductionsHorsInterets = p.chargesDeductibles + p.travauxDeductibles + jeanbrunAmort
+  const totalDeductions = deductionsHorsInterets + p.interets
+
+  // Résultats intermédiaires
+  const resultatHorsInterets = p.loyersEncaisses + p.autresRevenusFonciers - deductionsHorsInterets
+  const resultatTotal = resultatHorsInterets - p.interets
+
+  let deficitFoncierGenere = 0
+  let deficitFoncierImpute = 0
+  let deficitReporte = 0
+  let resultatNetImposable: number
+
+  if (resultatTotal >= 0) {
+    // Bénéfice foncier : on impute le déficit carry-forward disponible
+    if (p.deficitFoncierDisponible > 0) {
+      const utilise = Math.min(p.deficitFoncierDisponible, resultatTotal)
+      resultatNetImposable = resultatTotal - utilise
+      deficitReporte = -utilise  // consommation du carry-forward
+    } else {
+      resultatNetImposable = resultatTotal
+    }
+  } else {
+    // Déficit foncier cette année
+    deficitFoncierGenere = -resultatTotal  // montant total du déficit (> 0)
+
+    // Partie hors intérêts → imputable sur revenu global (dans la limite du plafond)
+    const deficitHorsInteretsBrut = Math.max(0, -resultatHorsInterets)
+    deficitFoncierImpute = Math.min(deficitHorsInteretsBrut, plafondImputation)
+
+    // Le reste du déficit hors intérêts (si > plafond) et le déficit sur intérêts
+    // → reportable sur rev. fonciers des 10 années suivantes (cashflow.ts s'en charge)
+    deficitReporte = deficitFoncierGenere  // signal pour cashflow.ts de créer le carry-forward
+
+    // La partie imputée réduit la base imposable du revenu global (IR uniquement)
+    resultatNetImposable = -deficitFoncierImpute  // négatif : réduction du revenu global
   }
 
-  const baseImposable = Math.max(0, resultatFoncier)
+  const baseImposable = Math.max(0, resultatNetImposable)
   const ir = baseImposable * p.tmi
-  // PS sur revenus fonciers nets
-  const basePsPositive = Math.max(0, p.loyersEncaisses - totalDeductions)
+  // PS : assiette = revenus fonciers nets positifs uniquement
+  const basePsPositive = Math.max(0, p.loyersEncaisses + p.autresRevenusFonciers - totalDeductions)
   const ps = basePsPositive * PS_RATE
 
   return {
     revenuImposable: p.loyersEncaisses,
     chargesDeduites: totalDeductions,
-    amortissements: 0,
-    deficitReporte: deficitUtilise,
+    amortissements: jeanbrunAmort,  // champ réutilisé pour amort. Jeanbrun (LMNP=0 ici)
+    amortissementsUtilises: 0,
+    amortissementsReportes: 0,
+    deficitReporte,
+    deficitFoncierGenere,
+    deficitFoncierImpute,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -119,7 +176,11 @@ function lmnpMicroBic(p: FiscaliteParams): ImpotAnnee {
     revenuImposable: p.loyersEncaisses,
     chargesDeduites: abattement,
     amortissements: 0,
+    amortissementsUtilises: 0,
+    amortissementsReportes: 0,
     deficitReporte: 0,
+    deficitFoncierGenere: 0,
+    deficitFoncierImpute: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -127,9 +188,15 @@ function lmnpMicroBic(p: FiscaliteParams): ImpotAnnee {
   }
 }
 
-/** LMNP réel : amortissements + charges, résultat BIC */
+/**
+ * LMNP réel : amortissements + charges, résultat BIC.
+ *
+ * Règle BOFiP : les amortissements ne peuvent pas créer ou aggraver un déficit BIC
+ * imputable sur le revenu global. Ils sont limités à : loyers - autres charges (hors amort).
+ * Le surplus est reporté sans limitation de durée sur les revenus BIC futurs.
+ */
 function lmnpReel(p: FiscaliteParams): ImpotAnnee {
-  // Amortissement annuel immeuble
+  // Amortissement théorique annuel
   const baseAmort = p.valeurImmeuble ?? (p.coutTotalAcquisition ?? 0) * 0.85
   const amortImmo = p.dureeAmortissementImmo > 0
     ? baseAmort / p.dureeAmortissementImmo
@@ -137,21 +204,49 @@ function lmnpReel(p: FiscaliteParams): ImpotAnnee {
   const amortMobilier = p.amortissementMobilier
     ? p.amortissementMobilier / (p.dureeAmortissementMobilier || 7)
     : 0
-  const totalAmort = amortImmo + amortMobilier
+  const amortTheorique = amortImmo + amortMobilier
 
-  const totalDeductions = p.chargesDeductibles + p.interets + p.travauxDeductibles + totalAmort
-  const resultatBic = p.loyersEncaisses - totalDeductions
+  // Amortissements reportés disponibles (années précédentes)
+  const amortReportesDisponibles = p.amortissementsReportesDisponibles ?? 0
+  const amortTotalDisponible = amortTheorique + amortReportesDisponibles
 
-  // En LMNP réel, le déficit n'est pas imputable sur revenu global (sauf conditions)
-  const baseImposable = Math.max(0, resultatBic)
+  // Charges hors amortissements
+  const chargesHorsAmort = p.chargesDeductibles + p.interets + p.travauxDeductibles
+
+  // Résultat hors amortissements
+  const resultatHorsAmort = p.loyersEncaisses - chargesHorsAmort
+
+  let amortissementsUtilises: number
+  let baseImposable: number
+  let deficitBic: number
+
+  if (resultatHorsAmort <= 0) {
+    // Déficit avant même d'utiliser les amortissements : 0 amort utilisé
+    amortissementsUtilises = 0
+    baseImposable = 0
+    deficitBic = resultatHorsAmort  // déficit BIC reportable (non imputable sur revenu global)
+  } else {
+    // On peut utiliser les amortissements dans la limite du résultat hors amort
+    amortissementsUtilises = Math.min(amortTotalDisponible, resultatHorsAmort)
+    baseImposable = resultatHorsAmort - amortissementsUtilises  // = 0 si amorts couvrent tout
+    deficitBic = 0
+  }
+
+  // Amortissements non utilisés cette année → reportés
+  const amortissementsReportes = amortTotalDisponible - amortissementsUtilises
+
   const ir = baseImposable * p.tmi
   const ps = baseImposable * PS_RATE
 
   return {
     revenuImposable: p.loyersEncaisses,
-    chargesDeduites: p.chargesDeductibles + p.interets + p.travauxDeductibles,
-    amortissements: totalAmort,
-    deficitReporte: Math.min(0, resultatBic),
+    chargesDeduites: chargesHorsAmort,
+    amortissements: amortTheorique,         // amortissement théorique de l'année
+    amortissementsUtilises,                 // effectivement déduit
+    amortissementsReportes,                 // reporté aux années suivantes
+    deficitReporte: deficitBic,
+    deficitFoncierGenere: 0,
+    deficitFoncierImpute: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -173,7 +268,11 @@ function sciIs(p: FiscaliteParams): ImpotAnnee {
     revenuImposable: p.loyersEncaisses,
     chargesDeduites: totalDeductions,
     amortissements: 0,
+    amortissementsUtilises: 0,
+    amortissementsReportes: 0,
     deficitReporte: Math.min(0, resultat),
+    deficitFoncierGenere: 0,
+    deficitFoncierImpute: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: 0,  // Pas de PS en SCI IS
@@ -181,40 +280,116 @@ function sciIs(p: FiscaliteParams): ImpotAnnee {
   }
 }
 
-/** Calcule la fiscalité sur plus-value immobilière à la revente */
+/**
+ * Détail du calcul de la plus-value à la revente.
+ * Pour LMNP réel (cessions >= 15 fév. 2025) : les amortissements cumulés déduits
+ * sont réintégrés dans la base imposable (réduction du prix de revient fiscal).
+ */
+export interface DetailPlusValue {
+  prixRevente: number
+  fraisRevente: number
+  prixRevientFiscal: number       // prix achat + frais achat - amorts réintégrés (LMNP)
+  plusValueBrute: number          // = prixRevente - fraisRevente - prixRevientFiscal
+  amortissementsReintegres: number  // 0 pour PP, cumul déduits pour LMNP réel
+  abattementIRPct: number
+  abattementPSPct: number
+  pvImposableIR: number
+  pvImposablePS: number
+  ir: number
+  ps: number
+  total: number
+  regime: string
+  note?: string
+}
+
+/**
+ * Calcule la fiscalité sur plus-value immobilière à la revente.
+ * @param amortissementsCumulesUtilises - amortissements cumulés déduits (LMNP réel seulement)
+ * @param regime - régime fiscal (pour appliquer la réintégration LMNP)
+ */
 export function calculerFiscalitePlusValue(
   prixAchat: number,
   prixRevente: number,
   fraisAcquisition: number,
   fraisRevente: number,
   dureeDetentionAns: number,
-  typeLocation: string
+  typeLocation: string,
+  amortissementsCumulesUtilises: number = 0,
+  regime: string = 'autre'
 ): number {
-  const prixAchatCorrected = prixAchat + fraisAcquisition
-  const plusValue = prixRevente - fraisRevente - prixAchatCorrected
-  if (plusValue <= 0) return 0
+  return calculerDetailPlusValue(
+    prixAchat, prixRevente, fraisAcquisition, fraisRevente,
+    dureeDetentionAns, typeLocation, amortissementsCumulesUtilises, regime
+  ).total
+}
 
-  // Abattements pour durée de détention (résidence secondaire / locatif)
+export function calculerDetailPlusValue(
+  prixAchat: number,
+  prixRevente: number,
+  fraisAcquisition: number,
+  fraisRevente: number,
+  dureeDetentionAns: number,
+  typeLocation: string,
+  amortissementsCumulesUtilises: number = 0,
+  regime: string = 'autre'
+): DetailPlusValue {
+  const isLmnpReel = regime === 'lmnp_reel'
+
+  // Pour LMNP réel (cessions >= 15 fév. 2025) : réintégration des amortissements
+  // Prix de revient fiscal réduit = prix achat + frais - amortissements déduits
+  const amortissementsReintegres = isLmnpReel ? amortissementsCumulesUtilises : 0
+  const prixRevientFiscal = prixAchat + fraisAcquisition - amortissementsReintegres
+
+  const plusValueBrute = prixRevente - fraisRevente - prixRevientFiscal
+  if (plusValueBrute <= 0) {
+    return {
+      prixRevente, fraisRevente, prixRevientFiscal,
+      plusValueBrute: Math.max(0, plusValueBrute),
+      amortissementsReintegres,
+      abattementIRPct: 0, abattementPSPct: 0,
+      pvImposableIR: 0, pvImposablePS: 0,
+      ir: 0, ps: 0, total: 0,
+      regime: isLmnpReel ? 'LMNP réel' : 'PP',
+    }
+  }
+
   const abattementIR = getAbattementIR(dureeDetentionAns)
   const abattementPS = getAbattementPS(dureeDetentionAns)
 
-  const pvImposableIR = plusValue * (1 - abattementIR)
-  const pvImposablePS = plusValue * (1 - abattementPS)
+  const pvImposableIR = plusValueBrute * (1 - abattementIR)
+  const pvImposablePS = plusValueBrute * (1 - abattementPS)
 
   const ir = pvImposableIR * 0.19   // Taux forfaitaire 19%
   const ps = pvImposablePS * 0.172
 
-  return Math.round(ir + ps)
+  return {
+    prixRevente,
+    fraisRevente: Math.round(fraisRevente),
+    prixRevientFiscal: Math.round(prixRevientFiscal),
+    plusValueBrute: Math.round(plusValueBrute),
+    amortissementsReintegres: Math.round(amortissementsReintegres),
+    abattementIRPct: abattementIR,
+    abattementPSPct: abattementPS,
+    pvImposableIR: Math.round(pvImposableIR),
+    pvImposablePS: Math.round(pvImposablePS),
+    ir: Math.round(ir),
+    ps: Math.round(ps),
+    total: Math.round(ir + ps),
+    regime: isLmnpReel ? 'LMNP réel' : 'PP',
+    note: isLmnpReel
+      ? `Réintégration de ${Math.round(amortissementsReintegres).toLocaleString()} EUR d'amortissements déduits (loi 2025)`
+      : undefined,
+  }
 }
 
-function getAbattementIR(ans: number): number {
+export function getAbattementIR(ans: number): number {
   if (ans < 6) return 0
   if (ans <= 21) return (ans - 5) * 0.06
   if (ans === 22) return 0.96
   return 1.0  // Exonération totale à partir de 22 ans
 }
 
-function getAbattementPS(ans: number): number {
+export function getAbattementPS(ans: number): number {
   if (ans < 6) return 0
   if (ans <= 21) return (ans - 5) * 0.0165
   if (ans === 22) return (17 * 0.0165)

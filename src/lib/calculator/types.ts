@@ -1,6 +1,19 @@
 // ─── INPUTS ──────────────────────────────────────────────────────────────────
 
 export type TypeBien = 'appartement' | 'maison' | 'studio' | 'immeuble' | 'parking' | 'local'
+
+/**
+ * Structure juridique de détention du bien.
+ *
+ * | Valeur       | Description                                                          |
+ * |--------------|----------------------------------------------------------------------|
+ * | nom_propre   | Acquisition en direct — personne physique (défaut)                   |
+ * | indivision   | Indivision entre plusieurs co-propriétaires                          |
+ * | sci_ir       | SCI à l'IR (transparente) — résultats imposés chez les associés      |
+ * | sci_is       | SCI à l'IS (15 % PME / 25 %) — bloque Denormandie, Loc'Avantages,   |
+ * |              | déficit foncier personnel et la plupart des dispositifs IR           |
+ */
+export type HoldingStructure = 'nom_propre' | 'indivision' | 'sci_ir' | 'sci_is'
 export type Dpe = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'inconnu'
 export type EtatBien = 'neuf' | 'bon_etat' | 'a_rafraichir' | 'travaux_lourds'
 export type TypeLocation = 'nue' | 'meublee' | 'colocation' | 'courte_duree' | 'bail_mobilite'
@@ -12,11 +25,59 @@ export type RegimeFiscal =
   | 'sci_ir'
   | 'sci_is'
 
+export type DispositifFiscal =
+  | 'aucun'
+  | 'deficit_foncier_renforce'
+  | 'denormandie'
+  | 'jeanbrun'
+  | 'loc_avantages'
+  | 'malraux'
+  | 'monuments_historiques'
+
+export interface DispositifParams {
+  // ── Déficit foncier renforcé (réel foncier uniquement) ────────────────────
+  // Plafond majoré à 21 400 €/an pour travaux de rénovation énergétique (2023-2026)
+  deficitRenforce_montantTravauxEnergie: number   // montant travaux éligibles réno énergie
+  deficitRenforce_engagementLocationAns: number   // durée d'engagement location (min 3 ans)
+
+  // ── Denormandie ───────────────────────────────────────────────────────────
+  // Réduction d'impôt 12/18/21 % du prix total (achat + travaux), plafond 300k€ & 5 500€/m²
+  denormandie_dureeEngagement: 6 | 9 | 12
+  denormandie_prixTotalRetenu: number             // prix achat + travaux (plafonné à 300 000 €)
+  denormandie_villeEligible: boolean              // ville éligible (ACV ou ORT)
+
+  // ── Loc'Avantages (accord Anah) ───────────────────────────────────────────
+  locAvantages_niveau: 'intermediaire' | 'social' | 'tres_social'
+  locAvantages_gestionOperateur: boolean          // +10 % de réduction si opérateur agréé
+  locAvantages_loyerMarcheRef: number             // loyer de marché de référence (€/mois HC)
+
+  // ── Malraux ───────────────────────────────────────────────────────────────
+  malraux_zone: 'psmv' | 'pvap'                  // PSMV 30% / PVAP 22%
+  malraux_montantTravaux: number                  // montant travaux éligibles (plafond 400k€/4 ans)
+  malraux_anneeDebut: number                      // année de début des travaux (pour étalement)
+  malraux_dureeTravauxAns: number                 // durée des travaux (1-4 ans)
+
+  // ── Monuments Historiques ─────────────────────────────────────────────────
+  mh_montantChargesDeductibles: number            // charges déductibles du revenu global (sans plafond)
+
+  // ── Jeanbrun (Relance logement — LF 2026) ─────────────────────────────────
+  // Amortissement déductible sur 80 % du prix (+ travaux pour l'ancien).
+  // Taux annuel selon type de bien et niveau de loyer. Déficit imputable sur
+  // revenu global jusqu'à 10 700 €/an. Engagement 9 ans. Art. 31 + 156 CGI.
+  jeanbrun_typeBien: 'neuf' | 'ancien'             // neuf (RE2020) ou ancien (travaux ≥ 30 %)
+  jeanbrun_niveauLoyer: 'intermediaire' | 'social' | 'tres_social'
+  jeanbrun_montantTravauxAncien: number            // pour l'ancien uniquement, inclus dans base amortissable
+  jeanbrun_engagementAns: number                   // durée d'engagement (min 9 ans)
+}
+
 export interface BienInput {
   type: TypeBien
   ville: string
   codePostal: string
   surface: number
+  /** Surface des annexes (balcon, terrasse, cave, parking couvert) en m².
+   *  Comptées à 50 % dans la surface corrigée pour le calcul des loyers plafonnés. */
+  surfaceAnnexes?: number
   dpe: Dpe
   anneeConstruction: number
   etat: EtatBien
@@ -94,6 +155,17 @@ export interface TravauxFutursInput {
 
 export interface FiscaliteInput {
   regime: RegimeFiscal
+  /** Si true, le moteur compare tous les régimes compatibles et sélectionne selon `criterAuto`. */
+  regimeAuto?: boolean
+  /** Critère utilisé quand `regimeAuto` est actif.
+   *  - 'tri'        : maximise le TRI (rendement global + revente)
+   *  - 'van'        : maximise la VAN (valeur actualisée nette)
+   *  - 'cashflow'   : maximise le cash-flow mensuel moyen
+   *  - 'impot'      : minimise les impôts cumulés sur la période
+   *  - 'simplicite' : préfère micro-foncier > micro-BIC > autres (moins de contraintes)
+   *  - 'rendement_net_net' : maximise le rendement net-net annuel moyen (comportement historique)
+   *  Par défaut : 'tri' */
+  critereAuto?: 'tri' | 'van' | 'cashflow' | 'impot' | 'simplicite' | 'rendement_net_net'
   tmi: number                   // ex: 0.30
   autresRevenusFonciers: number
   deficitFoncierDisponible: number
@@ -101,6 +173,47 @@ export interface FiscaliteInput {
   amortissementImmo?: number    // pour LMNP réel
   dureeAmortissementImmo: number  // années, ex: 30
   dureeAmortissementMobilier: number  // années, ex: 7
+  // Dispositif fiscal spécial
+  dispositif: DispositifFiscal
+  dispositifParams: DispositifParams
+
+  // ── Structure de détention ────────────────────────────────────────────────
+  /**
+   * Structure juridique de détention du bien.
+   * Conditionne les régimes disponibles et bloque certains dispositifs :
+   * - sci_is : interdit Denormandie standard, Loc'Avantages, déficit foncier personnel.
+   * - sci_ir : similaire au réel foncier, mais via la SCI transparente.
+   * undefined = non renseigné (traité comme nom_propre).
+   */
+  holdingStructure?: HoldingStructure
+
+  // ── Profil fiscal personnel ───────────────────────────────────────────────
+  /** Parcours de saisie : 'simple' (TMI seul) ou 'avance' (profil complet).
+   *  Le parcours avancé est obligatoire pour les dispositifs à réduction d'impôt. */
+  parcours?: 'simple' | 'avance'
+  /** IR annuel payé AVANT toute réduction/crédit d'impôt.
+   *  Indispensable pour savoir si la réduction Denormandie/Loc'Avantages/Malraux est réellement absorbable. */
+  irBrutAnnuel?: number
+  /** Nombre de parts fiscales du foyer (ex : 2 pour couple sans enfant). */
+  partsFiscales?: number
+  /** Plafond des niches fiscales déjà consommé sur d'autres investissements cette année.
+   *  Plafond global : 10 000 €/an (Denormandie, Loc'Avantages) ; certains dispositifs hors plafond (Malraux, MH). */
+  nichesDejaConsommees?: number
+  /** Revenu fiscal de référence — facultatif, contrôle de cohérence et ressources locataire. */
+  revenuFiscalReference?: number
+  /** Revenus BIC meublés existants (autres biens en LMNP) — pour vérification seuil LMP. */
+  autresRevenusBIC?: number
+  /** Amortissements LMNP reportés disponibles provenant d'autres biens — alimentent le stock reporté. */
+  amortissementsLMNPReportes?: number
+  /** Résidence fiscale française : condition de base pour la plupart des dispositifs.
+   *  undefined = non renseigné, true = oui, false = non (étranger = avertissement sur beaucoup de dispositifs). */
+  residenceFiscaleFrancaise?: boolean
+  /** Autres dispositifs fiscaux en cours (Pinel, Malraux autre bien, etc.) — utile pour le contrôle de non-cumul. */
+  autresDisposiftifsEnCours?: string[]
+  /** Lien de parenté entre propriétaire et locataire.
+   *  true = lien existant (ascendant/descendant/foyer) — rend inéligible Denormandie, Jeanbrun, Loc'Avantages.
+   *  false = pas de lien. undefined = non renseigné. */
+  lienLocataireExclu?: boolean
 }
 
 export interface ReventeInput {
@@ -122,6 +235,42 @@ export interface ProjectInput {
   revente: ReventeInput
 }
 
+// ─── ELIGIBILITE ─────────────────────────────────────────────────────────────
+
+/** Statut d'éligibilité pour un dispositif fiscal donné */
+export type EligibilityStatus =
+  | 'eligible'      // toutes les conditions nécessaires sont remplies
+  | 'ineligible'    // une ou plusieurs conditions bloquantes échouent
+  | 'a_verifier'    // aucune erreur bloquante, mais certaines données non prouvées
+  | 'indicative'    // calcul possible mais non opposable (ex : Malraux, MH)
+  | 'non_supporte'  // cas trop complexe pour le moteur
+
+/** Résultat d'une vérification de condition individuelle */
+export interface ConditionCheck {
+  id: string
+  label: string
+  /** ok = validé · bloquant = erreur bloquante · a_verifier = à confirmer · n_a = non applicable */
+  status: 'ok' | 'bloquant' | 'a_verifier' | 'n_a'
+  note?: string
+}
+
+/** Résultat complet de l'audit d'éligibilité */
+export interface EligibilityResult {
+  dispositif: DispositifFiscal
+  status: EligibilityStatus
+  conditions: ConditionCheck[]
+  erreurs: string[]         // messages des conditions bloquantes
+  avertissements: string[]  // messages des conditions à vérifier
+  /** false si au moins une condition bloquante — empêche la génération du rapport complet */
+  canGenerate: boolean
+  /** Avantage fiscal théorique (si toutes les conditions étaient remplies) */
+  avantageTheorique: number
+  /** Avantage réellement utilisable (limité par IR disponible + plafond niches) */
+  avantageUtilisable: number
+  /** Montant perdu ou non absorbé (impôt insuffisant ou niches épuisées) */
+  avantagePerdu: number
+}
+
 // ─── OUTPUTS ─────────────────────────────────────────────────────────────────
 
 export interface CreditRow {
@@ -140,6 +289,8 @@ export interface CreditSchedule {
   mensualiteTotale: number
   coutTotalCredit: number
   coutTotalInterets: number
+  coutTotalAssurance: number
+  coutReel: number
   tableau: CreditRow[]
 }
 
@@ -159,10 +310,20 @@ export interface YearlyRow {
   revenuImposable: number
   // Détail fiscal
   chargesDeduites: number
-  amortissements: number
+  amortissements: number          // amortissement théorique de l'année
+  amortissementsUtilises?: number // amortissements effectivement déduits (LMNP réel)
+  amortissementsReportes?: number // amortissements reportés cumulés (LMNP réel)
   baseImposable: number
   ir: number
   ps: number
+  reductionDispositif: number   // réduction d'impôt liée au dispositif fiscal (Denormandie, Malraux…)
+  avantageTheorique: number     // réduction d'impôt théorique avant plafonnement IR/niches
+  avantageUtilise: number       // portion réellement imputée (limitée par IR disponible + niches)
+  avantagePerdou: number        // montant perdu : impôt insuffisant ou plafond niches épuisé
+  amortissementJeanbrun: number // amortissement Jeanbrun déduit cette année (0 si autre dispositif)
+  deficitFoncierGenere: number  // nouveau déficit foncier créé cette année (avant imputation)
+  deficitFoncierImpute: number  // partie du déficit immédiatement imputée sur revenu global (max 10 700 ou 21 400€)
+  deficitFoncierCumul: number   // stock de déficit reportable restant en fin d'année (carry-forward)
   impots: number
   cashflowAnnuel: number
   cashflowCumule: number
@@ -198,6 +359,10 @@ export interface SummaryKPIs {
   prixMaximum: number
   dependanceRevente: boolean   // TRI négatif sans revente
   scoreRisqueDpe: number       // 0-100
+  // Avantage fiscal agrégé sur la durée de détention
+  avantageTheorique: number    // cumul réductions d'impôt théoriques (hors plafonnement)
+  avantageUtilise: number      // cumul réellement absorbé par l'IR du ménage
+  avantagePerdou: number       // cumul perdu / non utilisable
 }
 
 export interface ScoreRobustesse {
@@ -210,7 +375,7 @@ export interface ScoreRobustesse {
   margeSecurite: number       // /10
   liquidite: number           // /10
   horizonDetention: number    // /5
-  label: 'Très robuste' | 'Robuste' | 'Robustesse moyenne' | 'Fragile' | 'Très fragile'
+  label: 'Très robuste' | 'Robuste' | 'Robustesse moyenne' | 'Fragile' | 'Très fragile' | 'Robustesse moyenne mais faible marge de sécurité' | 'Fragile (plafonné — LTV > 90 % ou stress tests multiples)'
 }
 
 export interface NiveauConfiance {
@@ -309,6 +474,16 @@ export interface PointMort {
   dureeDetentionOptimale: number
 }
 
+/** Comparaison des 3 scénarios avantage fiscal (demande point 6 du document) */
+export interface ScenariosAvantage {
+  /** Scénario A — aucun avantage fiscal (base) */
+  horsAvantage: { tri: number; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
+  /** Scénario B — avantage théorique complet (sans plafonnement IR/niches) */
+  avantageTheorique: { tri: number; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
+  /** Scénario C — avantage réellement utilisable (plafonné par IR disponible et niches) */
+  avantageUtilisable: { tri: number; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
+}
+
 export interface ProjectAnalysis {
   input: ProjectInput
   creditSchedule: CreditSchedule
@@ -325,4 +500,10 @@ export interface ProjectAnalysis {
   scoreRobustesse?: ScoreRobustesse
   niveauxConfiance?: NiveauConfiance[]
   aiInterpretation?: AIInterpretation
+  /** Régime effectivement retenu par le moteur quand regimeAuto === true */
+  regimeAutoSelectionne?: RegimeFiscal
+  /** Audit d'éligibilité du dispositif fiscal — généré automatiquement */
+  eligibilite?: EligibilityResult
+  /** Comparaison 3 scénarios : hors avantage / théorique / utilisable */
+  scerariosAvantage?: ScenariosAvantage
 }

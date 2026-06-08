@@ -1,7 +1,7 @@
 import type {
   ProjectInput, ProjectAnalysis, SummaryKPIs, IndicateurResume,
   ComparaisonRegime, SensibiliteRow, StressTest, PointMort, RegimeFiscal,
-  ScoreRobustesse, NiveauConfiance
+  ScoreRobustesse, NiveauConfiance, ScenariosAvantage
 } from './types'
 import { calculerCredit } from './credit'
 import { calculerCoutTotal } from './cashflow'
@@ -10,6 +10,85 @@ import { calculerTRI, calculerVAN, calculerRendements, calculerTRIParAnnee, calc
 import { calculerImpotAnnee } from './fiscalite'
 import { genererVerdict, genererScenarios, scorerRisqueDpe } from './verdict'
 import { calculerFiscalitePlusValue } from './fiscalite'
+import { DISPOSITIF_REGIMES_COMPATIBLES } from './dispositifs'
+import { calculerEligibilite } from './eligibilite'
+
+/** Ordre de préférence pour le critère 'simplicite' : régimes micro en premier */
+const SIMPLICITE_ORDER: RegimeFiscal[] = [
+  'micro_foncier', 'lmnp_micro_bic', 'reel_foncier', 'sci_ir', 'lmnp_reel', 'sci_is',
+]
+
+/**
+ * Sélectionne le régime fiscal le mieux classé pour un `input` donné,
+ * selon le critère choisi dans `fiscalite.critereAuto`.
+ * Par défaut : maximise le TRI.
+ */
+function autoSelectRegime(input: ProjectInput): RegimeFiscal {
+  const dispositif = input.fiscalite.dispositif ?? 'aucun'
+  let candidats: RegimeFiscal[] = DISPOSITIF_REGIMES_COMPATIBLES[dispositif] ?? ['reel_foncier']
+
+  const locationType = input.location.type
+  const isNue = locationType === 'nue'
+  const isMeublee = ['meublee', 'colocation', 'courte_duree', 'bail_mobilite'].includes(locationType)
+
+  if (isNue)       candidats = candidats.filter(r => !r.startsWith('lmnp'))
+  else if (isMeublee) candidats = candidats.filter(r => r.startsWith('lmnp') || r.startsWith('sci'))
+
+  if (candidats.length === 0) candidats = ['reel_foncier']
+  if (candidats.length === 1) return candidats[0]
+
+  const critere = input.fiscalite.critereAuto ?? 'tri'
+
+  // Simplicité : premier dans l'ordre de préférence sans calcul complet
+  if (critere === 'simplicite') {
+    for (const r of SIMPLICITE_ORDER) {
+      if (candidats.includes(r)) return r
+    }
+    return candidats[0]
+  }
+
+  const coutTotal = calculerCoutTotal(input.acquisition)
+  const credit = calculerCredit(input.financement)
+  const apport = coutTotal - input.financement.montantEmprunte
+
+  let best: RegimeFiscal = candidats[0]
+  let bestScore = -Infinity
+
+  for (const regime of candidats) {
+    const inp = { ...input, fiscalite: { ...input.fiscalite, regime } }
+    const rows = genererTableauAnnuel(inp, credit.tableau, coutTotal)
+    if (rows.length === 0) continue
+    const dernierRow = rows[rows.length - 1]
+    const n = rows.length
+
+    let score: number
+    switch (critere) {
+      case 'van':
+        score = calculerVAN(apport, 0, 0, rows, dernierRow?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
+        break
+      case 'cashflow':
+        score = rows.reduce((s, r) => s + r.cashflowAnnuel, 0) / n / 12
+        break
+      case 'impot':
+        // On minimise → on maximise le négatif
+        score = -rows.reduce((s, r) => s + r.impots, 0)
+        break
+      case 'rendement_net_net': {
+        const avgLoyers  = rows.reduce((s, r) => s + r.loyersEncaisses, 0) / n
+        const avgCharges = rows.reduce((s, r) => s + (r.chargesLocatives ?? 0), 0) / n
+        const avgImpots  = rows.reduce((s, r) => s + r.impots, 0) / n
+        score = (avgLoyers - avgCharges - avgImpots) / coutTotal
+        break
+      }
+      case 'tri':
+      default:
+        score = calculerTRI(apport, 0, 0, rows, dernierRow?.produitNetReventePotentiel ?? 0)
+    }
+
+    if (score > bestScore) { bestScore = score; best = regime }
+  }
+  return best
+}
 
 // Formateur sans toLocaleString pour éviter U+202F → '/' dans PDF Helvetica
 function fmtInt(n: number): string {
@@ -20,7 +99,15 @@ function fmtInt(n: number): string {
   return (n < 0 ? '-' : '') + parts.join(' ')
 }
 
-export function analyser(input: ProjectInput): ProjectAnalysis {
+export function analyser(rawInput: ProjectInput): ProjectAnalysis {
+  // 0. Auto-sélection du régime fiscal si demandé
+  let regimeAutoSelectionne: RegimeFiscal | undefined
+  let input = rawInput
+  if (rawInput.fiscalite.regimeAuto) {
+    regimeAutoSelectionne = autoSelectRegime(rawInput)
+    input = { ...rawInput, fiscalite: { ...rawInput.fiscalite, regime: regimeAutoSelectionne } }
+  }
+
   // 1. Coût total d'acquisition
   const coutTotal = calculerCoutTotal(input.acquisition)
 
@@ -112,12 +199,22 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
     }
   )
 
+  // Rendement net / net-net calculés depuis le tableau annuel (avec vacance réelle)
+  // Méthode : moyennes sur la durée — cohérent avec la formule page Méthode et avec les scénarios.
+  // Le numérateur inclut la vacance via loyersEncaisses (loyers théoriques - vacance - impayés).
+  const nRows = rows.length || 1
+  const avgLoyersRows = rows.reduce((s, r) => s + (r.loyersEncaisses ?? 0), 0) / nRows
+  const avgChargesRows = rows.reduce((s, r) => s + (r.chargesLocatives ?? 0), 0) / nRows
+  const avgImpotsRows = rows.reduce((s, r) => s + r.impots, 0) / nRows
+  const rendementNetFromRows = (avgLoyersRows - avgChargesRows) / coutTotal
+  const rendementNetNetRows = rendementNetFromRows - avgImpotsRows / coutTotal
+
   const summary: SummaryKPIs = {
     coutTotalAcquisition: Math.round(coutTotal),
     cashTotalNecessaire: Math.round(apportInitial),
     rendementBrut: rendements.rendementBrut,
-    rendementNet: rendements.rendementNet,
-    rendementNetNet: rendements.rendementNetNet,
+    rendementNet: rendementNetFromRows,       // vacance incluse via tableau annuel
+    rendementNetNet: rendementNetNetRows,     // idem + fiscalité exploitation
     cashflowMensuelMoyen: Math.round(cashflowMensuelMoyen),
     cashflowAnnuelMoyen: Math.round(cashflowTotal / rows.length),
     cashflowCumule: Math.round(cashflowCumule),
@@ -127,6 +224,9 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
     prixMaximum: prixMaxResult.prixMaximum,
     dependanceRevente,
     scoreRisqueDpe,
+    avantageTheorique: Math.round(rows.reduce((s, r) => s + r.avantageTheorique, 0)),
+    avantageUtilise: Math.round(rows.reduce((s, r) => s + r.avantageUtilise, 0)),
+    avantagePerdou: Math.round(rows.reduce((s, r) => s + r.avantagePerdou, 0)),
   }
 
   // 7. Verdict
@@ -142,11 +242,23 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
     const tri2 = calculerTRI(apportInitial, 0, 0, rows2, dernierRow2?.produitNetReventePotentiel ?? 0)
     const van2 = calculerVAN(apportInitial, 0, 0, rows2, dernierRow2?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
     const cf2 = rows2.reduce((s, r) => s + r.cashflowAnnuel, 0) / rows2.length / 12
+    // Recalcul rendements scénarios — cohérent avec summary
+    const n2 = rows2.length || 1
+    const avgLoyers2 = rows2.reduce((s, r) => s + r.loyersEncaisses, 0) / n2
+    const avgCharges2 = rows2.reduce((s, r) => s + (r.chargesLocatives ?? 0), 0) / n2
+    const avgImpots2 = rows2.reduce((s, r) => s + r.impots, 0) / n2
+    const rendementBrut2 = avgLoyers2 / ct2
+    const rendementNet2 = (avgLoyers2 - avgCharges2) / ct2
+    // net-net = net - fiscal burden (cohérent : net-net ≡ net quand impôts = 0)
+    const rendementNetNet2 = rendementNet2 - avgImpots2 / ct2
     return {
       ...summary,
       tri: tri2,
       van: van2,
       cashflowMensuelMoyen: Math.round(cf2),
+      rendementBrut: rendementBrut2,
+      rendementNet: rendementNet2,
+      rendementNetNet: rendementNetNet2,
       patrimoineNet: dernierRow2?.patrimoineNet ?? 0,
     }
   })
@@ -172,6 +284,48 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
   // 15. Niveaux de confiance des données
   const niveauxConfiance = genererNiveauxConfiance(input)
 
+  // 16. Audit d'éligibilité fiscale
+  const eligibilite = calculerEligibilite(input)
+
+  // 17. Comparaison 3 scénarios avantage fiscal (hors / théorique / utilisable)
+  const scerariosAvantage: ScenariosAvantage | undefined = (() => {
+    const dispositif = input.fiscalite.dispositif ?? 'aucun'
+    if (dispositif === 'aucun') return undefined
+
+    // Scénario A : zéro avantage — on force irBrutAnnuel = 0 pour bloquer toute réduction
+    const inputHors = { ...input, fiscalite: { ...input.fiscalite, irBrutAnnuel: 0, nichesDejaConsommees: 0 } }
+    const rowsHors = genererTableauAnnuel(inputHors, creditSchedule.tableau, coutTotal)
+    const dernierHors = rowsHors[rowsHors.length - 1]
+    const triHors = calculerTRI(apportInitial, 0, 0, rowsHors, dernierHors?.produitNetReventePotentiel ?? 0)
+    const vanHors = calculerVAN(apportInitial, 0, 0, rowsHors, dernierHors?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
+
+    // Scénario B : avantage théorique complet — IR illimité
+    const inputTheo = { ...input, fiscalite: { ...input.fiscalite, irBrutAnnuel: undefined, nichesDejaConsommees: 0 } }
+    const rowsTheo = genererTableauAnnuel(inputTheo, creditSchedule.tableau, coutTotal)
+    const dernierTheo = rowsTheo[rowsTheo.length - 1]
+    const triTheo = calculerTRI(apportInitial, 0, 0, rowsTheo, dernierTheo?.produitNetReventePotentiel ?? 0)
+    const vanTheo = calculerVAN(apportInitial, 0, 0, rowsTheo, dernierTheo?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
+
+    // Scénario C : avantage utilisable — avec les vraies données IR/niches (= simulation principale)
+    return {
+      horsAvantage: {
+        tri: triHors, van: Math.round(vanHors),
+        cashflowMensuelMoyen: Math.round(rowsHors.reduce((s, r) => s + r.cashflowAnnuel, 0) / rowsHors.length / 12),
+        impotsCumules: Math.round(rowsHors.reduce((s, r) => s + r.impots, 0)),
+      },
+      avantageTheorique: {
+        tri: triTheo, van: Math.round(vanTheo),
+        cashflowMensuelMoyen: Math.round(rowsTheo.reduce((s, r) => s + r.cashflowAnnuel, 0) / rowsTheo.length / 12),
+        impotsCumules: Math.round(rowsTheo.reduce((s, r) => s + r.impots, 0)),
+      },
+      avantageUtilisable: {
+        tri, van: Math.round(van),
+        cashflowMensuelMoyen: summary.cashflowMensuelMoyen,
+        impotsCumules: Math.round(rows.reduce((s, r) => s + r.impots, 0)),
+      },
+    }
+  })()
+
   return {
     input,
     creditSchedule,
@@ -187,6 +341,9 @@ export function analyser(input: ProjectInput): ProjectAnalysis {
     pointMort,
     scoreRobustesse,
     niveauxConfiance,
+    regimeAutoSelectionne,
+    eligibilite,
+    scerariosAvantage,
   }
 }
 
@@ -236,13 +393,12 @@ function calculerComparaisonsRegimes(
       dureeAmortissementMobilier: input.fiscalite.dureeAmortissementMobilier,
       coutTotalAcquisition: coutTotal,
     })
-    const rend = calculerRendements(
-      input.location.loyerMensuelHC, coutTotal, input.acquisition.prixAchat,
-      input.charges.chargesCoproAnnuelles * input.charges.partNonRecuperable,
-      input.charges.taxeFonciere, input.location.assurancePnoAnnuelle,
-      input.location.gestionLocative ? input.location.loyerMensuelHC * 12 * input.location.fraisGestionPct : 0,
-      input.charges.entretienAnnuel, impotAnnee1.total
-    )
+    // Rendement net-net calculé depuis le tableau annuel (cohérent avec summary et la méthode page 17)
+    const nR2 = rows2.length || 1
+    const avgL2 = rows2.reduce((s, r) => s + (r.loyersEncaisses ?? 0), 0) / nR2
+    const avgC2 = rows2.reduce((s, r) => s + (r.chargesLocatives ?? 0), 0) / nR2
+    const avgI2 = rows2.reduce((s, r) => s + r.impots, 0) / nR2
+    const rendementNetNet2 = (avgL2 - avgC2 - avgI2) / coutTotal
 
     results.push({
       regime,
@@ -251,7 +407,7 @@ function calculerComparaisonsRegimes(
       cashflowMensuelMoyen: Math.round(cf2),
       tri: tri2,
       van: van2,
-      rendementNetNet: rend.rendementNetNet,
+      rendementNetNet: rendementNetNet2,
       verdict: 'correct',
     })
   }
@@ -287,12 +443,29 @@ function calculerSensibilite(
     return calculerTRI(ap, 0, 0, r2, d2?.produitNetReventePotentiel ?? 0)
   }
 
+  // Sensibilité prix d'achat : recalcule le crédit avec LTV constante
+  // (si montantEmprunte fixe, une baisse du prix crée un apport négatif — incohérent)
+  const ltvInitiale = input.financement.montantEmprunte / calculerCoutTotal(input.acquisition)
+  const calcPA = (facteurPA: number) => {
+    const newPA = input.acquisition.prixAchat * facteurPA
+    const newAcq = { ...input.acquisition, prixAchat: newPA }
+    const ct = calculerCoutTotal(newAcq)
+    const newMontantEmprunte = Math.round(ct * ltvInitiale)
+    const newFin = { ...input.financement, montantEmprunte: newMontantEmprunte }
+    const newCredit = calculerCredit(newFin)
+    const newInput: ProjectInput = { ...input, acquisition: newAcq, financement: newFin }
+    const ap = ct - newMontantEmprunte
+    const r2 = genererTableauAnnuel(newInput, newCredit.tableau, ct)
+    const d2 = r2[r2.length - 1]
+    return calculerTRI(ap, 0, 0, r2, d2?.produitNetReventePotentiel ?? 0)
+  }
+
   return [
     {
       variable: "Prix d'achat",
-      moins10: calc({ acquisition: { ...input.acquisition, prixAchat: input.acquisition.prixAchat * 0.9 } }),
+      moins10: calcPA(0.9),
       central: triCentral,
-      plus10: calc({ acquisition: { ...input.acquisition, prixAchat: input.acquisition.prixAchat * 1.1 } }),
+      plus10: calcPA(1.1),
     },
     {
       variable: 'Loyer mensuel',
@@ -373,7 +546,7 @@ function calculerStressTests(
     {
       label: '6 mois sans locataire',
       description: 'Vacance exceptionnelle (sinistre, travaux)',
-      impact: `Cash cumule diminue de ${fmtInt(pertePourVacance6Mois)} €`,
+      impact: `Cash cumulé diminue de ${fmtInt(pertePourVacance6Mois)} €`,
       valeur: Math.round(cfVacance),
       unite: '€ cumulé',
       severite: cfVacance < 0 ? 'severe' : 'modere',
@@ -418,6 +591,46 @@ function calculerStressTests(
       unite: '€/mois après 2028',
       severite: 'severe' as const,
     }] : []),
+    // Stress test rupture d'engagement — uniquement si dispositif avec engagement
+    ...(() => {
+      const dispositif = input.fiscalite.dispositif ?? 'aucun'
+      const dp = input.fiscalite.dispositifParams
+      const engagements: Record<string, number> = {
+        denormandie:   dp.denormandie_dureeEngagement ?? 9,
+        jeanbrun:      dp.jeanbrun_engagementAns ?? 9,
+        loc_avantages: 6,  // durée minimale convention Anah
+        deficit_foncier_renforce: dp.deficitRenforce_engagementLocationAns ?? 3,
+        malraux:       9,  // engagement de location post-travaux
+        monuments_historiques: 15,
+      }
+      const engagementAns = engagements[dispositif]
+      if (!engagementAns || dispositif === 'aucun') return []
+
+      // Simulation : rupture en milieu d'engagement → reprise fiscale = réduction déjà perçue
+      const anneeRupture = Math.ceil(engagementAns / 2)
+      const reductionPercue = rows
+        .filter(r => r.annee <= anneeRupture)
+        .reduce((s, r) => s + (r.reductionDispositif ?? 0), 0)
+      const repriseEstimee = reductionPercue  // reprise intégrale en cas de rupture
+
+      // TRI recalculé avec la reprise fiscale à l'année de rupture
+      const rowsRupture = rows.map(r => ({
+        ...r,
+        cashflowAnnuel: r.annee === anneeRupture
+          ? r.cashflowAnnuel - repriseEstimee
+          : r.cashflowAnnuel,
+      }))
+      const triRupture = calculerTRI(apportInitial, 0, 0, rowsRupture, rows[anneeRupture - 1]?.produitNetReventePotentiel ?? 0)
+
+      return [{
+        label: `Rupture d'engagement (année ${anneeRupture}/${engagementAns})`,
+        description: `Revente ou changement d'usage avant la fin des ${engagementAns} ans d'engagement ${dispositif}`,
+        impact: `Reprise fiscale estimée ${fmtInt(repriseEstimee)} € — TRI chute à ${(triRupture * 100).toFixed(2)} %`,
+        valeur: triRupture,
+        unite: 'TRI avec reprise',
+        severite: (triRupture < 0 ? 'severe' : triRupture < 0.02 ? 'modere' : 'faible') as 'severe' | 'modere' | 'faible',
+      }]
+    })(),
   ]
 }
 
@@ -613,8 +826,33 @@ function calculerScoreRobustesse(
   const scoreHorizon = input.revente.dureeDetentionAns >= 15 ? 5
     : input.revente.dureeDetentionAns >= 10 ? 3 : 1
 
-  const total = scoreDependance + scoreSensLoyer + scoreSensTravaux + scoreDpe
+  const rawTotal = scoreDependance + scoreSensLoyer + scoreSensTravaux + scoreDpe
     + scoreVacance + scoreMarge + scoreLiquidite + scoreHorizon
+
+  // Comptage stress tests sévères (score = 0 sur les 5 composantes clés)
+  const stressesSeveres = [
+    scoreDependance === 0, // dépendance revente totale
+    scoreSensLoyer === 0,  // très sensible au loyer
+    scoreDpe === 0,        // DPE G
+    scoreVacance === 0,    // vacance > 2 mois
+    scoreMarge === 0,      // cashflow < -500/mois
+  ].filter(Boolean).length
+
+  // Plafonnement si LTV > 90% ou >= 3 stress tests sévères
+  const mustCap = ltv > 0.90 || stressesSeveres >= 3
+  const total = mustCap ? Math.min(rawTotal, 50) : rawTotal
+
+  // Label — "Robuste" interdit si marge sécurité = 0
+  const labelBase = total >= 81 ? 'Très robuste'
+    : total >= 66 ? 'Robuste'
+    : total >= 51 ? 'Robustesse moyenne'
+    : total >= 31 ? 'Fragile' : 'Très fragile'
+
+  const label = (labelBase === 'Robuste' || labelBase === 'Très robuste') && scoreMarge === 0
+    ? 'Robustesse moyenne mais faible marge de sécurité'
+    : mustCap && total <= 50 && rawTotal > 50
+    ? 'Fragile (plafonné — LTV > 90 % ou stress tests multiples)'
+    : labelBase
 
   return {
     total,
@@ -626,7 +864,7 @@ function calculerScoreRobustesse(
     margeSecurite: scoreMarge,
     liquidite: scoreLiquidite,
     horizonDetention: scoreHorizon,
-    label: total >= 81 ? 'Très robuste' : total >= 66 ? 'Robuste' : total >= 51 ? 'Robustesse moyenne' : total >= 31 ? 'Fragile' : 'Très fragile',
+    label,
   }
 }
 

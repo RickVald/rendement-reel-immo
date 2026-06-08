@@ -1,5 +1,21 @@
 import React from 'react'
-import { Document, Page, View, Text } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Font } from '@react-pdf/renderer'
+import path from 'path'
+
+// ── Enregistrement de la police Arial avec support Unicode complet ─────────────
+// Résout le mojibake (Ã©/Ã ) causé par l'encodage UTF-8 de Helvetica built-in
+const FONT_DIR = path.join(process.cwd(), 'public', 'fonts')
+Font.register({
+  family: 'Arial',
+  fonts: [
+    { src: path.join(FONT_DIR, 'Arial.ttf'),      fontWeight: 'normal',  fontStyle: 'normal' },
+    { src: path.join(FONT_DIR, 'Arial-Bold.ttf'), fontWeight: 'bold',    fontStyle: 'normal' },
+    { src: path.join(FONT_DIR, 'Arial-Italic.ttf'), fontWeight: 'normal', fontStyle: 'italic' },
+  ],
+})
+
+// Désactiver l'auto-hyphenation (évite "réintégra-tion", "observa-toire", etc.)
+Font.registerHyphenationCallback((word: string) => [word])
 import type { ProjectAnalysis, AIInterpretation } from '@/lib/calculator/types'
 import { S, COLORS, verdictColors } from './styles'
 import {
@@ -8,6 +24,9 @@ import {
   ScoreBar, HypRow, PageHeader, PageFooter,
   WaterfallRendement, ComparaisonPlacementsChart,
 } from './helpers'
+import { calculerDetailPlusValue } from '@/lib/calculator/fiscalite'
+import { getSynthèseDispositif, DISPOSITIF_LABELS } from '@/lib/calculator/dispositifs'
+import { calculerEligibilite, ELIGIBILITY_STATUS_LABELS } from '@/lib/calculator/eligibilite'
 
 // ─── Labels ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +73,7 @@ const SCORE_ITEMS = [
   { key: 'van',               label: 'VAN',                    max: 15 },
   { key: 'margeSecurite',     label: 'Marge de sécurité',      max: 10 },
   { key: 'risqueDpe',         label: 'Risque DPE',             max: 10 },
-  { key: 'dependanceRevente', label: 'Indép. de la revente',   max:  5 },
+  { key: 'dependanceRevente', label: 'Indép. revente',           max:  5 },
 ] as const
 
 // ─── Root Document ────────────────────────────────────────────────────────────
@@ -69,7 +88,7 @@ export function RapportPDF({
   const {
     input, summary, verdict, yearlyTable, scenarios, prixMax,
     creditSchedule, comparaisonsRegimes, sensibilite, stressTests, pointMort,
-    scoreRobustesse, niveauxConfiance,
+    scoreRobustesse, niveauxConfiance, regimeAutoSelectionne, scerariosAvantage,
   } = analysis
   const vc = verdictColors(verdict.couleur)
   const meta = `${TYPE_LABELS[input.bien.type] ?? input.bien.type} · ${input.bien.ville} · DPE ${input.bien.dpe}`
@@ -110,8 +129,21 @@ export function RapportPDF({
             <View><Text style={S.coverMeta}>Prix d'achat</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(input.acquisition.prixAchat)}</Text></View>
             <View><Text style={S.coverMeta}>Coût total acquisition</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(summary.coutTotalAcquisition)}</Text></View>
             <View><Text style={S.coverMeta}>Cash total nécessaire</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(summary.cashTotalNecessaire)}</Text></View>
-            <View><Text style={S.coverMeta}>Régime fiscal</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{REGIME_SHORT[input.fiscalite.regime] ?? input.fiscalite.regime}</Text></View>
+            <View>
+              <Text style={S.coverMeta}>Régime fiscal</Text>
+              <Text style={[S.coverMeta, S.coverMetaVal]}>
+                {REGIME_SHORT[input.fiscalite.regime] ?? input.fiscalite.regime}
+                {regimeAutoSelectionne ? ' ★ auto-sélectionné' : ''}
+              </Text>
+            </View>
           </View>
+          {regimeAutoSelectionne && (
+            <View style={{ marginTop: 6, backgroundColor: '#ecfdf5', borderWidth: 1, borderColor: '#6ee7b7', borderRadius: 4, paddingHorizontal: 10, paddingVertical: 5 }}>
+              <Text style={{ fontSize: 7, color: '#065f46' }}>
+                ★ Régime optimal sélectionné automatiquement par le moteur parmi les régimes compatibles avec le type de location et le dispositif fiscal. Le régime retenu est celui qui maximise le rendement net-net moyen sur la durée de détention.
+              </Text>
+            </View>
+          )}
 
           {/* Verdict */}
           <View style={[S.verdictBanner, { backgroundColor: vc.bg, borderWidth: 2, borderColor: vc.border }]}>
@@ -170,21 +202,28 @@ export function RapportPDF({
             </View>
             {[
               { q: 'Le bien s\'autofinance-t-il ?',           v: summary.cashflowMensuelMoyen >= 0 ? 'Oui' : 'Non', ok: summary.cashflowMensuelMoyen >= 0 },
-              { q: 'Le rendement net-net est-il suffisant (>= 3 %) ?', v: pct(summary.rendementNetNet), ok: summary.rendementNetNet >= 0.03 },
+              { q: 'Rendement d\'exploitation net-net (loyers – charges – impôts) ?', v: `${pct(summary.rendementNetNet)} — exploitation correcte, hors effet levier et revente`, ok: false },
+              { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: summary.tri >= 0.04 && summary.van > 0 },
               { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: pct(summary.tri), ok: summary.tri >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
-              { q: 'Le projet dépend-il de la revente ?',     v: summary.dependanceRevente ? 'Oui — risque' : summary.tri < 0 ? 'Non, mais TRI negatif' : 'Non — autonome', ok: !summary.dependanceRevente && summary.tri >= 0 },
+              { q: 'Le projet est-il rentable sans aucune revente ?', v: summary.dependanceRevente ? `Non — flux cumulés négatifs (${eur(summary.cashflowCumule)})` : 'Oui — cash-flow cumulé positif sans revente', ok: !summary.dependanceRevente },
+              { q: 'L\'exploitation locative couvre-t-elle les charges hors crédit ?', v: (summary.rendementNetNet > 0) ? 'Oui — avant effet du financement' : 'Non — rendement net-net négatif', ok: summary.rendementNetNet > 0 },
               { q: 'Le DPE crée-t-il un risque réglementaire ?', v: isFG ? `Oui — DPE ${input.bien.dpe}, risque location 2028` : `Non — DPE ${input.bien.dpe} conforme`, ok: !isFG },
               { q: 'L\'effort mensuel est-il supportable (< 300 €) ?', v: `${eur(summary.effortEpargne)}/mois`, ok: summary.effortEpargne < 300 },
-              { q: 'Le plan de financement est-il cohérent ?', v: gapFinancement <= 0 ? 'Oui — apport suffisant' : `Ecart : ${eur(gapFinancement)} a couvrir`, ok: gapFinancement <= 0 },
+              { q: 'Le plan de financement est-il cohérent ?', v: gapFinancement <= 0 ? 'Oui — apport suffisant' : `Écart : ${eur(gapFinancement)} à couvrir`, ok: gapFinancement <= 0 },
             ].map((row, i) => (
               <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                 <Text style={[S.tableCell, { flex: 3, fontSize: 7.5 }]}>{row.q}</Text>
-                <Text style={[S.tableCell, { flex: 2, fontSize: 7.5, fontFamily: 'Helvetica-Bold' }, row.ok ? { color: COLORS.emerald } : { color: COLORS.red }]}>
+                <Text style={[S.tableCell, { flex: 2, fontSize: 7.5, fontFamily: 'Arial', fontWeight: 'bold' }, row.ok ? { color: COLORS.emerald } : { color: COLORS.red }]}>
                   {row.v}
                 </Text>
               </View>
             ))}
+          </View>
+          <View style={{ marginTop: 6, marginBottom: 10, padding: 6, backgroundColor: COLORS.slate50, borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.indigo }}>
+            <Text style={{ fontSize: 6.5, color: COLORS.slate600, lineHeight: 1.5 }}>
+              {'Note méthodologique — Le rendement net-net mesure l\'exploitation locative annuelle (loyers – charges – impôts sur revenus). Il ne reflète pas la rentabilité globale du projet, qui intègre également l\'apport initial, les remboursements de crédit, la revente et la fiscalité de cession. Le TRI est l\'indicateur principal de la rentabilité patrimoniale globale, car il agrège l\'ensemble de ces flux sur la durée de détention.'}
+            </Text>
           </View>
 
           {/* KPIs résumé en 2 colonnes */}
@@ -192,9 +231,9 @@ export function RapportPDF({
             <View style={S.col}>
               <Text style={S.subTitle}>Indicateurs financiers clés</Text>
               {[
-                { label: 'Rendement brut',   val: pct(summary.rendementBrut),        ok: summary.rendementBrut >= 0.05 },
-                { label: 'Rendement net',     val: pct(summary.rendementNet),          ok: summary.rendementNet >= 0.04 },
-                { label: 'Rendement net-net', val: pct(summary.rendementNetNet),       ok: summary.rendementNetNet >= 0.03 },
+                { label: 'Rendement brut (loyers HC / prix achat)',                    val: pct(summary.rendementBrut),    ok: summary.rendementBrut >= 0.05 },
+                { label: 'Rendement net (loyers enc. – charges / coût total, moy.)',   val: pct(summary.rendementNet),     ok: summary.rendementNet >= 0.04 },
+                { label: 'Rendement net-net (idem – impôts / coût total, moy.)',       val: pct(summary.rendementNetNet),  ok: summary.rendementNetNet >= 0.03 },
                 { label: 'TRI projet',        val: pct(summary.tri),                   ok: summary.tri >= 0.04 },
                 { label: 'VAN',               val: eur(summary.van),                   ok: summary.van > 0 },
                 { label: 'Cash-flow moyen',   val: `${sign(summary.cashflowMensuelMoyen)}/mois`, ok: summary.cashflowMensuelMoyen >= 0 },
@@ -203,12 +242,12 @@ export function RapportPDF({
               ].map(k => <HypRow key={k.label} label={k.label} value={k.val} highlight={k.ok} />)}
             </View>
             <View style={S.col}>
-              <Text style={S.subTitle}>Prix maximum conseillé</Text>
+              <Text style={S.subTitle}>Prix cible selon objectif de simulation</Text>
               <View style={[S.card, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe', marginBottom: 10 }]}>
-                <Text style={{ fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#1e3a8a', marginBottom: 4 }}>{eur(prixMax.prixMaximum)}</Text>
+                <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: '#1e3a8a', marginBottom: 4 }}>{eur(prixMax.prixMaximum)}</Text>
                 <Text style={{ fontSize: 8, color: '#3730a3' }}>Pour atteindre : {prixMax.objectifCible}</Text>
                 <Text style={{ fontSize: 8, color: '#6b7280', marginTop: 4 }}>
-                  Decote necessaire : {eur(prixMax.negociationEuros)} ({pct(prixMax.negociationPct, 1)} du prix demande)
+                  Décote nécessaire : {eur(prixMax.negociationEuros)} ({pct(prixMax.negociationPct, 1)} du prix demandé)
                 </Text>
               </View>
 
@@ -216,10 +255,10 @@ export function RapportPDF({
               <View style={[S.card, { backgroundColor: vc.bg, borderColor: vc.border }]}>
                 <Text style={{ fontSize: 8, color: vc.text, lineHeight: 1.6 }}>
                   {verdict.score < 40
-                    ? `Au prix demande, ce projet ne remunere pas suffisamment le risque, genere un effort d'epargne durable${summary.dependanceRevente ? ' et repose entierement sur une hypothese de revalorisation du bien' : ''}${isFG ? ` malgre un DPE ${input.bien.dpe} a risque` : ''}.`
+                    ? `Au prix demandé, ce projet ne rémunère pas suffisamment le risque, génère un effort d'épargne durable${summary.dependanceRevente ? ' et repose entièrement sur une hypothèse de revalorisation du bien' : ''}${isFG ? ` malgré un DPE ${input.bien.dpe} à risque` : ''}.`
                     : verdict.score < 65
-                    ? `Le projet presente une rentabilite acceptable mais reste dependant${summary.dependanceRevente ? ' de la revente' : ' de certaines hypotheses'}. Une negociation sur le prix peut ameliorer significativement les indicateurs.`
-                    : `Le projet presente une bonne rentabilite. Cash-flow ${summary.cashflowMensuelMoyen >= 0 ? 'positif' : 'maitrise'}, TRI satisfaisant. A valider avec un professionnel.`
+                    ? `Le projet présente une rentabilité acceptable mais reste dépendant${summary.dependanceRevente ? ' de la plus-value à la revente' : ' de certaines hypothèses'}. Une négociation sur le prix peut améliorer significativement les indicateurs.`
+                    : `Le projet présente une bonne rentabilité. Cash-flow ${summary.cashflowMensuelMoyen >= 0 ? 'positif' : 'maîtrisé'}, TRI satisfaisant. À valider avec un professionnel.`
                   }
                 </Text>
               </View>
@@ -272,7 +311,7 @@ export function RapportPDF({
               {
                 arg: `"Loyer de ${eur(input.location.loyerMensuelHC)}/mois"`,
                 reel: `Cash-flow réel moyen : ${sign(summary.cashflowMensuelMoyen)}/mois (après crédit, charges, impôts)`,
-                ecart: `${eur(input.location.loyerMensuelHC - summary.cashflowMensuelMoyen)}/mois d'ecart`,
+                ecart: `${eur(input.location.loyerMensuelHC - summary.cashflowMensuelMoyen)}/mois d'écart`,
                 bad: true,
               },
               {
@@ -284,24 +323,24 @@ export function RapportPDF({
               {
                 arg: `"Prix de marché : ${eur(input.acquisition.prixAchat)}"`,
                 reel: `Prix cible pour objectif rentabilité : ${eur(prixMax.prixMaximum)}`,
-                ecart: `Decote necessaire : ${pct(prixMax.negociationPct, 1)}`,
+                ecart: `Décote nécessaire : ${pct(prixMax.negociationPct, 1)}`,
                 bad: prixMax.negociationPct > 0.05,
               },
               {
                 arg: `"TRI immobilier attractif"`,
-                reel: `TRI simulé : ${pct(summary.tri)} — ${summary.tri < 0.04 ? `inferieur au seuil de risque immobilier (4 %)` : 'conforme au seuil minimum'}`,
+                reel: `TRI simulé : ${pct(summary.tri)} — ${summary.tri < 0.04 ? `inférieur au seuil de risque immobilier (4 %)` : 'conforme au seuil minimum'}`,
                 ecart: summary.tri < 0.04 ? 'Insuffisant' : 'Correct',
                 bad: summary.tri < 0.04,
               },
               {
-                arg: summary.dependanceRevente ? '"Bonne opération patrimoniale"' : '"Projet auto-financé"',
+                arg: '"Projet auto-financé"',
                 reel: summary.dependanceRevente
-                  ? `TRI sans revente : negatif — le projet ne tient que si le bien se revalorise`
-                  : summary.tri < 0
-                  ? `Pas de dependance a la revente, mais TRI global reste negatif (${pct(summary.tri)}) — le projet detruit de la valeur`
-                  : `Autonome : TRI positif meme sans plus-value de revente`,
-                ecart: summary.dependanceRevente ? 'Dependant revente' : summary.tri < 0 ? 'TRI negatif' : 'Autonome',
-                bad: summary.dependanceRevente || summary.tri < 0,
+                  ? `Faux — effort d'épargne de ${eur(summary.effortEpargne)}/mois. Projet dépendant de la revente : sans plus-value, le cash-flow cumulé reste négatif (${eur(summary.cashflowCumule)}).`
+                  : summary.cashflowMensuelMoyen < 0
+                  ? `Partiel — effort de ${eur(summary.effortEpargne)}/mois. L'exploitation hors crédit est positive, mais le remboursement crée un cash-flow négatif.`
+                  : `Vrai — le projet génère un cash-flow positif chaque mois (${sign(summary.cashflowMensuelMoyen)}/mois).`,
+                ecart: summary.dependanceRevente ? 'Non autofinancé' : summary.cashflowMensuelMoyen < 0 ? 'Effort mensuel' : 'Autofinancé',
+                bad: summary.dependanceRevente || summary.cashflowMensuelMoyen < 0,
               },
               ...(isFG ? [{
                 arg: `"DPE ${input.bien.dpe} gérable avec des travaux"`,
@@ -317,8 +356,8 @@ export function RapportPDF({
               },
             ].map((row, i) => (
               <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                <Text style={[S.tableCell, { flex: 3, fontSize: 7, color: COLORS.slate600, fontFamily: 'Helvetica-Oblique' }]}>{row.arg}</Text>
-                <Text style={[S.tableCell, { flex: 3, fontSize: 7, fontFamily: 'Helvetica-Bold' }, row.bad ? { color: COLORS.red } : { color: COLORS.emerald }]}>{row.reel}</Text>
+                <Text style={[S.tableCell, { flex: 3, fontSize: 7, color: COLORS.slate600, fontFamily: 'Arial', fontStyle: 'italic' }]}>{row.arg}</Text>
+                <Text style={[S.tableCell, { flex: 3, fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold' }, row.bad ? { color: COLORS.red } : { color: COLORS.emerald }]}>{row.reel}</Text>
                 <Text style={[S.tableCell, { flex: 1.5, fontSize: 7 }, row.bad ? { color: COLORS.amber } : { color: COLORS.emerald }]}>{row.ecart}</Text>
               </View>
             ))}
@@ -333,7 +372,7 @@ export function RapportPDF({
                 { label: 'Frais annexes (notaire, agence...)', val: eur(summary.coutTotalAcquisition - input.acquisition.prixAchat), ok: null },
                 { label: 'Coût total acquisition', val: eur(summary.coutTotalAcquisition), ok: null },
                 { label: 'Emprunt bancaire', val: eur(input.financement.montantEmprunte), ok: true },
-                { label: 'Cash total nécessaire (=coût − emprunt)', val: eur(summary.cashTotalNecessaire), ok: null },
+                { label: 'Cash total nécessaire (=coût - emprunt)', val: eur(summary.cashTotalNecessaire), ok: null },
                 { label: 'Apport déclaré', val: eur(input.financement.apport), ok: gapFinancement <= 0 },
                 { label: gapFinancement > 0 ? 'Ecart à financer en cash' : 'Réserve disponible', val: eur(Math.abs(gapFinancement)), ok: gapFinancement <= 0 },
               ].map(k => (
@@ -346,7 +385,7 @@ export function RapportPDF({
             {gapFinancement > 0 && (
               <View style={[S.alertBox, { marginTop: 8 }]}>
                 <Text style={S.alertText}>
-                  ! Le plan de financement présente un écart de {eur(gapFinancement)} entre le cash total nécessaire
+                  Attention : Le plan de financement présente un écart de {eur(gapFinancement)} entre le cash total nécessaire
                   ({eur(summary.cashTotalNecessaire)}) et l'apport déclaré ({eur(input.financement.apport)}).
                   Cet écart doit être comblé par un apport complémentaire, une réduction des frais, ou une augmentation de l'emprunt.
                 </Text>
@@ -367,9 +406,10 @@ export function RapportPDF({
 
           <View style={S.kpiGrid}>
             {[
-              { label: 'Rendement brut',    val: pct(summary.rendementBrut),         sub: 'sur prix d\'achat',           ok: summary.rendementBrut >= 0.05 },
-              { label: 'Rendement net',      val: pct(summary.rendementNet),           sub: 'après charges, avant impôts', ok: summary.rendementNet >= 0.04 },
-              { label: 'Rendement net-net',  val: pct(summary.rendementNetNet),        sub: 'après fiscalité',             ok: summary.rendementNetNet >= 0.03 },
+              { label: 'Rendement brut',    val: pct(summary.rendementBrut),         sub: 'loyers HC / prix achat',                    ok: summary.rendementBrut >= 0.05 },
+              { label: 'Rendement net',      val: pct(summary.rendementNet),           sub: 'loyers enc. – charges / coût total, moy.',  ok: summary.rendementNet >= 0.04 },
+              { label: 'Net-net hors trav. récurrents',  val: pct(summary.rendementNetNet), sub: 'idem – impôts / coût total, moy.',  ok: summary.rendementNetNet >= 0.03 },
+              { label: 'Net-net après trav. récurrents', val: pct(Math.max(0, summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition)), sub: 'trav. récurrents déduits du net-net', ok: (summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition) >= 0.03 },
               { label: 'Cash-flow mensuel',  val: sign(summary.cashflowMensuelMoyen), sub: 'moyen / mois',                ok: summary.cashflowMensuelMoyen >= 0 },
               { label: 'TRI projet',         val: pct(summary.tri),                   sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.tri >= 0.06 },
               { label: 'VAN',                val: eur(summary.van),                   sub: `vs ${pct(input.revente.tauxActualisation)} de réf.`, ok: summary.van > 0 },
@@ -398,7 +438,6 @@ export function RapportPDF({
                   <Text style={S.subTitle}>Points d'attention</Text>
                   {verdict.alertes.map((a, i) => (
                     <View key={i} style={S.alertBox}>
-                      <Text style={{ fontSize: 8, color: COLORS.amber }}>!</Text>
                       <Text style={S.alertText}>{a}</Text>
                     </View>
                   ))}
@@ -424,10 +463,10 @@ export function RapportPDF({
                 <View style={[S.card, { marginTop: 10 }]}>
                   <Text style={S.cardTitle}>Seuils de viabilité (point mort)</Text>
                   <HypRow label="Loyer pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois`} />
-                  <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                  <HypRow label="Prix max pour TRI ≥ 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
                   <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   <HypRow label="Travaux sup. max supportables" value={eur(pointMort.travauxMaxSupportables)} />
-                  <HypRow label="Revente min pour VAN >= 0" value={eur(pointMort.reventeMinPourVanPositive)} />
+                  <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
                   <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} ans`} highlight />
                 </View>
               )}
@@ -439,29 +478,29 @@ export function RapportPDF({
       </Page>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          PAGE 5 — SCORE DE ROBUSTESSE + WATERFALL
+          PAGE 5 — ARBITRAGE PATRIMONIAL + SCORE DE ROBUSTESSE
       ══════════════════════════════════════════════════════════════════════ */}
       {scoreRobustesse && (
         <Page size="A4" style={S.page}>
-          <PageHeader section="Score de Robustesse" meta={meta} />
+          <PageHeader section="Arbitrage patrimonial" meta={meta} />
           <View style={S.body}>
 
             <Text style={{ fontSize: 8.5, color: COLORS.slate500, marginBottom: 10, lineHeight: 1.5 }}>
               Le score de robustesse mesure la résistance du projet aux chocs et incertitudes — indépendamment de la rentabilité.
-              Un projet peut être rentable mais fragile (dépendance à la revente, DPE risqué, forte sensibilité aux aléas).
+              Un projet peut être rentable mais fragile (dépendance à la plus-value, DPE risqué, forte sensibilité aux aléas).
             </Text>
 
             <View style={S.row2}>
               <View style={S.col}>
                 {/* Score robustesse */}
-                <Text style={S.sectionTitle}>Score de robustesse</Text>
+                <Text style={S.sectionTitle}>Arbitrage patrimonial</Text>
                 <View style={[S.verdictBanner, {
                   backgroundColor: scoreRobustesse.total >= 81 ? '#ecfdf5' : scoreRobustesse.total >= 66 ? '#f0fdf4' : scoreRobustesse.total >= 51 ? '#fffbeb' : scoreRobustesse.total >= 31 ? '#fff7ed' : '#fef2f2',
                   borderColor: scoreRobustesse.total >= 81 ? COLORS.emerald : scoreRobustesse.total >= 66 ? COLORS.green : scoreRobustesse.total >= 51 ? COLORS.amber : COLORS.red,
                   borderWidth: 1, marginBottom: 10
                 }]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 12, fontFamily: 'Helvetica-Bold', color: scoreRobustesse.total >= 66 ? COLORS.emeraldDark : scoreRobustesse.total >= 51 ? '#78350f' : COLORS.red }}>
+                    <Text style={{ fontSize: 12, fontFamily: 'Arial', fontWeight: 'bold', color: scoreRobustesse.total >= 66 ? COLORS.emeraldDark : scoreRobustesse.total >= 51 ? '#78350f' : COLORS.red }}>
                       {scoreRobustesse.label}
                     </Text>
                     <Text style={{ fontSize: 8, color: COLORS.slate500, marginTop: 2 }}>
@@ -469,7 +508,7 @@ export function RapportPDF({
                     </Text>
                   </View>
                   <View style={{ alignItems: 'center' }}>
-                    <Text style={{ fontSize: 28, fontFamily: 'Helvetica-Bold', color: scoreRobustesse.total >= 50 ? COLORS.amber : COLORS.red }}>
+                    <Text style={{ fontSize: 28, fontFamily: 'Arial', fontWeight: 'bold', color: scoreRobustesse.total >= 50 ? COLORS.amber : COLORS.red }}>
                       {scoreRobustesse.total}
                     </Text>
                     <Text style={{ fontSize: 10, color: COLORS.slate500 }}>/ 100</Text>
@@ -477,7 +516,7 @@ export function RapportPDF({
                 </View>
 
                 {[
-                  { label: 'Dépendance à la revente', val: scoreRobustesse.dependanceRevente, max: 20 },
+                  { label: 'Sensibilité au prix de revente', val: scoreRobustesse.dependanceRevente, max: 20 },
                   { label: 'Sensibilité au loyer', val: scoreRobustesse.sensibiliteLoyer, max: 15 },
                   { label: 'Sensibilité aux travaux', val: scoreRobustesse.sensibiliteTravaux, max: 15 },
                   { label: 'Risque DPE réglementaire', val: scoreRobustesse.risqueDpe, max: 15 },
@@ -496,12 +535,12 @@ export function RapportPDF({
                 <View style={[S.card, { marginBottom: 12 }]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                     <View style={{ alignItems: 'center', flex: 1 }}>
-                      <Text style={{ fontSize: 22, fontFamily: 'Helvetica-Bold', color: verdict.couleur === 'emerald' ? COLORS.emerald : verdict.couleur === 'red' ? COLORS.red : COLORS.amber }}>{verdict.score}</Text>
+                      <Text style={{ fontSize: 22, fontFamily: 'Arial', fontWeight: 'bold', color: verdict.couleur === 'emerald' ? COLORS.emerald : verdict.couleur === 'red' ? COLORS.red : COLORS.amber }}>{verdict.score}</Text>
                       <Text style={{ fontSize: 7, color: COLORS.slate500 }}>Score rentabilité / 100</Text>
                     </View>
                     <View style={{ width: 1, backgroundColor: COLORS.slate200 }} />
                     <View style={{ alignItems: 'center', flex: 1 }}>
-                      <Text style={{ fontSize: 22, fontFamily: 'Helvetica-Bold', color: scoreRobustesse.total >= 70 ? COLORS.emerald : scoreRobustesse.total >= 50 ? COLORS.amber : COLORS.red }}>{scoreRobustesse.total}</Text>
+                      <Text style={{ fontSize: 22, fontFamily: 'Arial', fontWeight: 'bold', color: scoreRobustesse.total >= 70 ? COLORS.emerald : scoreRobustesse.total >= 50 ? COLORS.amber : COLORS.red }}>{scoreRobustesse.total}</Text>
                       <Text style={{ fontSize: 7, color: COLORS.slate500 }}>Score robustesse / 100</Text>
                     </View>
                   </View>
@@ -520,7 +559,7 @@ export function RapportPDF({
                 {/* Waterfall rendement */}
                 <Text style={S.sectionTitle}>Décomposition du rendement</Text>
                 <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 6 }}>
-                  De {pct(summary.rendementBrut)} brut à {pct(summary.rendementNetNet)} net-net — les étapes de la perte de rendement
+                  De {pct(summary.rendementBrut)} brut à {pct(summary.rendementNetNet)} net-net ({pct(summary.rendementBrut)} sur prix d'achat, {pct(summary.rendementNetNet)} net des charges et impôts sur coût total)
                 </Text>
                 <WaterfallRendement
                   rendementBrut={summary.rendementBrut}
@@ -533,20 +572,20 @@ export function RapportPDF({
                 />
 
                 {/* Comparaison placements */}
-                <Text style={[S.sectionTitle, { marginTop: 12 }]}>Arbitrage patrimonial — même effort, placements différents</Text>
+                <Text style={[S.sectionTitle, { marginTop: 12 }]}>Arbitrage patrimonial — capitaux finaux comparés à même effort</Text>
                 <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 4 }}>
-                  Cash total : {eur(summary.cashTotalNecessaire)} + effort mensuel {eur(summary.effortEpargne)}/mois sur {input.revente.dureeDetentionAns} ans — valeur finale estimée
+                  Convention unique : capital final disponible après {input.revente.dureeDetentionAns} ans. Immo = produit net de cession après frais et fiscalité plus-value. Alternatives = capital capitalisé (même apport initial + même effort mensuel réinvesti).
                 </Text>
                 <ComparaisonPlacementsChart
                   tri={summary.tri}
                   rendementAlternatif={input.revente.rendementAlternatif}
                   cashNecessaire={summary.cashTotalNecessaire}
                   effortEpargne={summary.effortEpargne}
-                  patrimoineFinal={scenarios?.find(s => s.label === 'Central')?.patrimoineFinal ?? 0}
+                  patrimoineFinal={yearlyTable[yearlyTable.length - 1]?.produitNetReventePotentiel ?? 0}
                   duree={input.revente.dureeDetentionAns}
                 />
                 <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
-                  * Placement securise : hypothese theorique de placement au taux du Livret A (1,5 %/an, Banque de France fev. 2026), sans prise en compte des plafonds reglementaires (23 950 EUR pour un Livret A). Alternatifs : capital + effort mensuel reinvestis au meme taux. Immo : patrimoine net a la revente (scenario central). Ces projections ne constituent pas un conseil en investissement.
+                  Convention : tous les montants représentent le capital final disponible, selon la même hypothèse d'apport initial ({eur(summary.cashTotalNecessaire)}) et d'effort mensuel ({eur(summary.effortEpargne)}/mois). Immo : produit net de cession (valeur estimée - frais vente - fiscalité plus-value - capital restant dû). Placement sécurisé : hypothèse taux Livret A 1,5 %/an (Banque de France fév. 2026). Alternatifs (assurance-vie, PEA, compte-titres, SCPI) : capital + effort réinvestis, affichés bruts de fiscalité propre à chaque enveloppe — la comparaison est indicative. Ces projections ne constituent pas un conseil en investissement.
                 </Text>
               </View>
             </View>
@@ -573,13 +612,13 @@ export function RapportPDF({
 
           <Text style={S.sectionTitle}>Évolution du patrimoine net</Text>
           <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 6 }}>
-            Patrimoine net = valeur estimée du bien − capital restant dû + cash-flow cumulé
+            Patrimoine net = valeur estimée du bien - capital restant dû + cash-flow cumulé
           </Text>
           <PatrimoineChart rows={yearlyTable} />
 
           <View style={{ height: 14 }} />
 
-          <Text style={S.sectionTitle}>Comparaison scénarios pessimiste / central / optimiste</Text>
+          <Text style={S.sectionTitle}>Comparaison scénarios pessimiste / central / optimiste <Text style={{ fontSize: 6, fontFamily: 'Arial', fontWeight: 'normal', color: COLORS.slate400 }}>(net-net = exploitation annuelle ; TRI = sensible à la revente finale)</Text></Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
             {scenarios.map((sc, i) => {
               const colors = [
@@ -595,16 +634,34 @@ export function RapportPDF({
                   <Text style={[S.scenarioVal, { color: colors.text, fontSize: 10 }]}>{pct(sc.tri)}</Text>
                   <Text style={S.scenarioSub}>TRI</Text>
                   <Text style={[S.scenarioVal, { color: colors.text, fontSize: 10 }]}>{pct(sc.rendementNetNet)}</Text>
-                  <Text style={S.scenarioSub}>Rdt net-net</Text>
+                  <Text style={S.scenarioSub}>Rdt net-net (coût total)</Text>
                   <Text style={[S.scenarioVal, { color: colors.text, fontSize: 10 }]}>{eur(sc.van)}</Text>
                   <Text style={S.scenarioSub}>VAN</Text>
                 </View>
               )
             })}
           </View>
-          <Text style={{ fontSize: 7, color: COLORS.slate400 }}>
-            Pessimiste : +1,5 mois vacance, charges +1 %, revalorisation −2 %/an · Optimiste : −0,5 mois vacance, loyers +1 %, revalorisation +1 %/an
-          </Text>
+          {/* Tableau des hypothèses par scénario */}
+          <View style={[S.table, { marginTop: 4 }]}>
+            <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+              {['Hypothèse', 'Pessimiste', 'Central', 'Optimiste'].map((h, i) => (
+                <Text key={i} style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{h}</Text>
+              ))}
+            </View>
+            {[
+              ['Vacance locative', `${(input.location.vacanceLocativeMois + 1.5).toFixed(1)} mois/an`, `${input.location.vacanceLocativeMois} mois/an`, `${Math.max(0, input.location.vacanceLocativeMois - 0.5).toFixed(1)} mois/an`],
+              ['Revalorisation loyers', `${pct(Math.max(0, input.location.revalorisation - 0.01))}`, `${pct(input.location.revalorisation)}`, `${pct(input.location.revalorisation + 0.01)}`],
+              ['Augmentation charges', `${pct(input.charges.augmentationAnnuellePct + 0.01)}`, `${pct(input.charges.augmentationAnnuellePct)}`, `${pct(Math.max(0, input.charges.augmentationAnnuellePct - 0.005))}`],
+              ['Revalorisation bien', `${pct(Math.max(-0.01, input.revente.revalorisationAnnuelle - 0.02))}`, `${pct(input.revente.revalorisationAnnuelle)}`, `${pct(input.revente.revalorisationAnnuelle + 0.01)}`],
+            ].map(([hyp, pess, cent, opt], i) => (
+              <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                <Text style={[S.tableCell, S.tableCellBold]}>{hyp}</Text>
+                <Text style={[S.tableCell, { color: COLORS.red }]}>{pess}</Text>
+                <Text style={[S.tableCell, S.tableCellGray]}>{cent}</Text>
+                <Text style={[S.tableCell, { color: COLORS.emeraldDark }]}>{opt}</Text>
+              </View>
+            ))}
+          </View>
 
         </View>
         <PageFooter />
@@ -663,7 +720,7 @@ export function RapportPDF({
       ══════════════════════════════════════════════════════════════════════ */}
       {comparaisonsRegimes && comparaisonsRegimes.length > 0 && (
         <Page size="A4" style={S.page}>
-          <PageHeader section="Comparaison Régimes Fiscaux" meta={meta} />
+          <PageHeader section="Régimes et modes d'exploitation" meta={meta} />
           <View style={S.body}>
 
             <Text style={S.sectionTitle}>Simulation automatique des régimes fiscaux applicables</Text>
@@ -675,11 +732,10 @@ export function RapportPDF({
             {input.location.type === 'nue' && (
               <View style={[S.alertBox, { marginBottom: 10, backgroundColor: '#fffbeb', borderColor: COLORS.amber }]}>
                 <Text style={[S.alertText, { color: '#92400e' }]}>
-                  ! Les régimes LMNP (micro-BIC et réel) supposent une location MEUBLÉE — bail, mobilier réglementaire,
+                  Attention : Les régimes LMNP (micro-BIC et réel) supposent une location MEUBLÉE — bail, mobilier réglementaire,
                   comptabilité LMNP. Ils ne sont pas applicables au projet tel que saisi (location nue).
                   Ces colonnes sont affichées à titre d'information sur le gain potentiel d'un changement d'exploitation,
-                  pas comme régimes directement accessibles. De plus, la réintégration des amortissements à la revente
-                  (régime LMNP réel) n'est pas calculée ici et peut réduire significativement l'avantage affiché.
+                  pas comme régimes directement accessibles. La réintégration des amortissements LMNP réel est calculée pour le régime retenu (page "Fiscalité de la Revente") mais pas dans cette comparaison indicative.
                 </Text>
               </View>
             )}
@@ -694,38 +750,121 @@ export function RapportPDF({
                 <Text style={[S.tableHeaderCell]}>Rdt net-net</Text>
                 <Text style={[S.tableHeaderCell]}>Verdict</Text>
               </View>
-              {comparaisonsRegimes.map((r, i) => {
-                const isSelected = r.regime === input.fiscalite.regime
-                const isOptimal = r.verdict === 'optimal'
-                return (
-                  <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isSelected ? { borderLeftWidth: 3, borderLeftColor: COLORS.indigo } : {}]}>
-                    <View style={[S.tableCell, { flex: 2.5, flexDirection: 'column' }]}>
-                      <Text style={[{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: isOptimal ? COLORS.emerald : COLORS.slate700 }]}>{REGIME_SHORT[r.regime]}</Text>
-                      {isSelected && <Text style={{ fontSize: 5.5, color: COLORS.indigo }}>&lt; regime retenu</Text>}
-                      {isOptimal && !isSelected && <Text style={{ fontSize: 5.5, color: COLORS.emerald }}>* meilleure option</Text>}
-                    </View>
-                    <Text style={[S.tableCell, { color: COLORS.red, fontFamily: 'Helvetica-Bold' }]}>{eur(r.impotsCumules20ans)}</Text>
-                    <Text style={[S.tableCell, r.cashflowMensuelMoyen >= 0 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Helvetica-Bold' }]}>{sign(r.cashflowMensuelMoyen)}</Text>
-                    <Text style={[S.tableCell, r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Helvetica-Bold' }]}>{pct(r.tri)}</Text>
-                    <Text style={[S.tableCell, r.van > 0 ? S.tableCellGood : S.tableCellBad]}>{eur(r.van)}</Text>
-                    <Text style={[S.tableCell, r.rendementNetNet >= 0.03 ? S.tableCellGood : S.tableCellBad]}>{pct(r.rendementNetNet)}</Text>
-                    <Text style={[S.tableCell, { fontFamily: 'Helvetica-Bold', fontSize: 6.5 }, r.verdict === 'optimal' ? S.tableCellGood : r.verdict === 'défavorable' ? S.tableCellBad : {}]}>
-                      {r.verdict === 'optimal'
-                        ? (comparaisonsRegimes.every(x => x.van < 0) ? 'Moins defavorable' : 'Meilleur')
-                        : r.verdict === 'bon' ? 'Moins def.'
+              {(() => {
+                const selectedRegime = input.fiscalite.regime
+                const selectedR = comparaisonsRegimes.find(x => x.regime === selectedRegime)
+                const bestVanR = comparaisonsRegimes.reduce((best, r) => r.van > best.van ? r : best, comparaisonsRegimes[0])
+                return comparaisonsRegimes.map((r, i) => {
+                  const isSelected = r.regime === selectedRegime
+                  const isBestVan = r.regime === bestVanR.regime
+                  const sciTriSup = r.regime === 'sci_is' && !isSelected && (selectedR ? r.tri > selectedR.tri : false)
+                  const verdictLabel = isSelected
+                    ? (isBestVan ? 'Régime retenu — meilleure VAN simulée' : 'Régime retenu')
+                    : sciTriSup
+                      ? 'TRI légèrement sup., comparaison partielle'
+                      : r.regime === 'sci_is' && !isSelected
+                        ? 'Comparaison partielle (cession non intégrée)'
+                        : r.verdict === 'optimal' ? 'Moins défavorable hors régime retenu'
+                        : r.verdict === 'bon' ? 'Proche du régime retenu'
+                        : r.verdict === 'correct' && r.regime === 'reel_foncier' ? 'Moins défavorable — projet non rentable'
+                        : r.verdict === 'correct' && r.regime === 'lmnp_micro_bic' ? 'Neutre / défavorable selon critère'
                         : r.verdict === 'correct' ? 'Neutre'
-                        : 'Defavorable'}
-                    </Text>
-                  </View>
-                )
-              })}
+                        : 'Défavorable'
+                  const verdictColor = isSelected ? COLORS.indigo : r.verdict === 'défavorable' ? COLORS.red : r.verdict === 'optimal' || r.verdict === 'bon' ? COLORS.emeraldDark : COLORS.slate600
+                  return (
+                    <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isSelected ? { borderLeftWidth: 3, borderLeftColor: COLORS.indigo } : {}]}>
+                      <View style={[S.tableCell, { flex: 2.5, flexDirection: 'column' }]}>
+                        <Text style={[{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: isSelected ? COLORS.indigo : COLORS.slate700 }]}>{REGIME_SHORT[r.regime]}</Text>
+                        {isSelected && <Text style={{ fontSize: 5.5, color: COLORS.indigo }}>Régime retenu</Text>}
+                        {r.regime === 'sci_is' && !isSelected && <Text style={{ fontSize: 5.5, color: COLORS.slate500 }}>hors fiscalité de sortie</Text>}
+                      </View>
+                      <Text style={[S.tableCell, { color: COLORS.red, fontFamily: 'Arial', fontWeight: 'bold' }]}>{eur(r.impotsCumules20ans)}</Text>
+                      <Text style={[S.tableCell, r.cashflowMensuelMoyen >= 0 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{sign(r.cashflowMensuelMoyen)}</Text>
+                      <Text style={[S.tableCell, r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(r.tri)}</Text>
+                      <Text style={[S.tableCell, r.van > 0 ? S.tableCellGood : S.tableCellBad]}>{eur(r.van)}</Text>
+                      <Text style={[S.tableCell, r.rendementNetNet >= 0.03 ? S.tableCellGood : S.tableCellBad]}>{pct(r.rendementNetNet)}</Text>
+                      <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6, color: verdictColor }]}>
+                        {verdictLabel}
+                      </Text>
+                    </View>
+                  )
+                })
+              })()}
             </View>
+
+            {/* Tableau qualification : applicable, changement, fiscalité cession */}
+            {(() => {
+              const isMeuble = input.location.type === 'meublee'
+              const regimeRetenu = input.fiscalite.regime
+              type QualifEntry = { applicable: string; changement: string; cessionIntegree: string }
+              const buildQualif = (reg: string): QualifEntry => {
+                const isRetenu = reg === regimeRetenu
+                switch (reg) {
+                  case 'micro_foncier':
+                    return {
+                      applicable: isRetenu ? 'Oui — régime retenu' : isMeuble ? 'Non' : 'Oui (si revenus < 15 k€)',
+                      changement: isRetenu ? 'Aucun (régime actuel)' : isMeuble ? 'Passage en location nue' : 'Aucun changement requis',
+                      cessionIntegree: isRetenu ? 'Oui — PV calculée page Revente' : 'Non (indicatif)',
+                    }
+                  case 'reel_foncier':
+                    return {
+                      applicable: isRetenu ? 'Oui — régime retenu' : isMeuble ? 'Non' : 'Oui (option fiscale)',
+                      changement: isRetenu ? 'Aucun (régime actuel)' : isMeuble ? 'Passage en location nue' : 'Option au réel foncier',
+                      cessionIntegree: isRetenu ? 'Oui — PV calculée page Revente' : 'Non (indicatif)',
+                    }
+                  case 'lmnp_micro_bic':
+                    return {
+                      applicable: isRetenu ? 'Oui — régime retenu' : isMeuble ? 'Oui (si revenus < 77 k€)' : 'Non',
+                      changement: isRetenu ? 'Aucun (régime actuel)' : isMeuble ? 'Aucun' : 'Passage en meublé + mobilier réglementaire',
+                      cessionIntegree: isRetenu ? 'Oui — PV calculée page Revente' : 'Non (indicatif)',
+                    }
+                  case 'lmnp_reel':
+                    return {
+                      applicable: isRetenu ? 'Oui — régime retenu' : isMeuble ? 'Oui' : 'Non',
+                      changement: isRetenu ? 'Aucun (régime actuel)' : isMeuble ? 'Option LMNP réel + comptabilité' : 'Passage en meublé + comptabilité LMNP',
+                      cessionIntegree: isRetenu
+                        ? 'Oui — réintégration amortissements calculée page Revente'
+                        : 'Non (indicatif — réintégration non calculée ici)',
+                    }
+                  case 'sci_is':
+                    return {
+                      applicable: isRetenu ? 'Oui — régime retenu' : 'Non',
+                      changement: isRetenu ? 'Aucun (régime actuel)' : 'Création SCI IS + apport ou achat en société',
+                      cessionIntegree: isRetenu ? 'Oui — IS sur PV calculée page Revente' : 'Non (indicatif)',
+                    }
+                  default:
+                    return { applicable: '-', changement: '-', cessionIntegree: '-' }
+                }
+              }
+              return (
+                <View style={[S.table, { marginTop: 8 }]}>
+                  <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                    {['Régime', 'Applicable tel quel ?', 'Changement nécessaire', 'Fiscalité cession intégrée ?'].map((h, i) => (
+                      <Text key={i} style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', flex: i === 2 ? 3 : i === 0 ? 1.5 : 1.5 }]}>{h}</Text>
+                    ))}
+                  </View>
+                  {comparaisonsRegimes.map((r, i) => {
+                    const q = buildQualif(r.regime)
+                    const isRetenu = r.regime === regimeRetenu
+                    const isOui = q.applicable.startsWith('Oui')
+                    return (
+                      <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isRetenu ? { backgroundColor: '#EFF6FF' } : {}]}>
+                        <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6.5 }]}>{REGIME_SHORT[r.regime]}</Text>
+                        <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold', color: isOui ? COLORS.emeraldDark : COLORS.red, fontSize: 6 }]}>{q.applicable}</Text>
+                        <Text style={[S.tableCell, { flex: 3, fontSize: 6 }]}>{q.changement}</Text>
+                        <Text style={[S.tableCell, { flex: 1.5, fontSize: 6, color: q.cessionIntegree.startsWith('Oui') ? COLORS.emeraldDark : COLORS.slate500 }]}>{q.cessionIntegree}</Text>
+                      </View>
+                    )
+                  })}
+                </View>
+              )
+            })()}
 
             {/* Note contexte verdicts */}
             {comparaisonsRegimes.every(x => x.van < 0) && (
               <View style={[S.alertBox, { marginTop: 6, marginBottom: 4 }]}>
                 <Text style={[S.alertText, { fontStyle: 'italic' }]}>
-                  ! Tous les regimes presentent une VAN negative dans ce projet. Le verdict "Moins defavorable" designe le regime le moins penalisant — pas un regime rentable. Un changement de regime fiscal ne suffit pas a rendre ce projet viable.
+                  Attention : Tous les régimes présentent une VAN négative dans ce projet. Le verdict "Moins défavorable" désigne le régime le moins pénalisant — pas un régime rentable. Un changement de régime fiscal ne suffit pas à rendre ce projet viable.
                 </Text>
               </View>
             )}
@@ -737,7 +876,7 @@ export function RapportPDF({
                 <View style={S.col}>
                   {(['micro_foncier', 'reel_foncier', 'lmnp_micro_bic'] as const).map(reg => (
                     <View key={reg} style={[S.card, { marginBottom: 8, paddingVertical: 6 }]}>
-                      <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: COLORS.slate700, marginBottom: 3 }}>{REGIME_SHORT[reg]}</Text>
+                      <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate700, marginBottom: 3 }}>{REGIME_SHORT[reg]}</Text>
                       <Text style={{ fontSize: 6.5, color: COLORS.slate500, lineHeight: 1.5 }}>{REGIME_DESC[reg]}</Text>
                     </View>
                   ))}
@@ -745,7 +884,7 @@ export function RapportPDF({
                 <View style={S.col}>
                   {(['lmnp_reel', 'sci_is'] as const).map(reg => (
                     <View key={reg} style={[S.card, { marginBottom: 8, paddingVertical: 6 }]}>
-                      <Text style={{ fontSize: 7, fontFamily: 'Helvetica-Bold', color: COLORS.slate700, marginBottom: 3 }}>{REGIME_SHORT[reg]}</Text>
+                      <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate700, marginBottom: 3 }}>{REGIME_SHORT[reg]}</Text>
                       <Text style={{ fontSize: 6.5, color: COLORS.slate500, lineHeight: 1.5 }}>{REGIME_DESC[reg]}</Text>
                     </View>
                   ))}
@@ -753,7 +892,7 @@ export function RapportPDF({
                     <Text style={S.alertText}>
                       Simulation sous réserve d'éligibilité. Le régime le plus favorable dépend de votre situation patrimoniale globale.
                       Certains régimes (LMNP réel, SCI IS) nécessitent un expert-comptable.
-                      La réintégration des amortissements en cas de revente (LMNP réel) n'est pas calculée ici.
+                      La réintégration des amortissements LMNP réel à la revente est calculée pour le régime retenu (voir page "Fiscalité de la Revente"). Pour les régimes alternatifs ci-dessus, la comparaison reste indicative : le TRI et la VAN affichés n'intègrent pas la fiscalité de cession propre à chaque régime.
                     </Text>
                   </View>
                 </View>
@@ -766,15 +905,316 @@ export function RapportPDF({
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
+          PAGE DISPOSITIF FISCAL — conditionnelle (si dispositif ≠ aucun)
+      ══════════════════════════════════════════════════════════════════════ */}
+      {input.fiscalite.dispositif !== 'aucun' && (() => {
+        const synth = getSynthèseDispositif(input.fiscalite.dispositif, input.fiscalite.dispositifParams, input)
+        if (!synth) return null
+        const reductionParAn = yearlyTable.reduce((s, r) => s + (r.reductionDispositif ?? 0), 0) / Math.max(1, yearlyTable.length)
+        const reductionTotale = yearlyTable.reduce((s, r) => s + (r.reductionDispositif ?? 0), 0)
+
+        const DISPOSITIF_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+          denormandie:              { bg: '#ecfdf5', border: '#6ee7b7', text: '#065f46' },
+          jeanbrun:                 { bg: '#f0f9ff', border: '#7dd3fc', text: '#0c4a6e' },
+          loc_avantages:            { bg: '#f5f3ff', border: '#c4b5fd', text: '#4c1d95' },
+          malraux:                  { bg: '#fffbeb', border: '#fcd34d', text: '#78350f' },
+          deficit_foncier_renforce: { bg: '#eff6ff', border: '#93c5fd', text: '#1e3a8a' },
+          monuments_historiques:    { bg: '#f8fafc', border: '#94a3b8', text: '#1e293b' },
+        }
+        const dc = DISPOSITIF_COLORS[input.fiscalite.dispositif] ?? DISPOSITIF_COLORS.monuments_historiques
+
+        return (
+          <Page size="A4" style={S.page}>
+            <PageHeader section="Dispositif fiscal" meta={meta} />
+            <View style={S.body}>
+              <Text style={S.sectionTitle}>{DISPOSITIF_LABELS[input.fiscalite.dispositif]}</Text>
+
+              {/* Bandeau récapitulatif */}
+              <View style={{ backgroundColor: dc.bg, borderWidth: 1.5, borderColor: dc.border, borderRadius: 8, padding: 14, marginBottom: 14 }}>
+                <Text style={{ fontSize: 11, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text, marginBottom: 6 }}>{synth.label} — Synthèse</Text>
+                <View style={{ flexDirection: 'row', gap: 16 }}>
+                  <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Avantage moyen / an</Text>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{eur(reductionParAn)}</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Avantage total simulé</Text>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{eur(reductionTotale)}</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Durée de détention</Text>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{input.revente.dureeDetentionAns} ans</Text>
+                  </View>
+                  <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: 8, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Économie / impôts bruts</Text>
+                    {(() => {
+                      const impotsBruts = yearlyTable.reduce((s, r) => s + r.ir + r.ps, 0)
+                      const pctEco = impotsBruts > 0 ? (reductionTotale / impotsBruts * 100).toFixed(0) : '—'
+                      return <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{pctEco} %</Text>
+                    })()}
+                  </View>
+                </View>
+              </View>
+
+              <View style={S.row2}>
+                {/* Règles du dispositif */}
+                <View style={S.col}>
+                  <View style={S.card}>
+                    <Text style={S.cardTitle}>Paramètres & règles applicables</Text>
+                    {synth.reglesApplicables.map((r, i) => (
+                      <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: COLORS.slate100 }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 7.5, color: COLORS.slate600 }}>{r.titre}</Text>
+                          {r.note && <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 1 }}>{r.note}</Text>}
+                        </View>
+                        <Text style={{ fontSize: 7.5, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate800, marginLeft: 8, flexShrink: 0 }}>{r.valeur}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Tableau annuel des réductions */}
+                <View style={S.col}>
+                  <View style={[S.card, { marginBottom: 10 }]}>
+                    <Text style={S.cardTitle}>Réduction d'impôt par année</Text>
+                    <View style={S.table}>
+                      <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                        <Text style={[S.tableHeaderCell, { flex: 0.6 }]}>Année</Text>
+                        <Text style={[S.tableHeaderCell, { flex: 1 }]}>Impôts bruts</Text>
+                        <Text style={[S.tableHeaderCell, { flex: 1 }]}>Réduction</Text>
+                        <Text style={[S.tableHeaderCell, { flex: 1, color: dc.text }]}>Impôts nets</Text>
+                      </View>
+                      {yearlyTable.slice(0, 15).map((row, i) => {
+                        const reduction = row.reductionDispositif ?? 0
+                        const impotsBruts = row.ir + row.ps
+                        const impotsNets  = Math.max(0, impotsBruts - reduction)
+                        return (
+                          <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                            <Text style={[S.tableCell, { flex: 0.6 }]}>{row.annee}</Text>
+                            <Text style={[S.tableCell, { flex: 1 }]}>{eur(impotsBruts)}</Text>
+                            <Text style={[S.tableCell, { flex: 1, color: COLORS.emerald }]}>{reduction > 0 ? `−${eur(reduction)}` : '—'}</Text>
+                            <Text style={[S.tableCell, { flex: 1, fontFamily: 'Arial', fontWeight: 'bold' }]}>{eur(impotsNets)}</Text>
+                          </View>
+                        )
+                      })}
+                      {yearlyTable.length > 15 && (
+                        <View style={[S.tableRow, { backgroundColor: COLORS.slate50 }]}>
+                          <Text style={[S.tableCell, { flex: 3, color: COLORS.slate400, fontStyle: 'italic' }]}>
+                            {`... ${yearlyTable.length - 15} années supplémentaires (voir tableau fiscal complet)`}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Alertes */}
+                  {synth.alertes.length > 0 && (
+                    <View style={[S.card, { backgroundColor: '#fffbeb', borderColor: '#fcd34d' }]}>
+                      <Text style={[S.cardTitle, { color: '#92400e' }]}>Points de vigilance</Text>
+                      {synth.alertes.map((a, i) => (
+                        <View key={i} style={[S.listItem, { marginBottom: 4 }]}>
+                          <Text style={{ fontSize: 8, color: '#b45309', marginTop: 1 }}>⚠</Text>
+                          <Text style={[S.listText, { color: '#92400e' }]}>{a}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <View style={{ marginTop: 8, padding: 8, backgroundColor: COLORS.slate50, borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200 }}>
+                <Text style={{ fontSize: 6.5, color: COLORS.slate500 }}>
+                  Cette page est fournie à titre informatif. Les conditions d'éligibilité, plafonds et modalités d'application de ce dispositif doivent être confirmés par un conseiller fiscal ou un notaire. Les règles fiscales peuvent évoluer.
+                </Text>
+              </View>
+            </View>
+            <PageFooter />
+          </Page>
+        )
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PAGE AUDIT D'ÉLIGIBILITÉ FISCALE — conditionnelle (si dispositif ≠ aucun)
+      ══════════════════════════════════════════════════════════════════════ */}
+      {input.fiscalite.dispositif !== 'aucun' && (() => {
+        const eligibilite = analysis.eligibilite ?? calculerEligibilite(input)
+        const STATUS_BG: Record<string, string> = {
+          eligible:     '#f0fdf4', ineligible: '#fef2f2',
+          a_verifier:   '#fffbeb', indicative: '#eff6ff', non_supporte: '#f8fafc',
+        }
+        const STATUS_TEXT: Record<string, string> = {
+          eligible:     '#166534', ineligible: '#991b1b',
+          a_verifier:   '#92400e', indicative: '#1e3a8a', non_supporte: '#475569',
+        }
+        const STATUS_BORDER: Record<string, string> = {
+          eligible:     '#86efac', ineligible: '#fca5a5',
+          a_verifier:   '#fcd34d', indicative: '#93c5fd', non_supporte: '#cbd5e1',
+        }
+        const COND_COLORS: Record<string, { dot: string; text: string }> = {
+          ok:         { dot: '#22c55e', text: COLORS.slate700 },
+          bloquant:   { dot: '#ef4444', text: '#991b1b' },
+          a_verifier: { dot: '#f59e0b', text: '#92400e' },
+          n_a:        { dot: COLORS.slate300, text: COLORS.slate400 },
+        }
+        const bg = STATUS_BG[eligibilite.status] ?? '#f8fafc'
+        const tc = STATUS_TEXT[eligibilite.status] ?? '#475569'
+        const bc = STATUS_BORDER[eligibilite.status] ?? '#cbd5e1'
+        const avantageTheorique = yearlyTable.reduce((s, r) => s + (r.avantageTheorique ?? 0), 0)
+        const avantageUtilise   = yearlyTable.reduce((s, r) => s + (r.avantageUtilise   ?? 0), 0)
+        const avantagePerdou    = yearlyTable.reduce((s, r) => s + (r.avantagePerdou    ?? 0), 0)
+        return (
+          <Page size="A4" style={S.page}>
+            <PageHeader section="Audit d'eligibilite fiscale" meta={meta} />
+            <View style={S.body}>
+              <Text style={S.sectionTitle}>
+                Audit d&apos;eligibilite — {DISPOSITIF_LABELS[input.fiscalite.dispositif]}
+              </Text>
+
+              {/* Bandeau statut global */}
+              <View style={{ backgroundColor: bg, borderWidth: 1.5, borderColor: bc, borderRadius: 8, padding: 12, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ fontSize: 10, fontFamily: 'Arial', fontWeight: 'bold', color: tc }}>
+                  Statut : {ELIGIBILITY_STATUS_LABELS[eligibilite.status]}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <Text style={{ fontSize: 7, color: COLORS.slate600 }}>
+                    {eligibilite.erreurs.length} bloquant(s)
+                  </Text>
+                  <Text style={{ fontSize: 7, color: COLORS.slate600 }}>
+                    {eligibilite.avertissements.length} a verifier
+                  </Text>
+                  <Text style={{ fontSize: 7, color: COLORS.slate600 }}>
+                    {eligibilite.conditions.filter(c => c.status === 'ok').length} OK
+                  </Text>
+                </View>
+              </View>
+
+              {/* Tableau des conditions */}
+              <View style={[S.card, { marginBottom: 12 }]}>
+                <Text style={S.cardTitle}>Conditions verifiees</Text>
+                <View style={S.table}>
+                  <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                    <Text style={[S.tableHeaderCell, { flex: 0.4 }]}>Statut</Text>
+                    <Text style={[S.tableHeaderCell, { flex: 2 }]}>Condition</Text>
+                    <Text style={[S.tableHeaderCell, { flex: 2.5 }]}>Detail</Text>
+                  </View>
+                  {eligibilite.conditions.map((c, i) => {
+                    const cc = COND_COLORS[c.status] ?? COND_COLORS.n_a
+                    const statusLabel = c.status === 'ok' ? 'OK' : c.status === 'bloquant' ? 'BLOQUANT' : c.status === 'a_verifier' ? 'A VERIFIER' : 'N/A'
+                    return (
+                      <View key={c.id} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                        <View style={[S.tableCell, { flex: 0.4, flexDirection: 'row', alignItems: 'center', gap: 3 }]}>
+                          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: cc.dot }} />
+                          <Text style={{ fontSize: 6, color: cc.text, fontFamily: c.status === 'bloquant' ? 'Arial' : undefined, fontWeight: c.status === 'bloquant' ? 'bold' : 'normal' }}>
+                            {statusLabel}
+                          </Text>
+                        </View>
+                        <Text style={[S.tableCell, { flex: 2, color: cc.text }]}>{c.label}</Text>
+                        <Text style={[S.tableCell, { flex: 2.5, color: COLORS.slate500, fontStyle: c.note ? 'normal' : 'italic' }]}>
+                          {c.note ?? '—'}
+                        </Text>
+                      </View>
+                    )
+                  })}
+                </View>
+              </View>
+
+              {/* Tableau avantage théorique vs utilisable vs perdu */}
+              {(avantageTheorique > 0 || avantageUtilise > 0) && (
+                <View style={[S.card, { marginBottom: 12 }]}>
+                  <Text style={S.cardTitle}>Avantage fiscal — theorique vs utilisable</Text>
+                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                    <View style={{ flex: 1, backgroundColor: COLORS.slate50, borderRadius: 6, padding: 10, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 6.5, color: COLORS.slate500, marginBottom: 3 }}>Avantage theorique (cumule)</Text>
+                      <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate800 }}>{eur(avantageTheorique)}</Text>
+                      <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>Sans plafonnement IR / niches</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: '#f0fdf4', borderRadius: 6, padding: 10, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 6.5, color: '#166534', marginBottom: 3 }}>Avantage utilisable</Text>
+                      <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: '#166534' }}>{eur(avantageUtilise)}</Text>
+                      <Text style={{ fontSize: 6, color: '#4ade80', marginTop: 2 }}>Apres plafonnement IR disponible</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: avantagePerdou > 0 ? '#fef2f2' : COLORS.slate50, borderRadius: 6, padding: 10, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 6.5, color: avantagePerdou > 0 ? '#991b1b' : COLORS.slate500, marginBottom: 3 }}>Avantage non absorbe</Text>
+                      <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: avantagePerdou > 0 ? '#dc2626' : COLORS.slate400 }}>{eur(avantagePerdou)}</Text>
+                      <Text style={{ fontSize: 6, color: avantagePerdou > 0 ? '#fca5a5' : COLORS.slate300, marginTop: 2 }}>
+                        {avantagePerdou > 0 ? 'IR disponible insuffisant' : 'Integralite absorb ee'}
+                      </Text>
+                    </View>
+                  </View>
+                  {input.fiscalite.parcours !== 'avance' && (
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 6, fontStyle: 'italic' }}>
+                      Note : l&apos;avantage utilisable est estime a 100 % car le profil fiscal avance (IR brut, niches) n&apos;a pas ete saisi. Passez en parcours avance pour une verification precise.
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              {/* Tableau des 3 scénarios TRI / VAN / CF (si disponible) */}
+              {scerariosAvantage && (
+                <View style={[S.card, { marginBottom: 12 }]}>
+                  <Text style={S.cardTitle}>Comparaison 3 scenarios — impact sur la rentabilite</Text>
+                  <View style={S.table}>
+                    <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                      <Text style={[S.tableHeaderCell, { flex: 2 }]}>Scenario</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1 }]}>TRI</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1 }]}>VAN</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>CF moyen / mois</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>Impots cumules</Text>
+                    </View>
+                    {[
+                      { label: 'Hors avantage fiscal', d: scerariosAvantage.horsAvantage, color: COLORS.slate600 },
+                      { label: 'Avantage theorique complet', d: scerariosAvantage.avantageTheorique, color: '#2563eb' },
+                      { label: 'Avantage reellement utilisable', d: scerariosAvantage.avantageUtilisable, color: '#059669' },
+                    ].map((row, i) => (
+                      <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                        <Text style={[S.tableCell, { flex: 2, fontFamily: i === 2 ? 'Arial' : undefined, fontWeight: i === 2 ? 'bold' : 'normal', color: row.color }]}>
+                          {row.label}{i === 2 ? ' ★' : ''}
+                        </Text>
+                        <Text style={[S.tableCell, { flex: 1, color: row.color, fontFamily: 'Arial', fontWeight: 'bold' }]}>
+                          {(row.d.tri * 100).toFixed(2)} %
+                        </Text>
+                        <Text style={[S.tableCell, { flex: 1, color: row.color }]}>
+                          {eur(row.d.van)}
+                        </Text>
+                        <Text style={[S.tableCell, { flex: 1.2, color: row.d.cashflowMensuelMoyen >= 0 ? COLORS.emerald : '#dc2626' }]}>
+                          {eur(row.d.cashflowMensuelMoyen)} / mois
+                        </Text>
+                        <Text style={[S.tableCell, { flex: 1.2, color: COLORS.slate600 }]}>
+                          {eur(row.d.impotsCumules)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 6, fontStyle: 'italic' }}>
+                    ★ Le scenario &quot;avantage utilisable&quot; correspond a la simulation principale du rapport — il tient compte de votre IR disponible et du plafond des niches fiscales.
+                  </Text>
+                </View>
+              )}
+
+              <View style={{ padding: 8, backgroundColor: COLORS.slate50, borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200 }}>
+                <Text style={{ fontSize: 6.5, color: COLORS.slate500 }}>
+                  Cet audit est genere automatiquement par le moteur de regles. Certaines conditions (zone geographique, autorisation ABF, conformite RE2020) ne peuvent pas etre verifiees sans documents. Les points &quot;A verifier&quot; doivent etre confirmes par un conseiller fiscal ou un notaire avant tout engagement.
+                </Text>
+              </View>
+            </View>
+            <PageFooter />
+          </Page>
+        )
+      })()}
+
+      {/* ══════════════════════════════════════════════════════════════════════
           PAGE 8 — FISCALITÉ DÉTAILLÉE
       ══════════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={S.page}>
         <PageHeader section="Fiscalité" meta={meta} />
         <View style={S.body}>
 
-          <Text style={S.sectionTitle}>Régime fiscal retenu : {REGIME_SHORT[input.fiscalite.regime]}</Text>
+          <Text style={S.sectionTitle}>
+            Régime fiscal retenu : {REGIME_SHORT[input.fiscalite.regime]}
+            {regimeAutoSelectionne ? '  ★ Sélectionné automatiquement par le moteur' : ''}
+          </Text>
           <View style={[S.card, { backgroundColor: '#ecfdf5', borderColor: '#bbf7d0', marginBottom: 12 }]}>
-            <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', color: COLORS.emeraldDark, marginBottom: 4 }}>
+            <Text style={{ fontSize: 10, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.emeraldDark, marginBottom: 4 }}>
               {REGIME_LABELS[input.fiscalite.regime] ?? input.fiscalite.regime}
             </Text>
             <Text style={{ fontSize: 8, color: COLORS.emeraldDark, lineHeight: 1.5 }}>
@@ -797,40 +1237,227 @@ export function RapportPDF({
           </View>
 
           <Text style={S.sectionTitle}>Tableau fiscal annuel</Text>
-          <View style={S.table}>
-            <View style={S.tableHeader}>
-              {['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IR','Prél. soc.','Total impôts'].map((h,i)=>(
-                <Text key={i} style={S.tableHeaderCell}>{h}</Text>
-              ))}
-            </View>
-            {yearlyTable.map((row, i) => (
-              <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
-                <Text style={S.tableCell}>{fmt(row.loyersEncaisses)}</Text>
-                <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.chargesDeduites ?? 0)}</Text>
-                <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.amortissements ?? 0)}</Text>
-                <Text style={S.tableCell}>{fmt(row.baseImposable ?? 0)}</Text>
-                <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ir ?? 0)}</Text>
-                <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ps ?? 0)}</Text>
-                <Text style={[S.tableCell, S.tableCellBad, S.tableCellBold]}>-{fmt(row.impots)}</Text>
+          {/* LMNP réel : décomposition des charges déductibles (année 1) */}
+          {input.fiscalite.regime === 'lmnp_reel' && yearlyTable.length > 0 && (() => {
+            const r1 = yearlyTable[0]
+            const copro = Math.round(input.charges.chargesCoproAnnuelles * input.charges.partNonRecuperable)
+            const entretien = Math.round(input.charges.entretienAnnuel)
+            const comptableEtAutres = Math.round((input.charges.comptableAnnuel ?? 0) + (input.charges.cfeEventuelle ?? 0) + (input.charges.fraisBancairesAnnuels ?? 0) + (input.charges.autresChargesAnnuelles ?? 0))
+            const travauxRec = Math.round(input.travauxFuturs.travauxRecurrentsAnnuels ?? 0)
+            const items: [string, number][] = [
+              ['Intérêts d\'emprunt (an 1)', r1.interetsAnnuels ?? 0],
+              ['Taxe foncière', r1.taxeFonciere ?? 0],
+              ['Assurances (PNO + GLI)', r1.assurances ?? 0],
+              ['Gestion locative', r1.gestionLocative ?? 0],
+              ['Charges copro non récup.', copro],
+              ['Entretien', entretien],
+              ['Comptable + frais divers', comptableEtAutres],
+              ...(travauxRec > 0 ? [['Travaux récurrents annuels', travauxRec] as [string, number]] : []),
+            ]
+            const totalCharges = items.reduce((s, [, v]) => s + v, 0)
+            return (
+              <View style={{ marginBottom: 6, padding: 6, backgroundColor: '#f0fdf4', borderRadius: 4, borderWidth: 1, borderColor: '#bbf7d0' }}>
+                <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.emeraldDark, marginBottom: 4 }}>
+                  Décomposition des charges déductibles LMNP réel (année 1)
+                </Text>
+                <View style={S.table}>
+                  <View style={[S.tableRow, { backgroundColor: '#dcfce7', paddingVertical: 2 }]}>
+                    <Text style={[S.tableCell, { flex: 4, fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6 }]}>Poste de charge</Text>
+                    <Text style={[S.tableCell, { flex: 1.5, textAlign: 'right', fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6 }]}>Montant (an 1)</Text>
+                    <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6 }]}>Déductibilité LMNP réel</Text>
+                  </View>
+                  {items.map(([label, val], i) => (
+                    <View key={label} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, { paddingVertical: 2 }]}>
+                      <Text style={[S.tableCell, { flex: 4, fontSize: 6 }]}>{label}</Text>
+                      <Text style={[S.tableCell, { flex: 1.5, textAlign: 'right', fontSize: 6 }]}>{eur(val)}</Text>
+                      <Text style={[S.tableCell, { flex: 2, fontSize: 5.5, color: COLORS.emeraldDark }]}>
+                        {label.startsWith('Intérêts') ? 'Oui — intérêts uniquement (hors capital)'
+                          : label.startsWith('Taxe') ? 'Oui — charge BIC déductible'
+                          : label.startsWith('Assurances') ? 'Oui'
+                          : label.startsWith('Gestion') ? 'Oui (si mandat écrit)'
+                          : label.startsWith('Charges copro') ? 'Oui — part non récup. uniquement'
+                          : label.startsWith('Entretien') ? 'Oui (sur justificatifs)'
+                          : label.startsWith('Travaux récurrents') ? 'Oui si entretien/réparation (justificatifs)'
+                          : 'Oui'}
+                      </Text>
+                    </View>
+                  ))}
+                  <View style={[S.tableRow, { backgroundColor: '#dcfce7', borderTopWidth: 1, borderTopColor: '#86efac', paddingVertical: 2 }]}>
+                    <Text style={[S.tableCell, { flex: 4, fontFamily: 'Arial', fontWeight: 'bold' }]}>= Total charges déductibles (an 1)</Text>
+                    <Text style={[S.tableCell, { flex: 1.5, textAlign: 'right', fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.emeraldDark }]}>{eur(totalCharges)}</Text>
+                    <Text style={[S.tableCell, { flex: 2, fontSize: 6, color: COLORS.slate500 }]}>Hors amortissements (déduits séparément){travauxRec > 0 ? ` — travaux récurrents ${eur(travauxRec)} inclus` : ''}</Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 6, color: COLORS.slate500, marginTop: 3, fontStyle: 'italic' }}>
+                  Note : les amortissements (immeuble + mobilier) sont déduits en plus, dans la limite du résultat hors amortissements (règle BOFiP). Le surplus est reporté sans limitation de durée.
+                </Text>
               </View>
-            ))}
-            <View style={[S.tableRow, S.tableRowTotal]}>
-              <Text style={[S.tableCell, S.tableCellBold]}>Total</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+r.loyersEncaisses,0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.chargesDeduites??0),0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.amortissements??0),0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.baseImposable??0),0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ir??0),0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ps??0),0))}</Text>
-              <Text style={[S.tableCell, S.tableCellBold, S.tableCellBad]}>-{fmt(yearlyTable.reduce((s,r)=>s+r.impots,0))}</Text>
+            )
+          })()}
+          {/* LMNP réel : colonnes amortissement théorique / utilisé / reporté */}
+          {input.fiscalite.regime === 'lmnp_reel' ? (
+            <View>
+              <View style={S.table}>
+                <View style={S.tableHeader}>
+                  {['An.','Loyers enc.','Charges déd.','Amort. théo.','Amort. utilisé','Amort. reporté','Base imp.','IR+PS','Total'].map((h,i)=>(
+                    <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+                  ))}
+                </View>
+                {yearlyTable.map((row, i) => (
+                  <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                    <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
+                    <Text style={S.tableCell}>{fmt(row.loyersEncaisses)}</Text>
+                    <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.chargesDeduites ?? 0)}</Text>
+                    <Text style={[S.tableCell, S.tableCellGray]}>{fmt(row.amortissements ?? 0)}</Text>
+                    <Text style={[S.tableCell, { color: COLORS.emeraldDark }]}>-{fmt(row.amortissementsUtilises ?? 0)}</Text>
+                    <Text style={[S.tableCell, { color: COLORS.amber }]}>{fmt(row.amortissementsReportes ?? 0)}</Text>
+                    <Text style={S.tableCell}>{fmt(row.baseImposable ?? 0)}</Text>
+                    <Text style={[S.tableCell, S.tableCellGray]}>-{fmt((row.ir ?? 0) + (row.ps ?? 0))}</Text>
+                    <Text style={[S.tableCell, S.tableCellBad, S.tableCellBold]}>-{fmt(row.impots)}</Text>
+                  </View>
+                ))}
+                <View style={[S.tableRow, S.tableRowTotal]}>
+                  <Text style={[S.tableCell, S.tableCellBold]}>Total</Text>
+                  <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+r.loyersEncaisses,0))}</Text>
+                  <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.chargesDeduites??0),0))}</Text>
+                  <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.amortissements??0),0))}</Text>
+                  <Text style={[S.tableCell, S.tableCellBold, { color: COLORS.emeraldDark }]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.amortissementsUtilises??0),0))}</Text>
+                  <Text style={[S.tableCell, S.tableCellBold]}>-</Text>
+                  <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.baseImposable??0),0))}</Text>
+                  <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ir??0)+(r.ps??0),0))}</Text>
+                  <Text style={[S.tableCell, S.tableCellBold, S.tableCellBad]}>-{fmt(yearlyTable.reduce((s,r)=>s+r.impots,0))}</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
+                Amort. théo. = amortissement annuel calculé. Amort. utilisé = déduit fiscalement (limité à loyers - charges hors amort, BOFiP). Amort. reporté = surplus reporté sans limitation de durée sur recettes BIC futures.
+              </Text>
+              <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>
+                {(() => {
+                  const totalUtil = yearlyTable.reduce((s, r) => s + (r.amortissementsUtilises ?? 0), 0)
+                  const baseI = summary.coutTotalAcquisition * 0.85
+                  const aIan = input.fiscalite.dureeAmortissementImmo > 0 ? baseI / input.fiscalite.dureeAmortissementImmo : 0
+                  const aMob = input.fiscalite.amortissementMobilier ?? 0
+                  const aMobAn = aMob > 0 && input.fiscalite.dureeAmortissementMobilier > 0 ? aMob / input.fiscalite.dureeAmortissementMobilier : 0
+                  const frac = (aIan + aMobAn) > 0 ? aIan / (aIan + aMobAn) : 1
+                  const immoUtil = Math.round(totalUtil * frac)
+                  const mobUtil = totalUtil - immoUtil
+                  return `Amortissements non déductibles au-delà des loyers nets (BOFiP). Utilisés sur ${input.revente.dureeDetentionAns} ans : ${eur(totalUtil)} — immeuble ${eur(immoUtil)} réintégré PV (LF 2025, cessions ≥ 15 fév. 2025)${mobUtil > 0 ? ` — mobilier ${eur(mobUtil)} à qualifier (notaire)` : ''}.`
+                })()}
+              </Text>
             </View>
-          </View>
+          ) : (
+            <View>
+              {/* Table fiscale de base (tous régimes hors LMNP réel) */}
+              {input.fiscalite.dispositif === 'jeanbrun' ? (
+                /* Jeanbrun : table avec colonne amortissement Jeanbrun déduit */
+                <View>
+                  <View style={S.table}>
+                    <View style={S.tableHeader}>
+                      {['An.','Loyers enc.','Charges','Amort. Jean.','Base imp.','IR','PS','Impôts nets'].map((h,i)=>(
+                        <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+                      ))}
+                    </View>
+                    {yearlyTable.map((row, i) => (
+                      <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                        <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
+                        <Text style={S.tableCell}>{fmt(row.loyersEncaisses)}</Text>
+                        <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.chargesDeduites ?? 0)}</Text>
+                        <Text style={[S.tableCell, { color: COLORS.emeraldDark }]}>-{fmt(row.amortissementJeanbrun ?? 0)}</Text>
+                        <Text style={S.tableCell}>{fmt(row.baseImposable ?? 0)}</Text>
+                        <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ir ?? 0)}</Text>
+                        <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ps ?? 0)}</Text>
+                        <Text style={[S.tableCell, S.tableCellBad, S.tableCellBold]}>-{fmt(row.impots)}</Text>
+                      </View>
+                    ))}
+                    <View style={[S.tableRow, S.tableRowTotal]}>
+                      <Text style={[S.tableCell, S.tableCellBold]}>Total</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+r.loyersEncaisses,0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.chargesDeduites??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold, { color: COLORS.emeraldDark }]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.amortissementJeanbrun??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.baseImposable??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ir??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ps??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold, S.tableCellBad]}>-{fmt(yearlyTable.reduce((s,r)=>s+r.impots,0))}</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
+                    {`Amort. Jean. = amortissement Jeanbrun déduit du revenu foncier (art. 31 CGI, LF 2026) — 80 % de la base × taux annuel sur ${Math.max(9, input.fiscalite.dispositifParams.jeanbrun_engagementAns ?? 9)} ans d'engagement. La fraction excédant les loyers génère un déficit foncier imputable sur le revenu global (10 700 €/an max, art. 156 CGI). Réintégration dans le prix de revient à la revente (art. 150 VB III CGI).`}
+                  </Text>
+                </View>
+              ) : (
+                <View style={S.table}>
+                  <View style={S.tableHeader}>
+                    {['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IR','Prél. soc.','Total impôts'].map((h,i)=>(
+                      <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+                    ))}
+                  </View>
+                  {yearlyTable.map((row, i) => (
+                    <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                      <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
+                      <Text style={S.tableCell}>{fmt(row.loyersEncaisses)}</Text>
+                      <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.chargesDeduites ?? 0)}</Text>
+                      <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.amortissements ?? 0)}</Text>
+                      <Text style={S.tableCell}>{fmt(row.baseImposable ?? 0)}</Text>
+                      <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ir ?? 0)}</Text>
+                      <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ps ?? 0)}</Text>
+                      <Text style={[S.tableCell, S.tableCellBad, S.tableCellBold]}>-{fmt(row.impots)}</Text>
+                    </View>
+                  ))}
+                  <View style={[S.tableRow, S.tableRowTotal]}>
+                    <Text style={[S.tableCell, S.tableCellBold]}>Total</Text>
+                    <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+r.loyersEncaisses,0))}</Text>
+                    <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.chargesDeduites??0),0))}</Text>
+                    <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.amortissements??0),0))}</Text>
+                    <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.baseImposable??0),0))}</Text>
+                    <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ir??0),0))}</Text>
+                    <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ps??0),0))}</Text>
+                    <Text style={[S.tableCell, S.tableCellBold, S.tableCellBad]}>-{fmt(yearlyTable.reduce((s,r)=>s+r.impots,0))}</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Tableau déficit foncier carry-forward (réel foncier + Jeanbrun) */}
+              {(['reel_foncier', 'sci_ir'].includes(input.fiscalite.regime) || input.fiscalite.dispositif === 'jeanbrun') &&
+               yearlyTable.some(r => (r.deficitFoncierGenere ?? 0) > 0 || (r.deficitFoncierCumul ?? 0) > 0) && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={[S.cardTitle, { marginBottom: 4 }]}>
+                    {`Suivi du déficit foncier reportable — plafond ${input.fiscalite.dispositif === 'deficit_foncier_renforce' ? '21 400' : '10 700'} €/an (art. 156 CGI)`}
+                  </Text>
+                  <View style={S.table}>
+                    <View style={S.tableHeader}>
+                      {['An.','Déficit généré','Imputable rev. global','Reportable (surplus)','Stock carry-forward'].map((h,i)=>(
+                        <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+                      ))}
+                    </View>
+                    {yearlyTable.filter(r => (r.deficitFoncierGenere ?? 0) > 0 || (r.deficitFoncierCumul ?? 0) > 0).map((row, i) => (
+                      <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                        <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
+                        <Text style={[S.tableCell, { color: COLORS.amber }]}>{fmt(row.deficitFoncierGenere ?? 0)}</Text>
+                        <Text style={[S.tableCell, { color: COLORS.emeraldDark }]}>{fmt(row.deficitFoncierImpute ?? 0)}</Text>
+                        <Text style={[S.tableCell, S.tableCellGray]}>{fmt((row.deficitFoncierGenere ?? 0) - (row.deficitFoncierImpute ?? 0))}</Text>
+                        <Text style={[S.tableCell, S.tableCellBold]}>{fmt(row.deficitFoncierCumul ?? 0)}</Text>
+                      </View>
+                    ))}
+                    <View style={[S.tableRow, S.tableRowTotal]}>
+                      <Text style={[S.tableCell, S.tableCellBold]}>Total</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.deficitFoncierGenere??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold, { color: COLORS.emeraldDark }]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.deficitFoncierImpute??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>—</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable[yearlyTable.length - 1]?.deficitFoncierCumul ?? 0)}</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
+                    {`"Imputable revenu global" = fraction immédiatement déduite de votre revenu global (dans la limite du plafond annuel). "Reportable" = excédent imputable sur les revenus fonciers des 10 années suivantes. "Stock carry-forward" = cumul disponible en fin d'année.`}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {isFG && (
             <View style={[S.alertBox, { marginTop: 8 }]}>
               <Text style={S.alertText}>
-                ! DPE {input.bien.dpe} — Gel des loyers applicable depuis 2022 pour les biens F/G (loi Climat 2021).
+                Attention : DPE {input.bien.dpe} — Gel des loyers applicable depuis 2022 pour les biens F/G (loi Climat 2021).
                 Interdiction de louer les DPE G depuis le 1er janvier 2025. Les DPE F seront interdits à partir de 2028,
                 les DPE E à partir de 2034. Des travaux de rénovation énergétique seront obligatoires. La revalorisation annuelle
                 des loyers appliquée dans cette simulation (+{pct(input.location.revalorisation)}/an) peut être juridiquement fragile
@@ -839,6 +1466,360 @@ export function RapportPDF({
             </View>
           )}
 
+        </View>
+        <PageFooter />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PAGE — FISCALITE DE LA REVENTE (plus-value selon mode de detention)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={S.page}>
+        <PageHeader section="Fiscalité de la Revente" meta={meta} />
+        <View style={S.body}>
+
+          <Text style={S.sectionTitle}>Calcul de la plus-value selon le mode de détention</Text>
+          <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 10 }}>
+            La fiscalité de la revente dépend du mode de détention. Durée estimée : {input.revente.dureeDetentionAns} ans.
+          </Text>
+
+          {/* === TABLEAU ABATTEMENTS IR + PS === */}
+          <View style={[S.row2, { marginBottom: 10 }]}>
+            <View style={S.col}>
+              <Text style={[S.cardTitle, { marginBottom: 6 }]}>Abattements IR (19%) — Personne physique</Text>
+              <View style={S.table}>
+                <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                  <Text style={[S.tableCell, { flex: 1.2, fontFamily: 'Arial', fontWeight: 'bold' }]}>Année</Text>
+                  <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold' }]}>Abattement</Text>
+                  <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold' }]}>Cumul exo.</Text>
+                </View>
+                {[
+                  { label: '0 - 5 ans', abat: '0 %/an', cumul: '0 %' },
+                  { label: '6 - 21 ans', abat: '6 %/an', cumul: "jusqu'à 96 %" },
+                  { label: 'an 22', abat: '4 %', cumul: '100 % → exonéré IR' },
+                ].map((row, i) => (
+                  <View key={i} style={[S.tableRow, i % 2 === 1 ? { backgroundColor: COLORS.slate50 } : {}]}>
+                    <Text style={[S.tableCell, { flex: 1.2 }]}>{row.label}</Text>
+                    <Text style={[S.tableCell, { flex: 1.5 }]}>{row.abat}</Text>
+                    <Text style={[S.tableCell, { flex: 1.5 }]}>{row.cumul}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={S.col}>
+              <Text style={[S.cardTitle, { marginBottom: 6 }]}>Abattements PS (17,2%) — Personne physique</Text>
+              <View style={S.table}>
+                <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                  <Text style={[S.tableCell, { flex: 1.2, fontFamily: 'Arial', fontWeight: 'bold' }]}>Année</Text>
+                  <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold' }]}>Abattement</Text>
+                  <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold' }]}>Cumul exo.</Text>
+                </View>
+                {[
+                  { label: '0 - 5 ans', abat: '0 %/an', cumul: '0 %' },
+                  { label: '6 - 21 ans', abat: '1,65 %/an', cumul: "jusqu'à 26,4 %" },
+                  { label: 'an 22', abat: '1,6 %', cumul: '28 %' },
+                  { label: '23 - 30 ans', abat: '9 %/an', cumul: "jusqu'à 100 %" },
+                  { label: 'an 30+', abat: '-', cumul: '100 % → exonéré PS' },
+                ].map((row, i) => (
+                  <View key={i} style={[S.tableRow, i % 2 === 1 ? { backgroundColor: COLORS.slate50 } : {}]}>
+                    <Text style={[S.tableCell, { flex: 1.2 }]}>{row.label}</Text>
+                    <Text style={[S.tableCell, { flex: 1.5 }]}>{row.abat}</Text>
+                    <Text style={[S.tableCell, { flex: 1.5 }]}>{row.cumul}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          {/* === 3 REGIMES — layout vertical pour éviter overflow react-pdf === */}
+          {(() => {
+            const d = input.revente.dureeDetentionAns
+            const abbIR = d < 6 ? '0 %' : d >= 22 ? '100 % (exonération IR)' : `${Math.min(100, (d - 5) * 6)} %`
+            const abbPS = d < 6 ? '0 %' : d >= 30 ? '100 % (exonération PS)' : d >= 22 ? `${Math.min(100, 28 + (d - 22) * 9).toFixed(0)} %` : `${Math.min(100, (d - 5) * 1.65).toFixed(1)} %`
+            const txIR = d >= 22 ? '0' : (19 * (1 - Math.min(1, Math.max(0, (d - 5) * 0.06)))).toFixed(1)
+            const txPS = d >= 30 ? '0' : d >= 22 ? (17.2 * (1 - Math.min(1, 0.28 + (d - 22) * 0.09))).toFixed(1) : d < 6 ? '17.2' : (17.2 * (1 - Math.min(1, (d - 5) * 0.0165))).toFixed(1)
+            return (
+              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
+                <View style={[S.card, { flex: 1, marginBottom: 0 }]}>
+                  <Text style={S.cardTitle}>Personne physique — IR de droit commun</Text>
+                  <Text style={[S.listText, { marginBottom: 3 }]}>{`Prix de revient fiscal = prix d'achat + frais admissibles + travaux admissibles (CGI art. 150 VB). PV brute = prix de vente net − prix de revient.`}</Text>
+                  <Text style={[S.listText, { marginBottom: 3 }]}>{`Pour ${d} ans : IR résiduel ${txIR} % (abatt. ${abbIR}) · PS résiduel ${txPS} % (abatt. ${abbPS}). Exonération IR à 22 ans, PS à 30 ans.`}</Text>
+                  <Text style={S.listText}>{`Surtaxe si PV brute > 50 000 € (2 % à 6 %). À vérifier avec un notaire.`}</Text>
+                </View>
+                <View style={[S.card, { flex: 1, marginBottom: 0 }]}>
+                  <Text style={S.cardTitle}>LMNP réel — Réintégration des amortissements (LF 2025)</Text>
+                  <Text style={[S.listText, { marginBottom: 3 }]}>{`Prix de revient fiscal = achat + frais admissibles + travaux − amortissements immobiliers réintégrés (CGI art. 150 VB). Cessions à compter du 15 fév. 2025.`}</Text>
+                  <Text style={S.listText}>{`Mobilier traité séparément (à qualifier). Abattements IR/PS identiques à la PP. L'avantage fiscal annuel se retourne en surcoût à la revente.`}</Text>
+                </View>
+                <View style={[S.card, { flex: 1, marginBottom: 0 }]}>
+                  <Text style={S.cardTitle}>SCI soumise à l'IS</Text>
+                  <Text style={[S.listText, { marginBottom: 3 }]}>{`PV = Prix de vente − VNC (prix achat − amortissements comptables). IS 15 % jusqu'à 42 500 €, 25 % au-delà.`}</Text>
+                  <Text style={S.listText}>{`Aucun abattement pour durée de détention. Dividendes : flat tax 30 % supplémentaire sur le net d'IS.`}</Text>
+                </View>
+              </View>
+            )
+          })()}
+
+          <View style={{ marginTop: 6, padding: 8, backgroundColor: COLORS.slate50, borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200 }}>
+            <Text style={{ fontSize: 7, color: COLORS.slate500 }}>
+              Ces tableaux sont fournis à titre indicatif. La fiscalité de la plus-value immobilière dépend de nombreux facteurs individuels (situation matrimoniale, résidence principale, report de déficit, etc.). Consultez un notaire ou un conseiller fiscal pour une analyse personnalisée.
+            </Text>
+          </View>
+
+        </View>
+        <PageFooter />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PAGE 10B — PRODUIT NET DE CESSION (simulation chiffrée)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={S.page}>
+        <PageHeader section="Produit net de cession" meta={meta} />
+        <View style={S.body}>
+          <Text style={S.sectionTitle}>Simulation chiffrée — An {input.revente.dureeDetentionAns} ({REGIME_SHORT[input.fiscalite.regime] ?? input.fiscalite.regime})</Text>
+          <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 10 }}>
+            Calcul du produit net disponible si revente à l'issue de la période de détention retenue. Toutes les valeurs sont calculées dynamiquement depuis le tableau de flux annuel.
+          </Text>
+
+          {(() => {
+            const lastRow = yearlyTable[yearlyTable.length - 1]
+            if (!lastRow) return null
+            const duree = input.revente.dureeDetentionAns
+            const prixRevente = lastRow.valeurEstimeeBien
+            const fraisVente = Math.round(prixRevente * input.revente.fraisVentePct)
+            // Frais admissibles BOFiP uniquement (art. 150 VB) — doit être identique à cashflow.ts
+            const fraisAcq = input.acquisition.fraisNotaire
+              + input.acquisition.fraisAgence
+              + input.acquisition.travauxInitiaux
+            const amortsCumulesTotal = yearlyTable.reduce((s, r) => s + (r.amortissementsUtilises ?? 0), 0)
+            // Fraction immo — seule la part immeuble est réintégrée dans la base PV (LF 2025)
+            // La part mobilier est un actif distinct ; traitement fiscal PV "à qualifier" (notaire)
+            const _baseAmortImmo = summary.coutTotalAcquisition * 0.85
+            const _amortImmoAn = input.fiscalite.dureeAmortissementImmo > 0 ? _baseAmortImmo / input.fiscalite.dureeAmortissementImmo : 0
+            const _amortMobAn = (input.fiscalite.amortissementMobilier ?? 0) > 0 && input.fiscalite.dureeAmortissementMobilier > 0
+              ? (input.fiscalite.amortissementMobilier ?? 0) / input.fiscalite.dureeAmortissementMobilier : 0
+            const _fracImmo = (_amortImmoAn + _amortMobAn) > 0 ? _amortImmoAn / (_amortImmoAn + _amortMobAn) : 1
+            const amortsCumules = Math.round(amortsCumulesTotal * _fracImmo)       // immo uniquement → PV
+            const amortsCumulesMob = amortsCumulesTotal - amortsCumules             // mobilier → "à qualifier"
+            const detailPP = calculerDetailPlusValue(
+              input.acquisition.prixAchat, prixRevente, fraisAcq, fraisVente,
+              duree, input.location.type, 0, 'pp'
+            )
+            const detailLMNP = calculerDetailPlusValue(
+              input.acquisition.prixAchat, prixRevente, fraisAcq, fraisVente,
+              duree, input.location.type, amortsCumules, 'lmnp_reel'  // immo-only
+            )
+            const isLmnpReel = input.fiscalite.regime === 'lmnp_reel'
+            const detailApplicable = isLmnpReel ? detailLMNP : detailPP
+            const capitalRestant = lastRow.capitalRestantDu
+            const produitNet = prixRevente - fraisVente - detailApplicable.total - capitalRestant
+            const cashflowCumul = lastRow.cashflowCumule
+            const gainNet = produitNet + cashflowCumul - summary.cashTotalNecessaire
+
+            const rowStyle = { flexDirection: 'row' as const, justifyContent: 'space-between' as const, marginBottom: 2, paddingBottom: 2 }
+            const labelStyle = (bold: boolean) => ({ fontSize: 7, color: bold ? COLORS.slate700 : COLORS.slate500, fontFamily: 'Arial', fontWeight: bold ? 'bold' : 'normal', flex: 3 })
+            const valStyle = (bold: boolean, color?: string) => ({ fontSize: 7, color: color ?? (bold ? COLORS.slate700 : COLORS.slate500), fontFamily: 'Arial', fontWeight: bold ? 'bold' : 'normal', flex: 1, textAlign: 'right' as const })
+
+            return (
+              <View>
+                <View style={[S.row2, { gap: 10, marginBottom: 10 }]}>
+                  {/* Colonne gauche : calcul PV fiscale */}
+                  <View style={[S.col, { backgroundColor: COLORS.slate50, borderRadius: 4, padding: 10, borderWidth: 1, borderColor: COLORS.slate200 }]}>
+                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 8, color: COLORS.slate700 }}>Calcul de la plus-value fiscale</Text>
+                    {([
+                      ['Valeur estimée du bien (an ' + duree + ')', eur(prixRevente), false],
+                      ['- Frais de vente (' + (input.revente.fraisVentePct * 100).toFixed(1) + ' %)', '- ' + eur(fraisVente), false],
+                      isLmnpReel
+                        ? ['- Prix de revient fiscal\n  (achat + frais admissibles + travaux − amorts réintégrés)', '- ' + eur(detailLMNP.prixRevientFiscal), false]
+                        : ['- Prix de revient fiscal (achat + frais admissibles + travaux)', '- ' + eur(detailPP.prixRevientFiscal), false],
+                      ['= Plus-value brute imposable', eur(detailApplicable.plusValueBrute), true],
+                      ...(isLmnpReel && amortsCumules > 0 ? [
+                        [`  dont amortissements réintégrés — immeuble (LF 2025)${amortsCumulesMob > 0 ? ` / mobilier ${eur(amortsCumulesMob)} non inclus (à qualifier)` : ''}`, eur(amortsCumules), false],
+                      ] as [string,string,boolean][] : []),
+                      ['', '', false],
+                      ['Abattement IR (' + (detailApplicable.abattementIRPct * 100).toFixed(0) + ' %)', '- ' + eur(Math.round(detailApplicable.plusValueBrute * detailApplicable.abattementIRPct)), false],
+                      ['PV imposable IR', eur(detailApplicable.pvImposableIR), false],
+                      ['IR (taux 19 % forfaitaire)', '- ' + eur(detailApplicable.ir), false],
+                      ['', '', false],
+                      ['Abattement PS (' + (detailApplicable.abattementPSPct * 100).toFixed(1) + ' %)', '- ' + eur(Math.round(detailApplicable.plusValueBrute * detailApplicable.abattementPSPct)), false],
+                      ['PV imposable PS', eur(detailApplicable.pvImposablePS), false],
+                      ['Prélèvements sociaux (17,2 %)', '- ' + eur(detailApplicable.ps), false],
+                      ['', '', false],
+                      ['= Fiscalité totale sur plus-value', eur(detailApplicable.total), true],
+                    ] as [string, string, boolean][]).map(([label, val, bold], i) => (
+                      label === '' ? <View key={i} style={{ height: 4 }} /> :
+                      <View key={i} style={rowStyle}>
+                        <Text style={labelStyle(bold)}>{label}</Text>
+                        <Text style={valStyle(bold)}>{val}</Text>
+                      </View>
+                    ))}
+                    {isLmnpReel && amortsCumules > 0 && (
+                      <View style={{ marginTop: 8, padding: 6, backgroundColor: COLORS.amber + '22', borderRadius: 3 }}>
+                        <Text style={{ fontSize: 6.5, color: COLORS.amber, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Impact réintégration LMNP réel</Text>
+                        <View style={rowStyle}><Text style={labelStyle(false)}>Sans réintégration (référence PP) :</Text><Text style={valStyle(false)}>{eur(detailPP.total)}</Text></View>
+                        <View style={rowStyle}><Text style={labelStyle(false)}>Avec réintégration (Loi de finances 2025) :</Text><Text style={valStyle(false, COLORS.amber)}>{eur(detailLMNP.total)}</Text></View>
+                        <View style={rowStyle}><Text style={labelStyle(true)}>Surcoût fiscal lié aux amortissements :</Text><Text style={valStyle(true, COLORS.amber)}>+{eur(detailLMNP.total - detailPP.total)}</Text></View>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Colonne droite : produit net et bilan */}
+                  <View style={[S.col, { backgroundColor: COLORS.slate50, borderRadius: 4, padding: 10, borderWidth: 1, borderColor: COLORS.slate200 }]}>
+                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 8, color: COLORS.slate700 }}>Produit net de cession et bilan investisseur</Text>
+                    {([
+                      ['Valeur estimée du bien', eur(prixRevente), false],
+                      ['- Frais de vente', '- ' + eur(fraisVente), false],
+                      ['- Fiscalité sur plus-value', '- ' + eur(detailApplicable.total), false],
+                      ['- Capital restant dû au crédit', '- ' + eur(capitalRestant), false],
+                      ['= Produit net de cession', eur(produitNet), true],
+                    ] as [string, string, boolean][]).map(([label, val, bold], i) => (
+                      <View key={i} style={[rowStyle, bold ? { borderTopWidth: 1, borderTopColor: COLORS.slate200, paddingTop: 4, marginTop: 2 } : {}]}>
+                        <Text style={labelStyle(bold)}>{label}</Text>
+                        <Text style={valStyle(bold)}>{val}</Text>
+                      </View>
+                    ))}
+                    <View style={{ height: 12 }} />
+                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 6, color: COLORS.slate700 }}>Bilan investisseur sur {duree} ans</Text>
+                    {([
+                      ['Produit net de cession', eur(produitNet), false],
+                      ['+ Cash-flow cumulé sur ' + duree + ' ans', (cashflowCumul >= 0 ? '+' : '') + eur(cashflowCumul), false],
+                      ['- Cash initial investi (apport + frais)', '- ' + eur(summary.cashTotalNecessaire), false],
+                      ['= Gain net total investisseur', eur(gainNet), true],
+                    ] as [string, string, boolean][]).map(([label, val, bold], i) => (
+                      <View key={i} style={[rowStyle, bold ? { borderTopWidth: 1, borderTopColor: COLORS.slate300, paddingTop: 4, marginTop: 4 } : {}]}>
+                        <Text style={labelStyle(bold)}>{label}</Text>
+                        <Text style={valStyle(bold, bold ? (gainNet >= 0 ? COLORS.emeraldDark : COLORS.red) : undefined)}>{val}</Text>
+                      </View>
+                    ))}
+                    <View style={{ marginTop: 8, padding: 6, backgroundColor: '#eff6ff', borderRadius: 3 }}>
+                      <Text style={{ fontSize: 6.5, color: COLORS.indigo, marginBottom: 2 }}>Convention : le "Gain net total investisseur" intègre tous les flux de l'investissement — apport initial, effort d'épargne cumulé sur {duree} ans (déjà dans le cash-flow cumulé), et produit de la revente nette. Il mesure ce que l'investisseur ressort effectivement par rapport à ce qu'il a mis.</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Détail prix de revient fiscal poste-by-poste */}
+                <View style={{ marginBottom: 10, padding: 8, backgroundColor: '#f8fafc', borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200 }}>
+                  <Text style={{ fontSize: 7.5, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 6, color: COLORS.slate700 }}>Détail du prix de revient fiscal (base de calcul de la plus-value)</Text>
+                  <View style={S.table}>
+                    <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                      <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>Poste</Text>
+                      <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold', textAlign: 'right' }]}>Montant</Text>
+                      <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>Source / règle fiscale</Text>
+                      <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold' }]}>Retenu ?</Text>
+                    </View>
+                    {([
+                      ["Prix d'achat", eur(input.acquisition.prixAchat), 'Acte notarié', 'Oui'],
+                      ["+ Frais de notaire", eur(input.acquisition.fraisNotaire), 'Frais d\'acquisition admissibles (CGI art. 150 VB / BOFiP)', 'Oui'],
+                      ["+ Frais d\'agence acheteur", eur(input.acquisition.fraisAgence), 'Honoraires à la charge de l\'acquéreur uniquement', input.acquisition.fraisAgenceInclus ? 'Inclus prix' : 'Oui'],
+                      ...(input.acquisition.fraisCourtage > 0 ? [
+                        ["+ Frais de courtage", eur(input.acquisition.fraisCourtage), 'Courtage — non retenu par le BOFiP', 'Non'],
+                      ] as [string,string,string,string][] : []),
+                      ["+ Frais de garantie bancaire", eur(input.acquisition.fraisGarantieBancaire ?? 0), 'Caution/hypothèque — non retenu par le BOFiP', 'Non'],
+                      ["+ Frais de dossier crédit", eur(input.acquisition.fraisDossierBancaire ?? 0), 'Frais bancaires — non retenu par le BOFiP', 'Non'],
+                      ["+ Travaux initiaux", eur(input.acquisition.travauxInitiaux), 'Travaux de rénovation — retenus sur justificatifs (BOFiP)', 'Oui*'],
+                      ["+ Mobilier (actif distinct)", eur(input.acquisition.mobilier ?? 0), 'Actif amortissable séparé — hors base immobilière', 'Non'],
+                      ...(isLmnpReel && amortsCumules > 0 ? [
+                        ["- Amortissements réintégrés (immeuble, LF 2025)", '- ' + eur(amortsCumules), `Réintégration obligatoire — immeuble uniquement. Mobilier ${amortsCumulesMob > 0 ? eur(amortsCumulesMob) + ' à qualifier (notaire)' : 'N/A'}`, 'Oui'],
+                      ] as [string,string,string,string][] : []),
+                    ] as [string, string, string, string][]).map(([poste, montant, source, retenu], i) => {
+                      const isNonRetenu = retenu === 'Non'
+                      const retenuColor = retenu === 'Oui' || retenu === 'Oui*' ? COLORS.emeraldDark
+                        : retenu === 'Non' ? COLORS.red
+                        : '#b45309'
+                      return (
+                        <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isNonRetenu ? { opacity: 0.55 } : {}]}>
+                          <Text style={[S.tableCell, { flex: 3, fontSize: 6.5, color: isNonRetenu ? COLORS.slate400 : COLORS.slate700 }]}>{poste}</Text>
+                          <Text style={[S.tableCell, { flex: 1.5, textAlign: 'right', color: isNonRetenu ? COLORS.slate400 : COLORS.slate700, textDecoration: isNonRetenu ? 'line-through' : 'none' }]}>{montant}</Text>
+                          <Text style={[S.tableCell, { flex: 3, fontSize: 6, color: COLORS.slate400 }]}>{source}</Text>
+                          <Text style={[S.tableCell, { flex: 1.5, fontSize: 6.5, fontFamily: 'Arial', fontWeight: 'bold', color: retenuColor }]}>{retenu}</Text>
+                        </View>
+                      )
+                    })}
+                    <View style={[S.tableRow, { backgroundColor: '#eff6ff', borderTopWidth: 1, borderTopColor: COLORS.slate300 }]}>
+                      <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>= Prix de revient fiscal retenu</Text>
+                      <Text style={[S.tableCell, { flex: 1.5, textAlign: 'right', fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.indigo }]}>{eur(detailApplicable.prixRevientFiscal)}</Text>
+                      <Text style={[S.tableCell, { flex: 3, fontSize: 6, color: COLORS.indigo }]}>{isLmnpReel && amortsCumules > 0 ? 'Prix achat + frais admissibles - amorts réintégrés (Loi de finances 2025)' : "Prix achat + frais d'acquisition (abattement forfaitaire 7,5 % si non justifiés)"}</Text>
+                      <Text style={[S.tableCell, { flex: 1.5, fontSize: 6 }]}> </Text>
+                    </View>
+                  </View>
+                  {isLmnpReel && (() => {
+                    const baseAmortImmo = summary.coutTotalAcquisition * 0.85
+                    const mobVal = input.acquisition.mobilier ?? 0
+                    // Utiliser les montants exacts (non arrondis) pour la fraction → cohérence avec page Produit net
+                    const amortImmoAnExact = input.fiscalite.dureeAmortissementImmo > 0 ? baseAmortImmo / input.fiscalite.dureeAmortissementImmo : 0
+                    const amortMobAnExact = mobVal > 0 && input.fiscalite.dureeAmortissementMobilier > 0 ? mobVal / input.fiscalite.dureeAmortissementMobilier : 0
+                    const amortImmoAn = Math.round(amortImmoAnExact)  // affichage uniquement
+                    const amortMobAn = Math.round(amortMobAnExact)    // affichage uniquement
+                    const amortUtiliseTotal = yearlyTable.reduce((s, r) => s + (r.amortissementsUtilises ?? 0), 0)
+                    const amortReporteFinale = yearlyTable[yearlyTable.length - 1]?.amortissementsReportes ?? 0
+                    const fracImmo = (amortImmoAnExact + amortMobAnExact) > 0 ? amortImmoAnExact / (amortImmoAnExact + amortMobAnExact) : 1
+                    const amortImmoUtilise = Math.round(amortUtiliseTotal * fracImmo)
+                    const amortMobUtilise = amortUtiliseTotal - amortImmoUtilise
+                    const amortRows = [
+                      { type: 'Immeuble', utilise: eur(amortImmoUtilise), reporte: eur(Math.round(amortReporteFinale * fracImmo)), pv: 'Réintégré', pvColor: COLORS.amber },
+                      { type: 'Mobilier', utilise: eur(amortMobUtilise), reporte: eur(amortReporteFinale - Math.round(amortReporteFinale * fracImmo)), pv: 'À qualifier', pvColor: COLORS.slate400 },
+                      { type: 'Total', utilise: eur(amortUtiliseTotal), reporte: eur(amortReporteFinale), pv: 'Mixte', pvColor: COLORS.slate500 },
+                    ]
+                    return (
+                      <View style={{ marginTop: 5, borderWidth: 1, borderColor: COLORS.slate200, borderRadius: 3 }}>
+                        {/* Header */}
+                        <View style={{ flexDirection: 'row', backgroundColor: COLORS.slate100, borderBottomWidth: 1, borderBottomColor: COLORS.slate200 }}>
+                          {['Type', 'Utilisé', 'Reporté', 'Traitement PV'].map((h, i) => (
+                            <Text key={i} style={{ flex: i === 0 ? 1.2 : 1, fontSize: 5.5, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate600, padding: 2 }}>{h}</Text>
+                          ))}
+                        </View>
+                        {amortRows.map((r, i) => (
+                          <View key={i} style={{ flexDirection: 'row', backgroundColor: i === 2 ? '#fffbeb' : COLORS.white, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: COLORS.slate200 }}>
+                            <Text style={{ flex: 1.2, fontSize: 5.5, fontFamily: 'Arial', fontWeight: i === 2 ? 'bold' : 'normal', color: COLORS.slate700, padding: 2 }}>{r.type}</Text>
+                            <Text style={{ flex: 1, fontSize: 5.5, color: COLORS.emeraldDark, padding: 2 }}>{r.utilise}</Text>
+                            <Text style={{ flex: 1, fontSize: 5.5, color: COLORS.slate600, padding: 2 }}>{r.reporte}</Text>
+                            <Text style={{ flex: 1, fontSize: 5.5, color: r.pvColor, padding: 2 }}>{r.pv}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )
+                  })()}
+                  <View style={{ marginTop: 6, padding: 6, backgroundColor: '#fffbeb', borderRadius: 4, borderWidth: 1, borderColor: COLORS.amber }}>
+                    <Text style={{ fontSize: 6.5, fontFamily: 'Arial', fontWeight: 'bold', color: '#92400e', marginBottom: 3 }}>Point fiscal — Travaux initiaux {eur(input.acquisition.travauxInitiaux)} : compartiments</Text>
+                    {[
+                      ['Prix de revient PV', 'Intégrés — sous réserve justificatifs (BOFiP BOI-RFPI-PVI-20-10-20)'],
+                      ['Amortis LMNP réel', isLmnpReel ? 'Non dans ce moteur — travaux initiaux capitalisés, non amortis séparément' : 'N/A'],
+                      ['Déduits en charge BIC', isLmnpReel ? 'Non — capitalisés dans le prix de revient' : 'Selon régime'],
+                      ['Risque double traitement', isLmnpReel ? 'À valider par le notaire : travaux ne peuvent pas être à la fois en PV et amortis en BIC' : 'Faible'],
+                    ].map(([c, t], i) => (
+                      <View key={i} style={{ flexDirection: 'row', gap: 4, marginBottom: 1 }}>
+                        <Text style={{ fontSize: 5.5, fontFamily: 'Arial', fontWeight: 'bold', color: '#92400e', width: 80 }}>{c}</Text>
+                        <Text style={{ fontSize: 5.5, color: '#78350f', flex: 1 }}>{t}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Résumé TRI compact */}
+                <View style={{ padding: 6, backgroundColor: COLORS.slate50, borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200, flexDirection: 'row', gap: 16 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Entrée t=0</Text>
+                    <Text style={{ fontSize: 7, color: COLORS.red }}>- {eur(summary.cashTotalNecessaire)}</Text>
+                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Apport initial</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Flux annuels</Text>
+                    <Text style={{ fontSize: 7, color: summary.cashflowMensuelMoyen >= 0 ? COLORS.emeraldDark : COLORS.red }}>{sign(summary.cashflowMensuelMoyen * 12)} /an (moy.)</Text>
+                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>CF exploitation sur {duree} ans</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Revente an {duree}</Text>
+                    <Text style={{ fontSize: 7, color: COLORS.emeraldDark }}>+ {eur(produitNet)}</Text>
+                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Produit net cession</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>TRI calculé</Text>
+                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: summary.tri >= 0.04 ? COLORS.emeraldDark : summary.tri >= 0 ? COLORS.amber : COLORS.red }}>{pct(summary.tri)}</Text>
+                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Voir page Audit pour le détail</Text>
+                  </View>
+                </View>
+              </View>
+            )
+          })()}
         </View>
         <PageFooter />
       </Page>
@@ -861,9 +1842,10 @@ export function RapportPDF({
               { label: 'Taux assurance',        val: pct(input.financement.tauxAssurance) },
               { label: 'Mensualité totale',     val: eur(creditSchedule.mensualiteTotale) },
               { label: 'dont hors assurance',   val: eur(creditSchedule.mensualiteHorsAssurance) },
-              { label: 'Coût total du crédit',  val: eur(creditSchedule.coutTotalCredit) },
-              { label: 'Total intérêts payés',  val: eur(creditSchedule.coutTotalInterets) },
-              { label: 'Levier (LTV)',          val: `${((input.financement.montantEmprunte / input.acquisition.prixAchat) * 100).toFixed(1)} %` },
+              { label: `Montant total remboursé sur ${Math.round(input.financement.dureeCredit/12)} ans`, val: eur(creditSchedule.coutTotalCredit) },
+              { label: `Intérêts payés sur ${Math.round(input.financement.dureeCredit/12)} ans`, val: eur(creditSchedule.coutTotalInterets) },
+              { label: 'Coût réel du crédit (intérêts + assurance)', val: eur(creditSchedule.coutReel) },
+              { label: 'LTV / Loan-to-cost', val: `${((input.financement.montantEmprunte / input.acquisition.prixAchat) * 100).toFixed(1)} % / ${((input.financement.montantEmprunte / summary.coutTotalAcquisition) * 100).toFixed(1)} %`, sub: 'emprunt/prix achat · emprunt/coût total', ok: (input.financement.montantEmprunte / summary.coutTotalAcquisition) <= 0.9 },
               { label: 'Couverture loyer/mensualité', val: `${((input.location.loyerMensuelHC / creditSchedule.mensualiteTotale) * 100).toFixed(1)} %` },
             ].map(k => (
               <View key={k.label} style={[S.kpiCard, { width: '23%' }]}>
@@ -884,7 +1866,7 @@ export function RapportPDF({
                 <HypRow label="Effort mensuel à sortir de poche" value={eur(summary.effortEpargne)} highlight={summary.effortEpargne < 300} />
               </View>
               <View style={{ flex: 1 }}>
-                <HypRow label="Dépendance revente pour TRI positif" value={summary.dependanceRevente ? 'Oui' : 'Non'} highlight={!summary.dependanceRevente} />
+                <HypRow label="Rentable sans revente ?" value={summary.dependanceRevente ? `Non — CF cumulé ${eur(summary.cashflowCumule)} hors revente` : 'Oui — cash-flow cumulé positif sans revente'} highlight={!summary.dependanceRevente} />
                 <HypRow label="Durée de détention optimale" value={pointMort ? `${pointMort.dureeDetentionOptimale} ans` : '—'} />
                 <HypRow label="Différé de remboursement" value={input.financement.differePeriode === 'aucun' ? 'Aucun' : `${input.financement.differePeriode} — ${input.financement.dureesDiffere} mois`} />
               </View>
@@ -894,7 +1876,7 @@ export function RapportPDF({
           {gapFinancement > 0 && (
             <View style={[S.alertBox, { marginBottom: 10 }]}>
               <Text style={S.alertText}>
-                ! Ecart de financement : {eur(gapFinancement)} entre le cash total nécessaire ({eur(summary.cashTotalNecessaire)})
+                Attention : Ecart de financement : {eur(gapFinancement)} entre le cash total nécessaire ({eur(summary.cashTotalNecessaire)})
                 et l'apport déclaré ({eur(input.financement.apport)}). Ce montant doit être prévu.
               </Text>
             </View>
@@ -902,7 +1884,7 @@ export function RapportPDF({
 
           <Text style={S.sectionTitle}>Tableau de dette annuel</Text>
           <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 6 }}>
-            Années 1–10 + milestones (15, 20). Tableau complet sur 20 ans disponible sur demande.
+            Années 1-10 + milestones (15, 20). Tableau complet sur 20 ans disponible sur demande.
           </Text>
           <View style={S.table}>
             <View style={S.tableHeader}>
@@ -929,9 +1911,9 @@ export function RapportPDF({
           {/* Totaux crédit en ligne courte sous le tableau — évite une page quasi-vide */}
           <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }} wrap={false}>
             <Text style={{ fontSize: 7, color: COLORS.slate500, flex: 1 }}>
-              Total mensualités versées : <Text style={{ fontFamily: 'Helvetica-Bold', color: COLORS.slate700 }}>{eur(yearlyTable.reduce((s,r)=>s+r.mensualitesAnnuelles,0))}</Text>
-              {' · '}dont intérêts : <Text style={{ fontFamily: 'Helvetica-Bold', color: COLORS.red }}>{eur(yearlyTable.reduce((s,r)=>s+r.interetsAnnuels,0))}</Text>
-              {' · '}Capital remboursé : <Text style={{ fontFamily: 'Helvetica-Bold', color: COLORS.emerald }}>{eur(yearlyTable.reduce((s,r)=>s+r.capitalRembourseAnnuel,0))}</Text>
+              {`Total mensualités versées sur la période d'analyse de ${input.revente.dureeDetentionAns} ans : `}<Text style={{ fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate700 }}>{eur(yearlyTable.reduce((s,r)=>s+r.mensualitesAnnuelles,0))}</Text>
+              {' · '}dont intérêts : <Text style={{ fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.red }}>{eur(yearlyTable.reduce((s,r)=>s+r.interetsAnnuels,0))}</Text>
+              {' · '}Capital remboursé : <Text style={{ fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.emerald }}>{eur(yearlyTable.reduce((s,r)=>s+r.capitalRembourseAnnuel,0))}</Text>
             </Text>
           </View>
 
@@ -949,13 +1931,13 @@ export function RapportPDF({
 
             <Text style={S.sectionTitle}>Matrice de sensibilité du TRI</Text>
             <Text style={{ fontSize: 7.5, color: COLORS.slate500, marginBottom: 8 }}>
-              Impact sur le TRI d'une variation de ±10 % (ou ±1 point) de chaque variable, toutes choses égales par ailleurs.
+              Impact sur le TRI d'une variation de ±10 % (ou ±1 point) de chaque variable. Les sensibilités recalculent les flux liés à la variable testée ; les autres hypothèses restent constantes, sauf dépendances mécaniques du moteur (fiscalité, dette, revente, cash-flow).
             </Text>
             <View style={[S.table, { marginBottom: 16 }]}>
               <View style={S.tableHeader}>
                 <Text style={[S.tableHeaderCell, { flex: 2 }]}>Variable</Text>
                 <Text style={S.tableHeaderCell}>-10 % / -1pt</Text>
-                <Text style={[S.tableHeaderCell, { fontFamily: 'Helvetica-Bold' }]}>Central</Text>
+                <Text style={[S.tableHeaderCell, { fontFamily: 'Arial', fontWeight: 'bold' }]}>Central</Text>
                 <Text style={S.tableHeaderCell}>+10 % / +1pt</Text>
                 <Text style={S.tableHeaderCell}>Ecart max</Text>
               </View>
@@ -963,9 +1945,9 @@ export function RapportPDF({
                 const ecart = Math.abs(row.plus10 - row.moins10)
                 return (
                   <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                    <Text style={[S.tableCell, { flex: 2, fontFamily: 'Helvetica-Bold' }]}>{row.variable}</Text>
+                    <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold' }]}>{row.variable}</Text>
                     <Text style={[S.tableCell, row.moins10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.moins10)}</Text>
-                    <Text style={[S.tableCell, { fontFamily: 'Helvetica-Bold' }]}>{pct(row.central)}</Text>
+                    <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(row.central)}</Text>
                     <Text style={[S.tableCell, row.plus10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.plus10)}</Text>
                     <Text style={[S.tableCell, ecart > 0.05 ? S.tableCellBad : ecart > 0.02 ? { color: COLORS.amber } : S.tableCellGood]}>{pct(ecart, 1)}</Text>
                   </View>
@@ -986,11 +1968,11 @@ export function RapportPDF({
               </View>
               {stressTests.map((st, i) => (
                 <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                  <Text style={[S.tableCell, { flex: 2, fontFamily: 'Helvetica-Bold' }]}>{st.label}</Text>
+                  <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold' }]}>{st.label}</Text>
                   <Text style={[S.tableCell, { flex: 2, fontSize: 6.5, color: COLORS.slate500 }]}>{st.description}</Text>
                   <Text style={[S.tableCell, { flex: 2, fontSize: 6.5 }, st.severite === 'severe' ? S.tableCellBad : st.severite === 'modere' ? { color: COLORS.amber } : S.tableCellGood]}>{st.impact}</Text>
-                  <Text style={[S.tableCell, { fontFamily: 'Helvetica-Bold' }, st.severite === 'severe' ? S.tableCellBad : st.severite === 'modere' ? { color: COLORS.amber } : S.tableCellGood]}>
-                    {st.severite === 'severe' ? 'SEVERE' : st.severite === 'modere' ? 'Modéré' : 'Faible'}
+                  <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }, st.severite === 'severe' ? S.tableCellBad : st.severite === 'modere' ? { color: COLORS.amber } : S.tableCellGood]}>
+                    {st.severite === 'severe' ? 'Sévère' : st.severite === 'modere' ? 'Modéré' : 'Faible'}
                   </Text>
                 </View>
               ))}
@@ -1003,12 +1985,12 @@ export function RapportPDF({
                 <View style={{ flexDirection: 'row', gap: 16 }}>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Loyer minimum pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois (actuel : ${eur(input.location.loyerMensuelHC)}/mois)`} />
-                    <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                    <HypRow label="Prix max pour TRI ≥ 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
                     <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Travaux sup. max sans dégrader le TRI" value={eur(pointMort.travauxMaxSupportables)} />
-                    <HypRow label="Prix de revente min pour VAN >= 0" value={eur(pointMort.reventeMinPourVanPositive)} />
+                    <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
                     <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} ans`} highlight />
                   </View>
                 </View>
@@ -1028,7 +2010,7 @@ export function RapportPDF({
           <PageHeader section="Analyse IA" meta={meta} />
           <View style={S.body}>
 
-            <Text style={S.sectionTitle}>Interpretation personnalisee par l'IA</Text>
+            <Text style={S.sectionTitle}>Interprétation personnalisée par l'IA</Text>
             <View style={S.iaBox}>
               <Text style={S.iaText}>{sanitize(ai.verdict_explain)}</Text>
             </View>
@@ -1050,7 +2032,7 @@ export function RapportPDF({
                   <Text style={[S.cardTitle, { color: COLORS.red }]}>Points de vigilance</Text>
                   {(ai.points_faibles ?? []).map((p, i) => (
                     <View key={i} style={S.listItem}>
-                      <Text style={[S.listBullet, S.listBulletBad]}>!</Text>
+                      <Text style={[S.listBullet, S.listBulletBad]}>-</Text>
                       <Text style={S.listText}>{sanitize(p)}</Text>
                     </View>
                   ))}
@@ -1262,6 +2244,270 @@ export function RapportPDF({
               )}
             </View>
           )}
+
+        </View>
+        <PageFooter />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PAGE — AUDIT DE COHÉRENCE DES DONNÉES SAISIES
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={S.page}>
+        <PageHeader section="Audit de cohérence" meta={meta} />
+        <View style={S.body}>
+
+          <Text style={S.sectionTitle}>Audit de cohérence des données saisies</Text>
+          <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 10 }}>
+            Vérification automatique des hypothèses saisies. Les alertes n'invalident pas le rapport mais signalent des points à confirmer.
+          </Text>
+
+          {(() => {
+            const coutTotal = summary.coutTotalAcquisition
+            const financement = input.financement.apport + input.financement.montantEmprunte
+            const ecartFinancement = Math.abs(coutTotal - financement)
+            const fraisAchat = input.acquisition.fraisNotaire + input.acquisition.fraisAgence
+            const loyerM2 = input.location.loyerMensuelHC / input.bien.surface
+            const dureesCreditAns = input.financement.dureeCredit / 12
+            const tauxNom = input.financement.tauxNominal * 100
+
+            const checks: Array<{ label: string; valeur: string; statut: 'OK' | 'Attention' | 'Alerte'; note: string }> = [
+              {
+                label: 'Cohérence financement (coût total vs apport + emprunt)',
+                valeur: `Ecart ${eur(ecartFinancement)}`,
+                statut: ecartFinancement < 2000 ? 'OK' : ecartFinancement < 10000 ? 'Attention' : 'Alerte',
+                note: ecartFinancement < 2000 ? 'Financement équilibré' : `Ecart de ${eur(ecartFinancement)} — vérifiez les frais annexes`,
+              },
+              {
+                label: 'Apport couvre les frais d\'acquisition',
+                valeur: `Apport ${eur(input.financement.apport)} / Frais ${eur(fraisAchat)}`,
+                statut: input.financement.apport >= fraisAchat ? 'OK' : 'Alerte',
+                note: input.financement.apport >= fraisAchat ? 'Apport suffisant pour les frais' : 'Apport insuffisant pour couvrir frais notaire + agence',
+              },
+              {
+                label: 'Rendement brut réaliste (entre 3 % et 15 %)',
+                valeur: pct(summary.rendementBrut),
+                statut: summary.rendementBrut >= 0.03 && summary.rendementBrut <= 0.15 ? 'OK' : summary.rendementBrut < 0.03 ? 'Alerte' : 'Attention',
+                note: summary.rendementBrut >= 0.03 && summary.rendementBrut <= 0.15 ? 'Dans la plage attendue' : summary.rendementBrut < 0.03 ? 'Rendement très bas — vérifiez le loyer ou le prix d\'achat' : 'Rendement élevé — vérifiez la cohérence loyer/prix',
+              },
+              {
+                label: 'Vacance locative non nulle',
+                valeur: `${input.location.vacanceLocativeMois} mois/an`,
+                statut: input.location.vacanceLocativeMois > 0 ? 'OK' : 'Attention',
+                note: input.location.vacanceLocativeMois > 0 ? 'Hypothèse prudente' : 'Vacance à 0 — hypothèse optimiste à valider',
+              },
+              {
+                label: 'Taxe foncière renseignée',
+                valeur: eur(input.charges.taxeFonciere),
+                statut: input.charges.taxeFonciere > 0 ? 'OK' : 'Attention',
+                note: input.charges.taxeFonciere > 0 ? 'Donnée renseignée' : 'Taxe foncière à 0 — résultat incomplet',
+              },
+              {
+                label: 'Loyer cohérent avec la surface (5 - 40 EUR/m²)',
+                valeur: `${loyerM2.toFixed(1)} EUR/m² pour ${input.bien.surface} m²`,
+                statut: loyerM2 >= 5 && loyerM2 <= 40 ? 'OK' : 'Attention',
+                note: loyerM2 >= 5 && loyerM2 <= 40 ? 'Ratio loyer/surface cohérent' : 'Ratio inhabituel — vérifiez loyer et surface',
+              },
+              {
+                label: 'Durée crédit <= 25 ans',
+                valeur: `${dureesCreditAns.toFixed(0)} ans`,
+                statut: dureesCreditAns <= 25 ? 'OK' : 'Attention',
+                note: dureesCreditAns <= 25 ? 'Durée standard' : 'Durée longue — impact sur coût total du crédit',
+              },
+              {
+                label: 'Taux nominal crédit réaliste (1,5 % - 7 %)',
+                valeur: `${tauxNom.toFixed(2)} %`,
+                statut: tauxNom >= 1.5 && tauxNom <= 7 ? 'OK' : 'Attention',
+                note: tauxNom >= 1.5 && tauxNom <= 7 ? 'Dans la plage attendue' : 'Taux inhabituel — à confirmer',
+              },
+              {
+                label: 'DPE renseigné',
+                valeur: input.bien.dpe,
+                statut: input.bien.dpe !== 'inconnu' ? 'OK' : 'Attention',
+                note: input.bien.dpe !== 'inconnu' ? 'DPE connu' : 'DPE inconnu — le risque réglementaire ne peut pas être évalué',
+              },
+              {
+                label: 'Emprunt ne dépasse pas 110 % du prix d\'achat',
+                valeur: `Emprunt ${eur(input.financement.montantEmprunte)} / Prix ${eur(input.acquisition.prixAchat)}`,
+                statut: input.financement.montantEmprunte <= input.acquisition.prixAchat * 1.1 ? 'OK' : 'Alerte',
+                note: input.financement.montantEmprunte <= input.acquisition.prixAchat * 1.1 ? 'Emprunt proportionné' : 'Emprunt supérieur à 110 % du prix — vérifiez la cohérence',
+              },
+            ]
+
+            const nbOk = checks.filter(c => c.statut === 'OK').length
+            const nbAttention = checks.filter(c => c.statut === 'Attention').length
+            const nbAlerte = checks.filter(c => c.statut === 'Alerte').length
+
+            return (
+              <View>
+                {/* Résumé */}
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#f0fdf4', borderRadius: 4, borderWidth: 1, borderColor: COLORS.emerald, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.emerald }}>{nbOk}</Text>
+                    <Text style={{ fontSize: 7, color: COLORS.emerald }}>Conformes</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 8, backgroundColor: '#fffbeb', borderRadius: 4, borderWidth: 1, borderColor: COLORS.amber, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.amber }}>{nbAttention}</Text>
+                    <Text style={{ fontSize: 7, color: COLORS.amber }}>Attention</Text>
+                  </View>
+                  <View style={{ flex: 1.6, padding: 8, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.red }}>{nbAlerte}</Text>
+                    <Text style={{ fontSize: 6.5, color: COLORS.red, textAlign: 'center' }}>{nbAlerte === 0 ? 'Aucune erreur bloquante' : nbAlerte === 1 ? 'erreur bloquante' : 'erreurs bloquantes'}</Text>
+                    <Text style={{ fontSize: 5.5, color: COLORS.slate500, textAlign: 'center', fontStyle: 'italic' }}>Fiabilité doc. : voir page suivante</Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 5.5, color: COLORS.slate400, fontStyle: 'italic', marginBottom: 8 }}>
+                  {`${nbOk} contrôle${nbOk > 1 ? 's' : ''} techniquement conforme${nbOk > 1 ? 's' : ''} — cohérence mathématique des données saisies. La fiabilité documentaire (justificatifs, devis, avis d'imposition) est à vérifier sur la page suivante.`}
+                </Text>
+
+                {/* Table des checks */}
+                <View style={S.table}>
+                  <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                    <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>Contrôle</Text>
+                    <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold' }]}>Valeur calculée</Text>
+                    <Text style={[S.tableCell, { flex: 1, fontFamily: 'Arial', fontWeight: 'bold' }]}>Statut</Text>
+                    <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>Interprétation</Text>
+                  </View>
+                  {checks.map((c, i) => (
+                    <View key={i} style={[S.tableRow, i % 2 === 1 ? { backgroundColor: COLORS.slate50 } : {}]}>
+                      <Text style={[S.tableCell, { flex: 3 }]}>{c.label}</Text>
+                      <Text style={[S.tableCell, { flex: 2 }]}>{c.valeur}</Text>
+                      <Text style={[S.tableCell, { flex: 1,
+                        color: c.statut === 'OK' ? COLORS.emeraldDark : c.statut === 'Attention' ? '#92400e' : COLORS.red,
+                        fontFamily: 'Arial', fontWeight: 'bold'
+                      }]}>{c.statut}</Text>
+                      <Text style={[S.tableCell, { flex: 3, color: COLORS.slate500 }]}>{c.note}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )
+          })()}
+
+          {/* Audit 2 — résultats financiers */}
+          {(() => {
+            const lastRow = yearlyTable[yearlyTable.length - 1]
+            const coutTotal = summary.coutTotalAcquisition
+            const ltv = input.financement.montantEmprunte / input.acquisition.prixAchat
+            const tauxActu = input.revente.tauxActualisation
+            const vanPositiveSiTRISupActu = summary.tri >= tauxActu
+            const cfCumule = lastRow?.cashflowCumule ?? 0
+            const amortsCumules = yearlyTable.reduce((s, r) => s + (r.amortissementsUtilises ?? 0), 0)
+            const amortsCumulesTheo = yearlyTable.reduce((s, r) => s + r.amortissements, 0)
+            const produitNetCession = lastRow?.produitNetReventePotentiel ?? 0
+            const sansPV = summary.tri  // On ne peut pas recalculer sans PV sans appeler le calculateur, on commente
+            const checksFinanciers: Array<{ label: string; valeur: string; statut: 'OK' | 'Attention' | 'Alerte'; note: string }> = [
+              {
+                label: 'TRI cohérent avec VAN (TRI >= taux actualisation => VAN >= 0)',
+                valeur: `TRI ${pct(summary.tri)} / Taux d'actualisation ${pct(tauxActu)} / VAN ${eur(summary.van)}`,
+                statut: (vanPositiveSiTRISupActu && summary.van >= 0) || (!vanPositiveSiTRISupActu && summary.van < 0) ? 'OK' : 'Alerte',
+                note: (vanPositiveSiTRISupActu && summary.van >= 0) ? 'Cohérence TRI/VAN confirmée' : (!vanPositiveSiTRISupActu && summary.van < 0) ? 'TRI < taux actualisation, VAN négative — cohérent' : 'Incohérence TRI/VAN — à vérifier',
+              },
+              {
+                label: 'Cash-flow mensuel moyen',
+                valeur: sign(summary.cashflowMensuelMoyen),
+                statut: summary.cashflowMensuelMoyen >= 0 ? 'OK' : summary.cashflowMensuelMoyen >= -300 ? 'Attention' : 'Alerte',
+                note: summary.cashflowMensuelMoyen >= 0 ? 'Cash-flow positif — investissement autofinancé' : `Effort d'épargne ${sign(summary.cashflowMensuelMoyen)}/mois`,
+              },
+              {
+                label: 'Cash-flow cumulé sur la durée',
+                valeur: eur(cfCumule),
+                statut: cfCumule >= 0 ? 'OK' : 'Attention',
+                note: cfCumule >= 0 ? 'Flux cumulés positifs avant revente' : 'Flux cumulés négatifs — retour sur revente uniquement',
+              },
+              {
+                label: 'LTV initiale',
+                valeur: pct(ltv),
+                statut: ltv <= 0.8 ? 'OK' : ltv <= 0.9 ? 'Attention' : 'Alerte',
+                note: ltv <= 0.8 ? 'LTV saine (<= 80 %)' : ltv <= 0.9 ? 'LTV élevée (80-90 %) — marge réduite' : 'LTV > 90 % — levier très élevé, score robustesse plafonné',
+              },
+              {
+                label: 'Produit net de cession intégré dans TRI',
+                valeur: eur(produitNetCession),
+                statut: produitNetCession > 0 ? 'OK' : produitNetCession === 0 ? 'Attention' : 'Alerte',
+                note: produitNetCession > 0 ? 'Produit net cession positif — TRI intègre PV nette de fiscalité' : 'Produit net cession nul ou négatif — vérifiez la fiscalité de revente',
+              },
+              ...(input.fiscalite.regime === 'lmnp_reel' ? [{
+                label: 'Amortissements utilisés vs théoriques (LMNP réel)',
+                valeur: `Utilisés ${eur(amortsCumules)} / Théoriques ${eur(amortsCumulesTheo)}`,
+                statut: amortsCumules <= amortsCumulesTheo ? 'OK' as const : 'Alerte' as const,
+                note: amortsCumules <= amortsCumulesTheo
+                  ? (amortsCumules < amortsCumulesTheo ? `${eur(amortsCumulesTheo - amortsCumules)} reportés (BIC insuffisant pour tout déduire)` : 'Amortissements intégralement déduits')
+                  : 'Incohérence : amortissements utilisés > théoriques',
+              }] : []),
+              {
+                label: 'Rendement net-net vs rendement brut (écart de friction)',
+                valeur: `Brut ${pct(summary.rendementBrut)} / Net-net ${pct(summary.rendementNetNet)} / Ecart ${pct(summary.rendementBrut - summary.rendementNetNet)}`,
+                statut: (summary.rendementBrut - summary.rendementNetNet) < 0.04 ? 'OK' : 'Attention',
+                note: (summary.rendementBrut - summary.rendementNetNet) < 0.04 ? 'Friction d\'exploitation et de coût total modérée (frais acq., vacance, charges)' : 'Fort écart brut/net-net — frais d\'acquisition, vacance et charges d\'exploitation érodent le rendement',
+              },
+              {
+                label: 'Rendement net-net : cohérence méthode (numérateur = loyers enc. – charges – impôts / coût total, moy.)',
+                valeur: (() => {
+                  const nR = yearlyTable.length || 1
+                  const avgL = Math.round(yearlyTable.reduce((s, r) => s + (r.loyersEncaisses ?? 0), 0) / nR)
+                  const avgC = Math.round(yearlyTable.reduce((s, r) => s + (r.chargesLocatives ?? 0), 0) / nR)
+                  const avgI = Math.round(yearlyTable.reduce((s, r) => s + r.impots, 0) / nR)
+                  const recalc = (avgL - avgC - avgI) / summary.coutTotalAcquisition
+                  const ecart = Math.abs(recalc - summary.rendementNetNet)
+                  return `Recalculé : ${pct(recalc)} / Affiché : ${pct(summary.rendementNetNet)} / Ecart : ${(ecart * 100).toFixed(3)} pts`
+                })(),
+                statut: (() => {
+                  const nR = yearlyTable.length || 1
+                  const avgL = yearlyTable.reduce((s, r) => s + (r.loyersEncaisses ?? 0), 0) / nR
+                  const avgC = yearlyTable.reduce((s, r) => s + (r.chargesLocatives ?? 0), 0) / nR
+                  const avgI = yearlyTable.reduce((s, r) => s + r.impots, 0) / nR
+                  const recalc = (avgL - avgC - avgI) / summary.coutTotalAcquisition
+                  return Math.abs(recalc - summary.rendementNetNet) < 0.001 ? 'OK' as const : 'Attention' as const
+                })(),
+                note: 'Vérification que le rendement net-net affiché = (loyers enc. – charges – impôts) / coût total (moyennes sur la durée). Ecart < 0,1 pt = OK.',
+              },
+            ]
+            const nbOk2 = checksFinanciers.filter(c => c.statut === 'OK').length
+            const nbAtt2 = checksFinanciers.filter(c => c.statut === 'Attention').length
+            const nbAle2 = checksFinanciers.filter(c => c.statut === 'Alerte').length
+            return (
+              <View style={{ marginTop: 16 }}>
+                <Text style={S.sectionTitle}>Audit de cohérence des résultats financiers</Text>
+                <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 6 }}>
+                  Vérification des indicateurs clés calculés : cohérence TRI/VAN, amortissements, flux cumulés.
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                  <View style={{ flex: 1, padding: 6, backgroundColor: '#f0fdf4', borderRadius: 4, borderWidth: 1, borderColor: COLORS.emerald, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.emerald }}>{nbOk2}</Text>
+                    <Text style={{ fontSize: 7, color: COLORS.emerald }}>Conformes</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 6, backgroundColor: '#fffbeb', borderRadius: 4, borderWidth: 1, borderColor: COLORS.amber, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.amber }}>{nbAtt2}</Text>
+                    <Text style={{ fontSize: 7, color: COLORS.amber }}>Attention</Text>
+                  </View>
+                  <View style={{ flex: 1, padding: 6, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.red }}>{nbAle2}</Text>
+                    <Text style={{ fontSize: 7, color: COLORS.red }}>Alertes</Text>
+                  </View>
+                </View>
+                <View style={S.table}>
+                  <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                    <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>Contrôle financier</Text>
+                    <Text style={[S.tableCell, { flex: 2.5, fontFamily: 'Arial', fontWeight: 'bold' }]}>Valeur</Text>
+                    <Text style={[S.tableCell, { flex: 1, fontFamily: 'Arial', fontWeight: 'bold' }]}>Statut</Text>
+                    <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>Interprétation</Text>
+                  </View>
+                  {checksFinanciers.map((c, i) => (
+                    <View key={i} style={[S.tableRow, i % 2 === 1 ? { backgroundColor: COLORS.slate50 } : {}]}>
+                      <Text style={[S.tableCell, { flex: 3 }]}>{c.label}</Text>
+                      <Text style={[S.tableCell, { flex: 2.5, fontSize: 6 }]}>{c.valeur}</Text>
+                      <Text style={[S.tableCell, { flex: 1,
+                        color: c.statut === 'OK' ? COLORS.emeraldDark : c.statut === 'Attention' ? '#92400e' : COLORS.red,
+                        fontFamily: 'Arial', fontWeight: 'bold'
+                      }]}>{c.statut}</Text>
+                      <Text style={[S.tableCell, { flex: 3, color: COLORS.slate500, fontSize: 6 }]}>{c.note}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )
+          })()}
+
         </View>
         <PageFooter />
       </Page>
@@ -1300,8 +2546,8 @@ export function RapportPDF({
                 ].map((item, i) => (
                   <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                     <Text style={[S.tableCell, { flex: 3, fontSize: 7 }]}>{item.point}</Text>
-                    <Text style={[S.tableCell, { flex: 1, fontFamily: 'Helvetica-Bold', fontSize: 7 }, item.done ? S.tableCellGood : { color: COLORS.slate400 }]}>
-                      {item.done ? 'Oui' : 'A verif.'}
+                    <Text style={[S.tableCell, { flex: 1, fontFamily: 'Arial', fontWeight: 'bold', fontSize: 7 }, item.done ? S.tableCellGood : { color: COLORS.slate400 }]}>
+                      {item.done ? 'Oui' : 'À vérifier'}
                     </Text>
                   </View>
                 ))}
@@ -1328,15 +2574,15 @@ export function RapportPDF({
                     return (
                       <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                         <View style={[S.tableCell, { flex: 2, flexDirection: 'column' }]}>
-                          <Text style={{ fontSize: 6.5, fontFamily: 'Helvetica-Bold' }}>{nc.donnee}</Text>
+                          <Text style={{ fontSize: 6.5, fontFamily: 'Arial', fontWeight: 'bold' }}>{nc.donnee}</Text>
                           {nc.note && <Text style={{ fontSize: 5.5, color: COLORS.slate500 }}>{nc.note}</Text>}
                         </View>
                         <Text style={[S.tableCell, { flex: 1.5, fontSize: 6.5, color: COLORS.slate500 }]}>{nc.source}</Text>
-                        <Text style={[S.tableCell, { flex: 1, fontSize: 6.5, fontFamily: 'Helvetica-Bold' }, { color: fiabColor }]}>
-                          {nc.fiabilite === 'élevée' ? '●● Elevee'
-                            : nc.fiabilite === 'moyenne' ? '● Moyenne'
-                            : nc.fiabilite === 'à vérifier' ? 'A verif.'
-                            : '~ Estimee'}
+                        <Text style={[S.tableCell, { flex: 1, fontSize: 6.5, fontFamily: 'Arial', fontWeight: 'bold' }, { color: fiabColor }]}>
+                          {nc.fiabilite === 'élevée' ? '** Élevée'
+                            : nc.fiabilite === 'moyenne' ? '* Moyenne'
+                            : nc.fiabilite === 'à vérifier' ? 'À vérifier'
+                            : '~ Estimée'}
                         </Text>
                       </View>
                     )
@@ -1367,74 +2613,95 @@ export function RapportPDF({
           <View style={[S.row2, { marginBottom: 10 }]}>
             <View style={S.col}>
               <View style={[S.card, { marginBottom: 8 }]}>
-                <Text style={S.cardTitle}>Rendements</Text>
-                <Text style={[S.listText, { marginBottom: 3 }]}><Text style={{ fontFamily: 'Helvetica-Bold' }}>Brut</Text> = Loyers annuels HC / Prix d'achat</Text>
-                <Text style={[S.listText, { marginBottom: 3 }]}><Text style={{ fontFamily: 'Helvetica-Bold' }}>Net</Text> = (Loyers - Charges - Vacance) / Cout total</Text>
-                <Text style={S.listText}><Text style={{ fontFamily: 'Helvetica-Bold' }}>Net-net</Text> = (Loyers - Charges - Vacance - Impots) / Cout total</Text>
+                <Text style={S.cardTitle}>Rendements — définitions et calcul sur ce projet</Text>
+                <View style={[S.table, { marginTop: 4 }]}>
+                  <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                    {['Indicateur', 'Numérateur (moy./an)', 'Dénominateur', 'Résultat'].map((h, i) => (
+                      <Text key={i} style={[S.tableHeaderCell, { flex: i === 0 ? 2.5 : 1.5, fontSize: 5.5 }]}>{h}</Text>
+                    ))}
+                  </View>
+                  {(() => {
+                    const nR = yearlyTable.length || 1
+                    const avgL = Math.round(yearlyTable.reduce((s, r) => s + (r.loyersEncaisses ?? 0), 0) / nR)
+                    const avgC = Math.round(yearlyTable.reduce((s, r) => s + (r.chargesLocatives ?? 0), 0) / nR)
+                    const avgI = Math.round(yearlyTable.reduce((s, r) => s + r.impots, 0) / nR)
+                    const loyersBruts = input.location.loyerMensuelHC * 12
+                    const ct = summary.coutTotalAcquisition
+                    const pa = input.acquisition.prixAchat
+                    return [
+                      ['Brut (loyers HC / prix achat)',      `${eur(loyersBruts)}`,              `${eur(pa)}`,  pct(loyersBruts / pa)],
+                      ['Brut (loyers HC / coût total)',      `${eur(loyersBruts)}`,              `${eur(ct)}`,  pct(loyersBruts / ct)],
+                      ['Net (enc. – charges / coût total)', `${eur(avgL)} – ${eur(avgC)} = ${eur(avgL - avgC)}`, `${eur(ct)}`, pct(summary.rendementNet)],
+                      ['Net-net (idem – impôts / coût total)', `${eur(avgL - avgC)} – ${eur(avgI)} = ${eur(avgL - avgC - avgI)}`, `${eur(ct)}`, pct(summary.rendementNetNet)],
+                    ].map(([ind, num, den, res], i) => (
+                      <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                        <Text style={[S.tableCell, { flex: 2.5, fontSize: 5.5 }]}>{ind}</Text>
+                        <Text style={[S.tableCell, { flex: 1.5, fontSize: 5.5, color: COLORS.slate600 }]}>{num}</Text>
+                        <Text style={[S.tableCell, { flex: 1.5, fontSize: 5.5, color: COLORS.slate600 }]}>{den}</Text>
+                        <Text style={[S.tableCell, { flex: 1.5, fontSize: 5.5, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.indigo }]}>{res}</Text>
+                      </View>
+                    ))
+                  })()}
+                </View>
+                <Text style={{ fontSize: 5.5, color: COLORS.slate400, marginTop: 3, fontStyle: 'italic' }}>Loyers enc. = loyers théoriques - vacance - impayés. Charges = exploitation hors crédit, hors travaux récurrents (intégrés dans le cash-flow mais exclus du rendement net-net). Moyennes sur {input.revente.dureeDetentionAns} ans.</Text>
               </View>
               <View style={[S.card, { marginBottom: 8 }]}>
                 <Text style={S.cardTitle}>TRI (Taux de Rendement Interne)</Text>
                 <Text style={S.listText}>
-                  Methode de bissection appliquee aux flux de tresorerie annuels (cash-flows + produit net de revente),
-                  taux qui annule la VAN. Investissement initial = cout total - emprunt.
-                  Precision : 0,0001 %. 100 iterations max. Plus-value brute estimee sur la valeur revalorisant du bien ; fiscalite de plus-value immobiliere integree (abattements progressifs 6%/an de la 6e a la 21e annee, exoneration apres 22 ans pour IR).
+                  Méthode de bissection sur les flux annuels (cash-flows + produit net de revente). Taux qui annule la VAN. Investissement initial = coût total − emprunt. Fiscalité de plus-value intégrée (abattements progressifs, exonération IR an 22 / PS an 30).
                 </Text>
               </View>
               <View style={S.card}>
                 <Text style={S.cardTitle}>VAN (Valeur Actuelle Nette)</Text>
                 <Text style={S.listText}>
-                  Somme des flux actualises au taux de reference ({pct(input.revente.tauxActualisation)}).
-                  VAN &gt; 0 : l'investissement cree de la valeur. VAN &lt; 0 : le placement alternatif est preferable.
+                  {`Flux actualisés au taux de référence (${pct(input.revente.tauxActualisation)}). VAN > 0 : l'investissement crée de la valeur vs. le placement alternatif.`}
                 </Text>
               </View>
             </View>
             <View style={S.col}>
               <View style={[S.card, { marginBottom: 8 }]}>
-                <Text style={S.cardTitle}>Cash-flow & Effort d'epargne</Text>
+                <Text style={S.cardTitle}>Cash-flow &amp; Effort d'épargne</Text>
                 <Text style={S.listText}>
-                  Cash-flow annuel = Loyers encaisses - Charges - Travaux - Mensualites credit - Impots.
-                  Effort d'epargne = |cash-flow mensuel negatif moyen|. Exprime le montant reel a sortir de poche chaque mois.
+                  Cash-flow annuel = Loyers encaissés - Charges - Travaux - Mensualités crédit - Impôts.
+                  Effort d'épargne = |cash-flow mensuel négatif moyen|. Exprime le montant réel à sortir de poche chaque mois.
                 </Text>
               </View>
               <View style={[S.card, { marginBottom: 8 }]}>
-                <Text style={S.cardTitle}>Prix maximum conseillé</Text>
+                <Text style={S.cardTitle}>Prix cible de simulation</Text>
                 <Text style={S.listText}>
-                  Recherche dichotomique (precision 100 €) sur le prix d'achat, convergence vers l'objectif "{prixMax.objectifCible}".
-                  Le moteur recalcule l'integralite de la simulation a chaque iteration.
+                  {`Recherche dichotomique (précision 100 €) sur le prix d'achat — convergence vers l'objectif "${prixMax.objectifCible}". Le moteur recalcule la simulation à chaque itération.`}
                 </Text>
               </View>
               <View style={S.card}>
                 <Text style={S.cardTitle}>Piste d'audit</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Version moteur de calcul : 2.0 — Juin 2026</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Referentiel fiscal : 2025-2026 (PS : 17,2 %)</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>DPE : Loi Climat 2021 — decences energetiques 2025/2028/2034</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Plus-value brute : estimee selon valeur revalorisant + fiscalite abattements IR (6 %/an de la 6e a la 21e annee)</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Reintagration amortissements LMNP reel : non calculee (specifique a chaque situation patrimoniale)</Text>
-                <Text style={S.listText}>Tous les chiffres sont arrondis a l'euro pres. Credit : amortissement a la francaise.</Text>
+                <Text style={[S.listText, { marginBottom: 2 }]}>Moteur v2.0 — Juin 2026. Référentiel fiscal 2025-2026 (PS 17,2 %).</Text>
+                <Text style={[S.listText, { marginBottom: 2 }]}>DPE : Loi Climat et Résilience n°2021-1104 du 22 août 2021 — calendrier de décence énergétique : G 2025, F 2028, E 2034.</Text>
+                <Text style={[S.listText, { marginBottom: 2 }]}>Plus-value : abattements IR progressifs (6 %/an ans 6-21, exo. an 22 ; PS exo. an 30).</Text>
+                <Text style={S.listText}>Chiffres arrondis à l'euro. Crédit : amortissement à la française.</Text>
               </View>
             </View>
           </View>
 
           <View style={S.disclaimer}>
-            <Text style={[S.disclaimerText, { fontFamily: 'Helvetica-Bold', color: COLORS.slate600, marginBottom: 6 }]}>
+            <Text style={[S.disclaimerText, { fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate600, marginBottom: 6 }]}>
               Avertissement légal — Usage professionnel
             </Text>
             <Text style={[S.disclaimerText, { marginBottom: 4 }]}>
-              <Text style={{ fontFamily: 'Helvetica-Bold' }}>Pour le client final : </Text>
-              Ce rapport est une simulation financiere automatisee fondee sur les donnees saisies. Il ne tient pas compte de l'ensemble
-              de votre situation patrimoniale, fiscale, familiale, successorale ou professionnelle. Il ne constitue pas une recommandation personnalisee.
+              <Text style={{ fontFamily: 'Arial', fontWeight: 'bold' }}>Pour le client final : </Text>
+              Ce rapport est une simulation financière automatisée fondée sur les données saisies. Il ne tient pas compte de l'ensemble
+              de votre situation patrimoniale, fiscale, familiale, successorale ou professionnelle. Il ne constitue pas une recommandation personnalisée.
             </Text>
             <Text style={[S.disclaimerText, { marginBottom: 4 }]}>
-              <Text style={{ fontFamily: 'Helvetica-Bold' }}>Pour le professionnel : </Text>
-              Ce rapport peut constituer un support d'analyse ou une annexe technique. Il ne se substitue pas aux obligations reglementaires,
-              notamment en matiere de connaissance client, lettre de mission, adequation du conseil et information sur les risques (MIF II / CIF).
-              L'AMF rappelle que le conseil doit etre fourni par ecrit et tenir compte de la situation financiere, de l'experience et de l'objectif du client.
+              <Text style={{ fontFamily: 'Arial', fontWeight: 'bold' }}>Pour le professionnel : </Text>
+              Ce rapport peut constituer un support d'analyse ou une annexe technique. Il ne se substitue pas aux obligations réglementaires,
+              notamment en matière de connaissance client, lettre de mission, adéquation du conseil et information sur les risques (MIF II / CIF).
+              L'AMF rappelle que le conseil doit être fourni par écrit et tenir compte de la situation financière, de l'expérience et de l'objectif du client.
             </Text>
             <Text style={[S.disclaimerText, { marginBottom: 4 }]}>
-              <Text style={{ fontFamily: 'Helvetica-Bold' }}>Pour le partenaire white label : </Text>
-              Le partenaire est seul responsable de l'usage commercial, reglementaire et contractuel du rapport aupres de ses clients.
+              <Text style={{ fontFamily: 'Arial', fontWeight: 'bold' }}>Pour le partenaire white label : </Text>
+              Le partenaire est seul responsable de l'usage commercial, réglementaire et contractuel du rapport auprès de ses clients.
             </Text>
-            <Text style={[S.disclaimerText, { marginTop: 6, fontFamily: 'Helvetica-Bold' }]}>
+            <Text style={[S.disclaimerText, { marginTop: 6, fontFamily: 'Arial', fontWeight: 'bold' }]}>
               © {new Date().getFullYear()} Rendement Réel Immo — Rapport généré le {dateStr} — Confidentiel
             </Text>
           </View>

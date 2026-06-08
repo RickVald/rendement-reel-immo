@@ -132,6 +132,20 @@ export function ResultsView() {
               <p className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-1">
                 {input.bien.type} · {input.bien.ville || '—'} ({input.bien.codePostal}) · {input.bien.surface} m² · DPE {input.bien.dpe}
               </p>
+              {analysis.regimeAutoSelectionne && (
+                <div className="inline-flex items-center gap-1.5 text-xs bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-1 rounded-full mb-2">
+                  <span className="font-semibold">Régime optimal (auto)</span>
+                  <span>·</span>
+                  <span>{{
+                    micro_foncier: 'Micro-foncier',
+                    reel_foncier: 'Réel foncier',
+                    lmnp_micro_bic: 'LMNP micro-BIC',
+                    lmnp_reel: 'LMNP réel',
+                    sci_ir: 'SCI à l\'IR',
+                    sci_is: 'SCI à l\'IS',
+                  }[analysis.regimeAutoSelectionne] ?? analysis.regimeAutoSelectionne}</span>
+                </div>
+              )}
               <h1 className={clsx('text-2xl md:text-3xl font-bold mb-2', c.text)}>{verdict.label}</h1>
               <div className="flex flex-wrap items-center gap-3">
                 <span className={clsx('text-white text-sm font-bold px-3 py-1 rounded-full', c.badge)}>
@@ -602,7 +616,7 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
           <p className="font-semibold text-emerald-800 mb-1">{REGIME_LABELS[regime] ?? regime}</p>
           <p className="text-sm text-emerald-700">{REGIME_DESC[regime] ?? ''}</p>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
             <div className="text-xs text-slate-500 mb-1">Total impôts payés</div>
             <div className="text-lg font-bold text-red-600">{eur(totalImpots)}</div>
@@ -614,7 +628,7 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
             <div className="text-xs text-slate-400">TMI {pct(input.fiscalite.tmi, 0)}</div>
           </div>
           <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-center">
-            <div className="text-xs text-slate-500 mb-1">dont Prélèvements sociaux</div>
+            <div className="text-xs text-slate-500 mb-1">dont Prél. sociaux</div>
             <div className="text-lg font-bold text-slate-700">{eur(totalPS)}</div>
             <div className="text-xs text-slate-400">17,2 %</div>
           </div>
@@ -919,8 +933,8 @@ function TabHypotheses({ analysis, ai }: { analysis: ProjectAnalysis; ai: AIInte
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-      <div className="bg-slate-50 border-b border-slate-200 px-6 py-3.5">
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm">
+      <div className="bg-slate-50 border-b border-slate-200 px-6 py-3.5 rounded-t-2xl">
         <h2 className="font-semibold text-slate-800 text-sm">{title}</h2>
       </div>
       <div className="p-6">{children}</div>

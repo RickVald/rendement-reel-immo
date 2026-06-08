@@ -4,7 +4,7 @@ import { SimulatorForm } from '@/components/simulator/SimulatorForm'
 export const metadata: Metadata = {
   title: 'Simulateur de rentabilité locative — Rendement net-net, TRI, VAN',
   description:
-    'Calculez la vraie rentabilité de votre investissement locatif : rendement brut, net, net-net, cash-flow, TRI, VAN, fiscalité complète. 8 étapes, résultat en 2 minutes.',
+    'Calculez la vraie rentabilité de votre investissement locatif : rendement brut, net, net-net, cash-flow, TRI, VAN, fiscalité complète. 9 étapes, résultat en 2 minutes.',
   alternates: { canonical: 'https://rendement-reel-immo.fr/simulateur' },
 }
 
@@ -21,7 +21,7 @@ export default function SimulateurPage() {
             Analysez la rentabilité réelle de votre projet
           </h1>
           <p className="text-slate-300 text-sm leading-relaxed">
-            8 étapes · Rendement net-net · Cash-flow · TRI · VAN · Verdict · Analyse IA
+            9 étapes · Rendement net-net · Cash-flow · TRI · VAN · Verdict · Analyse IA
           </p>
         </div>
       </div>

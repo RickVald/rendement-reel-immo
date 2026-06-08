@@ -73,7 +73,9 @@ function bisect(flux: number[], lo: number, hi: number, iterations = 100): numbe
 function bisectionIRR(flux: number[]): number {
   const hasPositive = flux.some((f) => f > 0)
   const hasNegative = flux.some((f) => f < 0)
-  if (!hasPositive || !hasNegative) return 0
+  // Aucun flux positif = TRI impossible / très négatif (ex : projet sans revente avec CF tous négatifs)
+  if (!hasPositive) return -0.95
+  if (!hasNegative) return 0
 
   const npv0 = npvAt(flux, 0)
 
@@ -195,9 +197,9 @@ export function calculerPrixMaximum(
   const negociationPct = negociationEuros / prixDemande
 
   const objectifLabels = {
-    rendement_net: `Rendement net ≥ ${(objectif.valeur * 100).toFixed(1)}%`,
-    cashflow: `Cash-flow ≥ ${objectif.valeur}€/mois`,
-    tri: `TRI ≥ ${(objectif.valeur * 100).toFixed(1)}%`,
+    rendement_net: `Rendement net ≥ ${(objectif.valeur * 100).toFixed(1).replace('.', ',')} %`,
+    cashflow: `Cash-flow ≥ ${objectif.valeur} €/mois`,
+    tri: `TRI ≥ ${(objectif.valeur * 100).toFixed(1).replace('.', ',')} %`,
   }
 
   return {

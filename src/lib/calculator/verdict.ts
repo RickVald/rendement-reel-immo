@@ -65,25 +65,25 @@ export function genererVerdict(kpis: SummaryKPIs, input: ProjectInput): Verdict 
 
   // Alertes automatiques (CDC §10)
   if (kpis.rendementBrut - kpis.rendementNetNet > 0.03)
-    alertes.push(`⚠️ Le rendement brut (${pct(kpis.rendementBrut)}) est très supérieur au net-net (${pct(kpis.rendementNetNet)}) — les charges réelles effacent une grande partie du rendement affiché.`)
+    alertes.push(`Rendement brut (${pct(kpis.rendementBrut)}) très supérieur au net-net (${pct(kpis.rendementNetNet)}) — les charges réelles effacent une grande partie du rendement affiché.`)
   if (kpis.cashflowMensuelMoyen < -300)
-    alertes.push(`⚠️ Effort d'épargne mensuel estimé à ${Math.abs(Math.round(kpis.cashflowMensuelMoyen))} €/mois — vérifiez votre capacité à tenir sur la durée.`)
+    alertes.push(`Effort d'épargne mensuel estimé à ${Math.abs(Math.round(kpis.cashflowMensuelMoyen))} €/mois — vérifiez votre capacité à tenir sur la durée.`)
   if (kpis.dependanceRevente)
-    alertes.push(`⚠️ La rentabilité de ce projet est entièrement dépendante de la revente — si le marché stagne, le TRI devient négatif.`)
+    alertes.push(`La rentabilité de ce projet est entièrement dépendante de la revente — si le marché stagne, le TRI devient négatif.`)
   if (input.bien.dpe === 'F')
-    alertes.push(`⚠️ DPE F — ce bien sera interdit à la location en 2028 sans travaux. Intégrez le coût de rénovation dans votre calcul.`)
+    alertes.push(`DPE F — ce bien sera interdit à la location en 2028 sans travaux. Intégrez le coût de rénovation dans votre calcul.`)
   if (input.bien.dpe === 'G')
-    alertes.push(`🚨 DPE G — ce bien est déjà interdit à la mise en location depuis 2025. Une location active expose à des sanctions.`)
+    alertes.push(`DPE G — ce bien est déjà interdit à la mise en location depuis 2025. Une location active expose à des sanctions.`)
   if (input.location.vacanceLocativeMois === 0)
-    alertes.push(`⚠️ Vacance locative à 0 — hypothèse optimiste qui peut fausser significativement le résultat réel.`)
+    alertes.push(`Vacance locative à 0 — hypothèse optimiste qui peut fausser significativement le résultat réel.`)
   if (input.charges.taxeFonciere === 0)
-    alertes.push(`⚠️ Taxe foncière non renseignée — résultat incomplet.`)
+    alertes.push(`Taxe foncière non renseignée — résultat incomplet.`)
 
   // Recommandations
   if (score >= 70)
     recommandations.push(`Ce projet présente de bons fondamentaux. Vérifiez les hypothèses de revalorisation et les charges de copropriété sur les 5 prochaines années.`)
   if (kpis.prixMaximum < input.acquisition.prixAchat)
-    recommandations.push(`Le prix maximum calculé pour atteindre vos objectifs est ${eur(kpis.prixMaximum)}, soit ${eur(input.acquisition.prixAchat - kpis.prixMaximum)} de négociation à obtenir (${pct((input.acquisition.prixAchat - kpis.prixMaximum) / input.acquisition.prixAchat)}).`)
+    recommandations.push(`Le prix cible calculé selon l'objectif de simulation est ${eur(kpis.prixMaximum)}, soit ${eur(input.acquisition.prixAchat - kpis.prixMaximum)} de négociation à obtenir (${pct((input.acquisition.prixAchat - kpis.prixMaximum) / input.acquisition.prixAchat)}).`)
   if (input.bien.dpe === 'E')
     recommandations.push(`DPE E — ce bien sera soumis à obligations de rénovation en 2034. Anticipez le coût des travaux dans votre stratégie.`)
   if (input.location.type === 'nue' && input.fiscalite.regime === 'micro_foncier' && kpis.rendementNetNet < 0.04)
@@ -169,7 +169,7 @@ export function genererScenarios(
     },
     {
       label: 'Central',
-      rendementNetNet: kpis.rendementNetNet,
+      rendementNetNet: kpis.rendementNetNet,  // identique à la synthèse (même méthode row-average)
       cashflowMensuel: kpis.cashflowMensuelMoyen,
       tri: kpis.tri,
       van: kpis.van,

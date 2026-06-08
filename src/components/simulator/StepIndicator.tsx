@@ -3,13 +3,14 @@ import { clsx } from 'clsx'
 
 const STEPS = [
   { n: 1, label: 'Bien' },
-  { n: 2, label: 'Acquisition' },
-  { n: 3, label: 'Financement' },
-  { n: 4, label: 'Location' },
-  { n: 5, label: 'Charges' },
-  { n: 6, label: 'Travaux' },
-  { n: 7, label: 'Fiscalité' },
-  { n: 8, label: 'Revente' },
+  { n: 2, label: 'Profil fiscal' },
+  { n: 3, label: 'Acquisition' },
+  { n: 4, label: 'Financement' },
+  { n: 5, label: 'Location' },
+  { n: 6, label: 'Charges' },
+  { n: 7, label: 'Travaux' },
+  { n: 8, label: 'Fiscalité' },
+  { n: 9, label: 'Revente' },
 ]
 
 export function StepIndicator({ current }: { current: number }) {

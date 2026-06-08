@@ -26,7 +26,7 @@ export const COLORS = {
 
 export const S = StyleSheet.create({
   page: {
-    fontFamily: 'Helvetica',
+    fontFamily: 'Arial',
     backgroundColor: COLORS.white,
     paddingTop: 0,
     paddingBottom: 40,
@@ -57,7 +57,7 @@ export const S = StyleSheet.create({
   },
   coverTitle: {
     fontSize: 28,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.white,
     lineHeight: 1.3,
     marginBottom: 8,
@@ -65,7 +65,7 @@ export const S = StyleSheet.create({
   coverSubtitle: {
     fontSize: 13,
     color: COLORS.emerald,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     marginBottom: 32,
   },
   coverMeta: {
@@ -75,7 +75,7 @@ export const S = StyleSheet.create({
   },
   coverMetaVal: {
     color: COLORS.white,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
   },
   coverSeparator: {
     height: 1,
@@ -89,7 +89,7 @@ export const S = StyleSheet.create({
   },
   coverScore: {
     fontSize: 40,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.white,
   },
   coverScoreLabel: {
@@ -123,7 +123,7 @@ export const S = StyleSheet.create({
   pageHeaderTitle: {
     fontSize: 9,
     color: COLORS.emerald,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -159,7 +159,7 @@ export const S = StyleSheet.create({
   // ── Section heading ───────────────────────────────────────────────────────
   sectionTitle: {
     fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.navy,
     marginBottom: 10,
     paddingBottom: 6,
@@ -168,7 +168,7 @@ export const S = StyleSheet.create({
   },
   subTitle: {
     fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.slate700,
     marginBottom: 6,
     marginTop: 12,
@@ -199,7 +199,7 @@ export const S = StyleSheet.create({
   },
   kpiValue: {
     fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     marginBottom: 2,
   },
   kpiSub: {
@@ -242,7 +242,7 @@ export const S = StyleSheet.create({
   },
   tableHeaderCell: {
     fontSize: 6.5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.white,
     flex: 1,
     textAlign: 'center',
@@ -278,10 +278,10 @@ export const S = StyleSheet.create({
     paddingLeft: 4,
   },
   tableCellBold: {
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.slate800,
   },
-  tableCellGood: { color: COLORS.emeraldDark, fontFamily: 'Helvetica-Bold' },
+  tableCellGood: { color: COLORS.emeraldDark, fontFamily: 'Arial' },
   tableCellBad:  { color: COLORS.red },
   tableCellGray: { color: COLORS.slate400 },
 
@@ -299,14 +299,14 @@ export const S = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.slate200,
     borderRadius: 6,
-    padding: 12,
-    marginBottom: 12,
+    padding: 10,
+    marginBottom: 10,
   },
   cardTitle: {
     fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.slate600,
-    marginBottom: 8,
+    marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -339,7 +339,7 @@ export const S = StyleSheet.create({
   hypRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 3,
+    paddingVertical: 2,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.slate100,
   },
@@ -350,7 +350,7 @@ export const S = StyleSheet.create({
   },
   hypValue: {
     fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.slate800,
   },
 
@@ -363,12 +363,12 @@ export const S = StyleSheet.create({
   },
   scenarioLabel: {
     fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     marginBottom: 8,
   },
   scenarioVal: {
     fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     marginBottom: 2,
   },
   scenarioSub: {
@@ -388,13 +388,13 @@ export const S = StyleSheet.create({
   },
   verdictLabel: {
     fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.white,
     marginBottom: 4,
   },
   verdictScore: {
     fontSize: 28,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.white,
   },
 
@@ -422,7 +422,7 @@ export const S = StyleSheet.create({
   },
   scoreBarVal: {
     fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     color: COLORS.slate700,
     width: 32,
     textAlign: 'right',
@@ -448,7 +448,7 @@ export const S = StyleSheet.create({
   },
   prixMaxValue: {
     fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
+    fontFamily: 'Arial',
     marginBottom: 2,
   },
   prixMaxSub: {
