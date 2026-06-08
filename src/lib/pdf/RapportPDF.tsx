@@ -925,7 +925,7 @@ export function RapportPDF({
 
         return (
           <Page size="A4" style={S.page}>
-            <PageHeader section="Dispositif fiscal" meta={meta} />
+            <PageHeader section="Stratégie fiscale envisagée" meta={meta} />
             <View style={S.body}>
               <Text style={S.sectionTitle}>{DISPOSITIF_LABELS[input.fiscalite.dispositif]}</Text>
 
