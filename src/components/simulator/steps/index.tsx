@@ -76,7 +76,7 @@ export function Step1({ data, onChange }: SP) {
       {/* ── 0. Dispositif fiscal — en premier car conditionne loyer, régime, champs ── */}
       <Section title="Stratégie fiscale">
         <Select
-          label="Dispositif fiscal"
+          label="Stratégie fiscale envisagée"
           value={dispositif}
           onChange={e => handleDispositifChange(e.target.value as DispositifFiscal)}
           options={Object.entries(DISPOSITIF_LABELS).map(([value, label]) => ({
@@ -1014,7 +1014,7 @@ export function Step7({ data, onChange }: SP) {
       {/* ── 1. Stratégie fiscale — sélecteur (synchronisé avec étape 1) ── */}
       <Section title="Stratégie fiscale envisagée">
         <Select
-          label="Dispositif fiscal"
+          label="Stratégie fiscale envisagée"
           value={dispositif}
           onChange={e => handleDispositifChange(e.target.value as DispositifFiscal)}
           options={Object.entries(DISPOSITIF_LABELS).map(([value, label]) => ({ value, label }))}
