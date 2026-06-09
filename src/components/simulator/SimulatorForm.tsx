@@ -27,7 +27,31 @@ export function SimulatorForm() {
   const [error, setError] = useState<string | null>(null)
 
   const updateData = (patch: Partial<ProjectInput>) => {
-    setData(prev => ({ ...prev, ...patch }))
+    setData(prev => {
+      const next = { ...prev }
+      for (const key of Object.keys(patch) as (keyof ProjectInput)[]) {
+        const patchVal = patch[key]
+        const prevVal = prev[key]
+        // Deep-merge plain objects (fiscalite, bien, acquisition, etc.)
+        // This ensures that if a step sends { fiscalite: { ...f_stale, x: newX } },
+        // we merge from prev rather than blindly replacing, preserving keys set by other steps.
+        if (
+          patchVal !== null &&
+          typeof patchVal === 'object' &&
+          !Array.isArray(patchVal) &&
+          prevVal !== null &&
+          typeof prevVal === 'object' &&
+          !Array.isArray(prevVal)
+        ) {
+          // Merge: prevVal baseline, then patchVal on top — patchVal wins on conflicts.
+          // This is safe because each step only patches the slice it owns (fiscalite, bien…).
+          ;(next as Record<string, unknown>)[key] = { ...prevVal, ...patchVal }
+        } else {
+          ;(next as Record<string, unknown>)[key] = patchVal
+        }
+      }
+      return next
+    })
   }
 
   const stepProps = { data, onChange: updateData }

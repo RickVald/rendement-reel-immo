@@ -344,7 +344,7 @@ export function StepPF({ data, onChange }: SP) {
           options={[
             { value: '0',    label: '0 % (non imposable)' },
             { value: '0.11', label: '11 %' },
-            { value: '0.30', label: '30 %' },
+            { value: '0.3', label: '30 %' },
             { value: '0.41', label: '41 %' },
             { value: '0.45', label: '45 %' },
           ]}
@@ -535,6 +535,16 @@ export function Step2({ data, onChange }: SP) {
 
   return (
     <div className="space-y-6">
+      {dispositif === 'deficit_foncier_renforce' && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900">
+          <div className="font-semibold mb-1">⚠️ Déficit foncier renforcé — travaux à budgétiser ici</div>
+          <p className="text-xs text-amber-800">
+            Pour ce dispositif, le montant des travaux fait partie du <strong>coût total à financer</strong>.
+            Saisissez vos travaux de rénovation énergétique ci-dessous <strong>avant</strong> de passer à l&apos;étape Financement,
+            afin que l&apos;enveloppe de crédit soit calculée sur la bonne base (prix d&apos;achat + travaux).
+          </p>
+        </div>
+      )}
       <Section title="Prix d'achat">
         <Input label={neuf ? "Prix d'achat VEFA" : "Prix d'achat"} type="number" value={a.prixAchat}
           onChange={e => handlePrixChange(+e.target.value)} suffix="€"
@@ -600,8 +610,19 @@ export function Step3({ data, onChange }: SP) {
     : 0
   const assuranceMensuelle = (f.montantEmprunte * f.tauxAssurance) / 12
 
+  const dispositifFinancement = data.fiscalite?.dispositif ?? 'aucun'
+
   return (
     <div className="space-y-6">
+      {dispositifFinancement === 'deficit_foncier_renforce' && a.travauxInitiaux === 0 && (
+        <div className="bg-red-50 border border-red-300 rounded-xl px-4 py-3 text-sm text-red-900">
+          <div className="font-semibold mb-1">⚠️ Travaux manquants</div>
+          <p className="text-xs text-red-800">
+            Vous avez sélectionné le <strong>déficit foncier renforcé</strong> mais n&apos;avez pas saisi de travaux à l&apos;étape précédente.
+            Revenez à l&apos;étape Acquisition pour renseigner vos travaux de rénovation énergétique — ils doivent être inclus dans le coût total avant de définir votre financement.
+          </p>
+        </div>
+      )}
       <Section title="Structure du financement">
         <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-xs text-slate-500 flex justify-between">
           <span>Coût total à financer</span>
