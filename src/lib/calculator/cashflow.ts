@@ -148,7 +148,10 @@ export function genererTableauAnnuel(
     }
 
     // ── Impôts ──
-    const deficitRenforceActif = dispositif === 'deficit_foncier_renforce'
+    // Le plafond majoré 21 400 €/an s'applique UNIQUEMENT si DPE avant travaux est E, F ou G.
+    // DPE D (ou mieux) → plafond standard 10 700 €.
+    const dpeEligibleRenforce = (['E', 'F', 'G'] as string[]).includes(input.bien.dpe)
+    const deficitRenforceActif = dispositif === 'deficit_foncier_renforce' && dpeEligibleRenforce
     const impot = calculerImpotAnnee({
       loyersEncaisses,
       chargesDeductibles,

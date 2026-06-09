@@ -1553,11 +1553,29 @@ export function Step8({ data, onChange }: SP) {
                   </div>
                 </div>
               )}
-              {eligibilite.status !== 'eligible' && (
-                <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">
-                  ⚠️ L&apos;avantage de <strong>{eligibilite.avantageTheorique.toLocaleString('fr-FR')} € (potentiel sous réserve)</strong> n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN tant que les conditions d&apos;éligibilité ne sont pas toutes validées.
-                </div>
-              )}
+              {eligibilite.status !== 'eligible' && (() => {
+                const isMalrauxMH = dispositif === 'malraux' || dispositif === 'monuments_historiques'
+                const irSaisi = data.fiscalite.irBrutAnnuel
+                if (isMalrauxMH && irSaisi === undefined) {
+                  return (
+                    <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">
+                      ⚠️ <strong>Avantage non calculable</strong> : votre IR annuel n&apos;est pas renseigné. Sans IR, impossible de déterminer si la réduction de {eligibilite.avantageTheorique.toLocaleString('fr-FR')} € sera absorbable. Renseignez votre IR en parcours avancé (étape Profil fiscal). L&apos;avantage n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN.
+                    </div>
+                  )
+                }
+                if (isMalrauxMH && irSaisi === 0) {
+                  return (
+                    <div className="text-xs bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-orange-800">
+                      ℹ IR = 0 → <strong>avantage nul</strong> : la réduction d&apos;impôt de {eligibilite.avantageTheorique.toLocaleString('fr-FR')} € ne peut pas s&apos;appliquer sur un IR nul. Avantage intégré dans le TRI et la VAN : <strong>0 €</strong>.
+                    </div>
+                  )
+                }
+                return (
+                  <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">
+                    ⚠️ L&apos;avantage de <strong>{eligibilite.avantageTheorique.toLocaleString('fr-FR')} € (potentiel sous réserve)</strong> n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN tant que les conditions d&apos;éligibilité ne sont pas toutes validées.
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>

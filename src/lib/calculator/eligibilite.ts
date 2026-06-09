@@ -207,9 +207,10 @@ function checkDeficitFoncierRenforce(input: ProjectInput): EligibilityResult {
     : bloquant('engagement', 'Engagement de location insuffisant',
         'L\'engagement minimal est de 3 ans après la réalisation des travaux.'))
 
-  // Avantage = économie fiscal estimée via déficit imputable
-  // Le moteur calcule cela dans fiscalite.ts — on affiche le montant théorique ici
-  const avantageTheorique = Math.min(montantTravaux, 21_400) * fiscalite.tmi
+  // Avantage = économie fiscale estimée via déficit imputable
+  // Le plafond majoré 21 400 € ne s'applique que si DPE E/F/G. DPE D → 10 700 € standard.
+  const plafondEffectif = dpeMauvais ? 21_400 : 10_700
+  const avantageTheorique = Math.min(montantTravaux, plafondEffectif) * fiscalite.tmi
   const avantageUtilisable = avantageTheorique  // pas une réduction d'impôt, c'est une déduction
 
   return synthesize('deficit_foncier_renforce', conditions, avantageTheorique, avantageUtilisable)
