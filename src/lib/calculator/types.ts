@@ -351,9 +351,10 @@ export interface IndicateurResume {
 export interface SummaryKPIs {
   coutTotalAcquisition: number
   cashTotalNecessaire: number  // = coutTotal - montantEmprunte (apport réel en cash)
-  rendementBrut: number
-  rendementNet: number
-  rendementNetNet: number
+  rendementBrut: number             // loyers bruts / prix d'achat seul
+  rendementBrutCoutTotal: number    // loyers bruts / coût total d'acquisition (prix + travaux + frais)
+  rendementNet: number              // (loyers - charges) / coût total
+  rendementNetNet: number           // (loyers - charges - impôts) / coût total
   cashflowMensuelMoyen: number
   cashflowAnnuelMoyen: number
   cashflowCumule: number

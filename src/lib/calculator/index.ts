@@ -213,6 +213,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     coutTotalAcquisition: Math.round(coutTotal),
     cashTotalNecessaire: Math.round(apportInitial),
     rendementBrut: rendements.rendementBrut,
+    rendementBrutCoutTotal: rendements.rendementBrutCoutTotal,
     rendementNet: rendementNetFromRows,       // vacance incluse via tableau annuel
     rendementNetNet: rendementNetNetRows,     // idem + fiscalité exploitation
     cashflowMensuelMoyen: Math.round(cashflowMensuelMoyen),

@@ -231,9 +231,10 @@ export function RapportPDF({
             <View style={S.col}>
               <Text style={S.subTitle}>Indicateurs financiers clés</Text>
               {[
-                { label: 'Rendement brut (loyers HC / prix achat)',                    val: pct(summary.rendementBrut),    ok: summary.rendementBrut >= 0.05 },
-                { label: 'Rendement net (loyers enc. – charges / coût total, moy.)',   val: pct(summary.rendementNet),     ok: summary.rendementNet >= 0.04 },
-                { label: 'Rendement net-net (idem – impôts / coût total, moy.)',       val: pct(summary.rendementNetNet),  ok: summary.rendementNetNet >= 0.03 },
+                { label: 'Rendement brut (loyers HC / prix achat)',                        val: pct(summary.rendementBrut),           ok: summary.rendementBrut >= 0.05 },
+                { label: 'Rendement brut sur coût total (prix + travaux + frais)',     val: pct(summary.rendementBrutCoutTotal),  ok: summary.rendementBrutCoutTotal >= 0.04 },
+                { label: 'Rendement net (loyers enc. – charges / coût total, moy.)',   val: pct(summary.rendementNet),            ok: summary.rendementNet >= 0.04 },
+                { label: 'Rendement net-net (idem – impôts / coût total, moy.)',       val: pct(summary.rendementNetNet),         ok: summary.rendementNetNet >= 0.03 },
                 { label: 'TRI projet',        val: pct(summary.tri),                   ok: summary.tri >= 0.04 },
                 { label: 'VAN',               val: eur(summary.van),                   ok: summary.van > 0 },
                 { label: 'Cash-flow moyen',   val: `${sign(summary.cashflowMensuelMoyen)}/mois`, ok: summary.cashflowMensuelMoyen >= 0 },
@@ -406,8 +407,9 @@ export function RapportPDF({
 
           <View style={S.kpiGrid}>
             {[
-              { label: 'Rendement brut',    val: pct(summary.rendementBrut),         sub: 'loyers HC / prix achat',                    ok: summary.rendementBrut >= 0.05 },
-              { label: 'Rendement net',      val: pct(summary.rendementNet),           sub: 'loyers enc. – charges / coût total, moy.',  ok: summary.rendementNet >= 0.04 },
+              { label: 'Rendement brut',           val: pct(summary.rendementBrut),          sub: 'loyers HC / prix achat seul',               ok: summary.rendementBrut >= 0.05 },
+              { label: 'Rdt brut coût total',      val: pct(summary.rendementBrutCoutTotal), sub: 'loyers / prix + travaux + frais',           ok: summary.rendementBrutCoutTotal >= 0.04 },
+              { label: 'Rendement net',             val: pct(summary.rendementNet),           sub: 'loyers enc. – charges / coût total, moy.',  ok: summary.rendementNet >= 0.04 },
               { label: 'Net-net hors trav. récurrents',  val: pct(summary.rendementNetNet), sub: 'idem – impôts / coût total, moy.',  ok: summary.rendementNetNet >= 0.03 },
               { label: 'Net-net après trav. récurrents', val: pct(Math.max(0, summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition)), sub: 'trav. récurrents déduits du net-net', ok: (summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition) >= 0.03 },
               { label: 'Cash-flow mensuel',  val: sign(summary.cashflowMensuelMoyen), sub: 'moyen / mois',                ok: summary.cashflowMensuelMoyen >= 0 },

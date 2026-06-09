@@ -270,22 +270,33 @@ function TabSynthese({ analysis, ai, aiLoading, onEdit }: {
       <Card title="Indicateurs clés de performance">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Rendement brut',    val: pct(summary.rendementBrut),    sub: 'sur prix d\'achat',          ok: summary.rendementBrut >= 0.05 },
-            { label: 'Rendement net',     val: pct(summary.rendementNet),     sub: 'après charges, avant impôts',ok: summary.rendementNet >= 0.04 },
-            { label: 'Rendement net-net', val: pct(summary.rendementNetNet),  sub: 'après impôts',               ok: summary.rendementNetNet >= 0.04 },
-            { label: 'Cash-flow mensuel', val: sign(summary.cashflowMensuelMoyen), sub: '/mois moyen',           ok: summary.cashflowMensuelMoyen >= 0 },
-            { label: 'TRI projet',        val: pct(summary.tri),              sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.tri >= 0.06 },
-            { label: 'VAN',               val: eur(summary.van),              sub: `vs référence ${pct(input.revente.tauxActualisation)}`, ok: summary.van > 0 },
-            { label: 'Effort mensuel',    val: eur(summary.effortEpargne),    sub: 'à sortir de poche / mois',   ok: summary.effortEpargne < 200 },
-            { label: 'Cash-flow cumulé',  val: sign(summary.cashflowCumule),  sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.cashflowCumule >= 0 },
+            { label: 'Rendement brut',               val: pct(summary.rendementBrut),            sub: 'loyers / prix d\'achat seul',                ok: summary.rendementBrut >= 0.05 },
+            { label: 'Rendement brut (coût total)',   val: pct(summary.rendementBrutCoutTotal),   sub: 'loyers / prix + travaux + frais',            ok: summary.rendementBrutCoutTotal >= 0.04,
+              highlight: true },
+            { label: 'Rendement net',                 val: pct(summary.rendementNet),             sub: 'après charges — sur coût total',             ok: summary.rendementNet >= 0.04 },
+            { label: 'Rendement net-net',             val: pct(summary.rendementNetNet),          sub: 'après impôts — sur coût total',              ok: summary.rendementNetNet >= 0.04 },
+            { label: 'Cash-flow mensuel',             val: sign(summary.cashflowMensuelMoyen),    sub: '/mois moyen',                                ok: summary.cashflowMensuelMoyen >= 0 },
+            { label: 'TRI projet',                    val: pct(summary.tri),                      sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.tri >= 0.06 },
+            { label: 'VAN',                           val: eur(summary.van),                      sub: `vs référence ${pct(input.revente.tauxActualisation)}`, ok: summary.van > 0 },
+            { label: 'Effort mensuel',                val: eur(summary.effortEpargne),            sub: 'à sortir de poche / mois',                   ok: summary.effortEpargne < 200 },
+            { label: 'Cash-flow cumulé',              val: sign(summary.cashflowCumule),          sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.cashflowCumule >= 0 },
           ].map(kpi => (
-            <div key={kpi.label} className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <div key={kpi.label} className={clsx(
+              'rounded-xl p-4 border',
+              (kpi as { highlight?: boolean }).highlight
+                ? 'bg-blue-50 border-blue-200'
+                : 'bg-slate-50 border-slate-200'
+            )}>
               <div className="text-xs text-slate-500 mb-1">{kpi.label}</div>
               <div className={clsx('text-xl font-bold', kpi.ok ? 'text-emerald-700' : 'text-red-600')}>{kpi.val}</div>
               <div className="text-xs text-slate-400 mt-0.5">{kpi.sub}</div>
             </div>
           ))}
         </div>
+        <p className="text-xs text-slate-400 mt-3 border-t border-slate-100 pt-3">
+          Le rendement brut classique (sur prix d&apos;achat) surestime la rentabilité réelle quand les travaux sont significatifs.
+          Le <span className="font-medium text-blue-600">rendement brut sur coût total</span> est la référence pertinente pour comparer des projets avec des profils de travaux différents.
+        </p>
       </Card>
 
       {/* ── Alertes ── */}
@@ -602,6 +613,10 @@ function TabProjection({ analysis }: { analysis: ProjectAnalysis }) {
 function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
   const { yearlyTable, creditSchedule, input } = analysis
   const regime = input.fiscalite.regime
+  const dispositif = input.fiscalite.dispositif ?? 'aucun'
+  // Colonne spéciale : déficit foncier reportable (réel foncier) ou réduction d'impôt (Denormandie, etc.)
+  const showDeficit  = ['reel_foncier', 'sci_ir'].includes(regime)
+  const showReduction = ['denormandie', 'loc_avantages', 'jeanbrun', 'malraux', 'monuments_historiques'].includes(dispositif)
   const totalImpots = yearlyTable.reduce((s, r) => s + r.impots, 0)
   const totalIR     = yearlyTable.reduce((s, r) => s + (r.ir ?? 0), 0)
   const totalPS     = yearlyTable.reduce((s, r) => s + (r.ps ?? 0), 0)
@@ -649,6 +664,9 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
                 <Th>IR</Th>
                 <Th>Prél. sociaux</Th>
                 <Th bold>Total impôts</Th>
+                {showDeficit   && <Th ok={true}>Déficit imputé</Th>}
+                {showDeficit   && <Th ok={true}>Déficit reportable</Th>}
+                {showReduction && <Th ok={true}>Réduction d&apos;impôt utilisée</Th>}
               </tr>
             </thead>
             <tbody>
@@ -662,6 +680,9 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
                   <Td neg>{fmt(row.ir ?? 0)} €</Td>
                   <Td neg>{fmt(row.ps ?? 0)} €</Td>
                   <Td neg bold>{fmt(row.impots)} €</Td>
+                  {showDeficit   && <Td color={row.deficitFoncierImpute > 0 ? 'emerald' : 'slate'}>{row.deficitFoncierImpute > 0 ? `−${fmt(row.deficitFoncierImpute)} €` : '—'}</Td>}
+                  {showDeficit   && <Td color={row.deficitFoncierCumul > 0 ? 'emerald' : 'slate'}>{row.deficitFoncierCumul > 0 ? `${fmt(row.deficitFoncierCumul)} €` : '—'}</Td>}
+                  {showReduction && <Td color={row.avantageUtilise > 0 ? 'emerald' : 'slate'}>{row.avantageUtilise > 0 ? `−${fmt(row.avantageUtilise)} €` : '—'}</Td>}
                 </tr>
               ))}
               <tr className="bg-slate-100 font-semibold border-t-2 border-slate-300">
@@ -673,10 +694,24 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
                 <Td bold neg>{fmt(totalIR)} €</Td>
                 <Td bold neg>{fmt(totalPS)} €</Td>
                 <Td bold neg>{fmt(totalImpots)} €</Td>
+                {showDeficit   && <Td bold color="emerald">{fmt(yearlyTable.reduce((s,r) => s+(r.deficitFoncierImpute??0), 0))} €</Td>}
+                {showDeficit   && <Td bold color="emerald">{fmt(yearlyTable[yearlyTable.length - 1]?.deficitFoncierCumul ?? 0)} € (fin)</Td>}
+                {showReduction && <Td bold color="emerald">−{fmt(yearlyTable.reduce((s,r) => s+(r.avantageUtilise??0), 0))} €</Td>}
               </tr>
             </tbody>
           </table>
         </div>
+        {showDeficit && (
+          <p className="text-xs text-slate-400 mt-2">
+            <span className="font-medium text-emerald-700">Déficit imputé</span> : montant soustrait du revenu global cette année (max {input.fiscalite.dispositif === 'deficit_foncier_renforce' ? '21 400' : '10 700'} €/an).
+            {' '}<span className="font-medium text-emerald-700">Déficit reportable</span> : stock cumulé pouvant être imputé sur les revenus fonciers des années suivantes (sans limite de durée).
+          </p>
+        )}
+        {showReduction && (
+          <p className="text-xs text-slate-400 mt-2">
+            <span className="font-medium text-emerald-700">Réduction d&apos;impôt utilisée</span> : montant effectivement absorbé par votre IR chaque année. Plafonnée par l&apos;IR disponible et par le plafond des niches fiscales (10 000 € en général).
+          </p>
+        )}
       </Card>
 
       {/* ── Récapitulatif crédit ── */}
