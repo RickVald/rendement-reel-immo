@@ -614,8 +614,11 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
   const { yearlyTable, creditSchedule, input } = analysis
   const regime = input.fiscalite.regime
   const dispositif = input.fiscalite.dispositif ?? 'aucun'
-  // Colonne spéciale : déficit foncier reportable (réel foncier) ou réduction d'impôt (Denormandie, etc.)
-  const showDeficit  = ['reel_foncier', 'sci_ir'].includes(regime)
+  // Régime effectivement utilisé dans le calcul (auto-sélection ou manuel)
+  const effectiveRegime = analysis.regimeAutoSelectionne ?? regime
+  // Colonne déficit : réel foncier / SCI IR (par régime) OU déficit foncier renforcé (par dispositif)
+  const showDeficit  = ['reel_foncier', 'sci_ir'].includes(effectiveRegime)
+                    || dispositif === 'deficit_foncier_renforce'
   const showReduction = ['denormandie', 'loc_avantages', 'jeanbrun', 'malraux', 'monuments_historiques'].includes(dispositif)
   const totalImpots = yearlyTable.reduce((s, r) => s + r.impots, 0)
   const totalIR     = yearlyTable.reduce((s, r) => s + (r.ir ?? 0), 0)

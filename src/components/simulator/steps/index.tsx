@@ -1511,41 +1511,81 @@ export function Step8({ data, onChange }: SP) {
             </div>
           </details>
 
-          {/* Avantage fiscal estimé (parcours avancé uniquement si absorbable) */}
+          {/* Avantage fiscal — affiché selon le statut d'éligibilité */}
           {eligibilite.avantageTheorique > 0 && (
-            <div className="grid grid-cols-3 gap-2 pt-1 border-t border-current/10">
-              <div className="text-center">
-                <div className={`text-lg font-bold ${auditColors.text}`}>
-                  {eligibilite.avantageTheorique.toLocaleString('fr-FR')} €
+            <div className="space-y-2 pt-1 border-t border-current/10">
+              {eligibilite.status === 'eligible' ? (
+                /* ── Éligible : avantage utilisable confirmé ── */
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <div className={`text-lg font-bold ${auditColors.text}`}>
+                      {eligibilite.avantageTheorique.toLocaleString('fr-FR')} €
+                    </div>
+                    <div className={`text-xs ${auditColors.text} opacity-70`}>Théorique</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-emerald-700">
+                      {eligibilite.avantageUtilisable.toLocaleString('fr-FR')} €
+                    </div>
+                    <div className="text-xs text-emerald-600 opacity-70">Utilisable confirmé</div>
+                  </div>
+                  <div className="text-center">
+                    <div className={`text-lg font-bold ${eligibilite.avantagePerdu > 0 ? 'text-red-600' : 'text-slate-400'}`}>
+                      {eligibilite.avantagePerdu.toLocaleString('fr-FR')} €
+                    </div>
+                    <div className={`text-xs ${eligibilite.avantagePerdu > 0 ? 'text-red-500' : 'text-slate-400'} opacity-70`}>
+                      {eligibilite.avantagePerdu > 0 ? 'Non absorbable' : 'Rien de perdu'}
+                    </div>
+                  </div>
                 </div>
-                <div className={`text-xs ${auditColors.text} opacity-70`}>Avantage théorique</div>
-              </div>
-              <div className="text-center">
-                <div className={`text-lg font-bold text-emerald-700`}>
-                  {eligibilite.avantageUtilisable.toLocaleString('fr-FR')} €
+              ) : (
+                /* ── Inéligible / À vérifier : avantage non intégré ── */
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="text-center">
+                    <div className={`text-lg font-bold ${auditColors.text}`}>
+                      {eligibilite.avantageTheorique.toLocaleString('fr-FR')} €
+                    </div>
+                    <div className={`text-xs ${auditColors.text} opacity-70`}>Avantage théorique</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-slate-400">0 €</div>
+                    <div className="text-xs text-slate-400 opacity-70">Intégré dans TRI / VAN</div>
+                  </div>
                 </div>
-                <div className="text-xs text-emerald-600 opacity-70">Utilisable</div>
-              </div>
-              <div className="text-center">
-                <div className={`text-lg font-bold ${eligibilite.avantagePerdu > 0 ? 'text-red-600' : 'text-slate-400'}`}>
-                  {eligibilite.avantagePerdu.toLocaleString('fr-FR')} €
+              )}
+              {eligibilite.status !== 'eligible' && (
+                <div className="text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800">
+                  ⚠️ L&apos;avantage de <strong>{eligibilite.avantageTheorique.toLocaleString('fr-FR')} € (potentiel sous réserve)</strong> n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN tant que les conditions d&apos;éligibilité ne sont pas toutes validées.
                 </div>
-                <div className={`text-xs ${eligibilite.avantagePerdu > 0 ? 'text-red-500' : 'text-slate-400'} opacity-70`}>
-                  {eligibilite.avantagePerdu > 0 ? 'Non absorbable' : 'Rien de perdu'}
-                </div>
-              </div>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* Prêt à analyser / bloqué */}
+      {/* Prêt à analyser — message adapté au statut d'éligibilité */}
       {eligibilite && !eligibilite.canGenerate ? (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
           <p className="text-sm font-semibold text-red-800 mb-1">🚫 Simulation bloquée</p>
           <p className="text-sm text-red-700">
             Des conditions bloquantes empêchent la génération d&apos;un rapport fiable.
             Corrigez les points signalés en rouge ci-dessus avant de continuer.
+          </p>
+        </div>
+      ) : eligibilite && eligibilite.status === 'a_verifier' ? (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
+          <p className="text-sm font-semibold text-amber-900 mb-1">⚠️ Simulation indicative possible</p>
+          <p className="text-sm text-amber-800">
+            Des conditions restent à vérifier. La simulation est générée <strong>sans intégrer l&apos;avantage fiscal</strong> dans le TRI et la VAN, pour rester prudente.
+            Complétez l&apos;audit ci-dessus pour obtenir les chiffres avec avantage confirmé.
+          </p>
+        </div>
+      ) : eligibilite && eligibilite.status === 'indicative' ? (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-sm font-semibold text-blue-900 mb-1">ℹ Simulation indicative — validation expert obligatoire</p>
+          <p className="text-sm text-blue-800">
+            Ce dispositif requiert une validation par notaire / fiscaliste avant toute décision.
+            Les chiffres présentés sont indicatifs. L&apos;avantage fiscal n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN.
           </p>
         </div>
       ) : (

@@ -14,7 +14,10 @@ import { calculerAvantageDispositif } from './dispositifs'
 export function genererTableauAnnuel(
   input: ProjectInput,
   creditTableau: CreditRow[],
-  coutTotalAcquisition: number
+  coutTotalAcquisition: number,
+  /** Si false : l'avantage fiscal du dispositif n'est pas intégré dans le cash-flow
+   *  (statut d'éligibilité insuffisant — inéligible ou à vérifier). */
+  integrerAvantage: boolean = true,
 ): YearlyRow[] {
   const { location, charges, travauxFuturs, fiscalite, revente, financement } = input
   const rows: YearlyRow[] = []
@@ -209,9 +212,13 @@ export function genererTableauAnnuel(
     const irDisponible = fiscalite.irBrutAnnuel !== undefined
       ? Math.max(0, fiscalite.irBrutAnnuel - (fiscalite.nichesDejaConsommees ?? 0))
       : Infinity
-    const avantageUtilise = isFinite(irDisponible)
-      ? Math.min(avantageTheorique, Math.max(0, irDisponible))
-      : avantageTheorique
+    // Si l'éligibilité n'est pas confirmée, on n'intègre pas l'avantage dans le cashflow.
+    // L'avantageTheorique reste affiché à titre indicatif, mais n'impacte pas IR/TRI/VAN.
+    const avantageUtilise = !integrerAvantage ? 0 : (
+      isFinite(irDisponible)
+        ? Math.min(avantageTheorique, Math.max(0, irDisponible))
+        : avantageTheorique
+    )
     const avantagePerdou = Math.max(0, avantageTheorique - avantageUtilise)
 
     // L'impôt net ne peut pas être négatif (la réduction n'est pas remboursable)

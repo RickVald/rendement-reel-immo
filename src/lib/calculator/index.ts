@@ -114,8 +114,15 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
   // 2. Tableau d'amortissement crédit
   const creditSchedule = calculerCredit(input.financement)
 
-  // 3. Tableau annuel
-  let rows = genererTableauAnnuel(input, creditSchedule.tableau, coutTotal)
+  // 3. Éligibilité — détermine si l'avantage fiscal peut être intégré dans les calculs.
+  // Règle : si le statut n'est pas 'eligible', l'avantage est affiché comme "théorique / potentiel"
+  // mais N'EST PAS déduit de l'impôt (pas d'impact sur cashflow, TRI, VAN).
+  const dispositifActif = input.fiscalite.dispositif !== 'aucun'
+  const eligibiliteMain = dispositifActif ? calculerEligibilite(input) : null
+  const integrerAvantage = eligibiliteMain?.status === 'eligible'
+
+  // 4. Tableau annuel
+  let rows = genererTableauAnnuel(input, creditSchedule.tableau, coutTotal, integrerAvantage)
 
   // 4. Calcul TRI par année
   // cashInitial = tout l'argent sorti de poche à t=0 (apport + frais + travaux + mobilier)
