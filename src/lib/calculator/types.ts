@@ -218,7 +218,11 @@ export interface FiscaliteInput {
 
 export interface ReventeInput {
   dureeDetentionAns: number
-  revalorisationAnnuelle: number  // ex: 0.02
+  revalorisationAnnuelle: number  // ex: 0.02 — utilisé quand prixReventeManuel est absent
+  /** Prix de revente saisi librement par l'utilisateur (mode manuel).
+   *  Quand renseigné, il remplace la formule prixAchat × (1+revalo)^n.
+   *  La revalorisation annuelle implicite est calculée et affichée à titre indicatif. */
+  prixReventeManuel?: number
   fraisVentePct: number           // ex: 0.03
   tauxActualisation: number       // pour VAN, ex: 0.05
   rendementAlternatif: number     // pour comparaison, ex: 0.06

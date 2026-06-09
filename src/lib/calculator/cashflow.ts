@@ -224,8 +224,18 @@ export function genererTableauAnnuel(
     cashflowCumule += cashflowAnnuel
 
     // ── Valeur estimée du bien ──
-    const valeurEstimee =
-      input.acquisition.prixAchat * Math.pow(1 + revente.revalorisationAnnuelle, annee)
+    // Si l'utilisateur a saisi un prix de revente manuel, on interpole linéairement en log
+    // (croissance constante) pour obtenir la valeur à chaque année intermédiaire.
+    const valeurEstimee = (() => {
+      if (revente.prixReventeManuel && revente.prixReventeManuel > 0 && revente.dureeDetentionAns > 0) {
+        const base = input.acquisition.prixAchat
+        const cible = revente.prixReventeManuel
+        const n = revente.dureeDetentionAns
+        const revaloImplicite = Math.pow(cible / base, 1 / n) - 1
+        return base * Math.pow(1 + revaloImplicite, annee)
+      }
+      return input.acquisition.prixAchat * Math.pow(1 + revente.revalorisationAnnuelle, annee)
+    })()
 
     // ── Patrimoine net ──
     const patrimoineNet = valeurEstimee - capitalRestant + cashflowCumule

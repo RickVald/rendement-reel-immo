@@ -1337,27 +1337,107 @@ function DispositifFields({
 export function Step8({ data, onChange }: SP) {
   const r = data.revente
   const set = (patch: Partial<typeof r>) => onChange({ revente: { ...r, ...patch } })
-  const prixRevente = Math.round(data.acquisition.prixAchat * Math.pow(1 + r.revalorisationAnnuelle, r.dureeDetentionAns))
 
   // Audit d'éligibilité en temps réel
   const dispositif = data.fiscalite.dispositif ?? 'aucun'
+
+  // Coût total d'acquisition (rappel contextuel)
+  const a = data.acquisition
+  const coutTotalAcq = a.prixAchat + (a.fraisAgenceInclus ? 0 : a.fraisAgence)
+    + a.fraisNotaire + a.fraisCourtage + a.fraisGarantieBancaire
+    + a.fraisDossierBancaire + a.travauxInitiaux + a.mobilier + a.autresFrais
+
+  // Prix de revente : manuel ou formule
+  const modeManuel = r.prixReventeManuel != null && r.prixReventeManuel > 0
+  const prixRevente = modeManuel
+    ? r.prixReventeManuel!
+    : Math.round(a.prixAchat * Math.pow(1 + r.revalorisationAnnuelle, r.dureeDetentionAns))
+
+  // Revalorisation implicite si mode manuel
+  const revaloImplicite = modeManuel && a.prixAchat > 0 && r.dureeDetentionAns > 0
+    ? (Math.pow(prixRevente / a.prixAchat, 1 / r.dureeDetentionAns) - 1) * 100
+    : null
   const eligibilite = dispositif !== 'aucun' ? calculerEligibilite(data) : null
   const auditColors = eligibilite ? ELIGIBILITY_STATUS_COLORS[eligibilite.status] : null
 
   return (
     <div className="space-y-6">
       <Section title="Durée de détention">
-        <Grid2>
-          <Input label="Durée de détention envisagée" type="number" min={1} max={30} value={r.dureeDetentionAns}
-            onChange={e => set({ dureeDetentionAns: +e.target.value })} suffix="ans" />
+        <Input label="Durée de détention envisagée" type="number" min={1} max={30} value={r.dureeDetentionAns}
+          onChange={e => set({ dureeDetentionAns: +e.target.value })} suffix="ans" />
+      </Section>
+
+      <Section title="Prix de revente">
+        {/* Rappel de l'enveloppe d'acquisition */}
+        <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs text-slate-600 space-y-1">
+          <div className="flex justify-between">
+            <span>Prix d&apos;achat</span>
+            <span className="font-medium text-slate-800">{a.prixAchat.toLocaleString('fr-FR')} €</span>
+          </div>
+          {a.travauxInitiaux > 0 && (
+            <div className="flex justify-between">
+              <span>Travaux initiaux</span>
+              <span className="font-medium text-slate-800">{a.travauxInitiaux.toLocaleString('fr-FR')} €</span>
+            </div>
+          )}
+          <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+            <span className="font-semibold text-slate-700">Coût total d&apos;acquisition</span>
+            <span className="font-bold text-slate-900">{coutTotalAcq.toLocaleString('fr-FR')} €</span>
+          </div>
+        </div>
+
+        {/* Toggle mode : automatique / manuel */}
+        <div className="flex items-center gap-3">
+          <button type="button"
+            onClick={() => set({ prixReventeManuel: undefined })}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              !modeManuel ? 'bg-emerald-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}>
+            Revalorisation automatique
+          </button>
+          <button type="button"
+            onClick={() => set({ prixReventeManuel: prixRevente || a.prixAchat })}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              modeManuel ? 'bg-blue-600 text-white shadow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}>
+            Prix libre (recommandé pour déficit foncier)
+          </button>
+        </div>
+
+        {!modeManuel ? (
           <Input label="Revalorisation annuelle du bien" type="number" step="0.5"
             value={(r.revalorisationAnnuelle * 100).toFixed(1)}
             onChange={e => set({ revalorisationAnnuelle: +e.target.value / 100 })} suffix="%/an"
-            hint="Inflation immobilière locale estimée" />
-        </Grid2>
+            hint="Inflation immobilière locale estimée (appliquée sur le prix d'achat seul)" />
+        ) : (
+          <Input label="Prix de revente envisagé" type="number"
+            value={r.prixReventeManuel ?? ''}
+            onChange={e => set({ prixReventeManuel: e.target.value === '' ? undefined : +e.target.value })}
+            suffix="€"
+            hint={`Votre estimation à ${r.dureeDetentionAns} ans (travaux inclus dans la valeur si rénovation)`} />
+        )}
+
+        {/* Résumé du prix de revente retenu */}
         {prixRevente > 0 && (
-          <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600">
-            Prix de revente estimé dans {r.dureeDetentionAns} ans : <strong>{prixRevente.toLocaleString('fr-FR')} €</strong>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2.5 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-600">Prix de revente retenu dans {r.dureeDetentionAns} ans</span>
+              <span className="font-bold text-emerald-700">{prixRevente.toLocaleString('fr-FR')} €</span>
+            </div>
+            {revaloImplicite != null && (
+              <div className="text-xs text-slate-500 mt-1">
+                Soit{' '}
+                <span className={`font-semibold ${revaloImplicite >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {revaloImplicite >= 0 ? '+' : ''}{revaloImplicite.toFixed(2)} %/an
+                </span>
+                {' '}de revalorisation annuelle implicite (vs prix d&apos;achat {a.prixAchat.toLocaleString('fr-FR')} €)
+              </div>
+            )}
+            {!modeManuel && (
+              <div className="text-xs text-slate-400 mt-1">
+                Calculé sur le prix d&apos;achat seul × (1 + {(r.revalorisationAnnuelle * 100).toFixed(1)} %)^{r.dureeDetentionAns}
+              </div>
+            )}
           </div>
         )}
       </Section>
