@@ -146,6 +146,24 @@ export function ResultsView() {
                   }[analysis.regimeAutoSelectionne] ?? analysis.regimeAutoSelectionne}</span>
                 </div>
               )}
+              {/* Badge mode indicatif */}
+              {analysis.modeIndicatif && analysis.avantageIntegreDansTRI && (
+                <div className="inline-flex items-center gap-1.5 text-xs bg-amber-50 border border-amber-300 text-amber-800 px-2.5 py-1 rounded-full mb-2 ml-1">
+                  <span>📊</span>
+                  <span className="font-semibold">Mode indicatif</span>
+                  <span>·</span>
+                  <span>Avantage fiscal intégré sous réserve</span>
+                </div>
+              )}
+              {/* Badge avantage exclu */}
+              {analysis.eligibilite && analysis.eligibilite.status !== 'eligible' && !analysis.avantageIntegreDansTRI && input.fiscalite.dispositif !== 'aucun' && (
+                <div className="inline-flex items-center gap-1.5 text-xs bg-slate-100 border border-slate-300 text-slate-600 px-2.5 py-1 rounded-full mb-2 ml-1">
+                  <span>🛡</span>
+                  <span className="font-semibold">Mode prudent</span>
+                  <span>·</span>
+                  <span>Avantage fiscal non intégré dans TRI/VAN</span>
+                </div>
+              )}
               <h1 className={clsx('text-2xl md:text-3xl font-bold mb-2', c.text)}>{verdict.label}</h1>
               <div className="flex flex-wrap items-center gap-3">
                 <span className={clsx('text-white text-sm font-bold px-3 py-1 rounded-full', c.badge)}>

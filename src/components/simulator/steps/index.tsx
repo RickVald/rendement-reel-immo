@@ -1467,6 +1467,89 @@ export function Step8({ data, onChange }: SP) {
             </span>
           </div>
 
+          {/* ── Ligne standardisée : avantage intégré dans TRI/VAN ── */}
+          {(() => {
+            const modeIndicatif = r.modeSimulationAvantage === 'indicatif'
+            const avantageIntegre = eligibilite.status === 'eligible'
+              || (modeIndicatif && eligibilite.status !== 'ineligible' && eligibilite.canGenerate)
+            return (
+              <div className="flex items-center justify-between text-xs rounded-lg px-3 py-2 bg-white/50 border border-current/10">
+                <span className={`font-semibold ${auditColors.text}`}>Avantage fiscal intégré dans TRI / VAN</span>
+                <span className={`font-bold px-2 py-0.5 rounded-full text-xs ${avantageIntegre ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                  {avantageIntegre ? '✓ Oui' : '✗ Non'}
+                  {modeIndicatif && avantageIntegre && eligibilite.status !== 'eligible' && (
+                    <span className="ml-1 text-amber-700">(sous réserve)</span>
+                  )}
+                </span>
+              </div>
+            )
+          })()}
+
+          {/* ── Toggle mode prudent / indicatif ── */}
+          {eligibilite.status !== 'eligible' && eligibilite.status !== 'ineligible' && eligibilite.canGenerate && (
+            <div className="flex items-center gap-3 text-xs rounded-lg px-3 py-2 bg-white/50 border border-current/10">
+              <span className={`font-medium ${auditColors.text}`}>Mode simulation :</span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => set({ modeSimulationAvantage: 'prudent' })}
+                  className={`px-2 py-1 rounded-md border text-xs font-semibold transition-colors ${
+                    (r.modeSimulationAvantage ?? 'prudent') === 'prudent'
+                      ? 'bg-slate-700 text-white border-slate-700'
+                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  🛡 Prudent
+                </button>
+                <button
+                  onClick={() => set({ modeSimulationAvantage: 'indicatif' })}
+                  className={`px-2 py-1 rounded-md border text-xs font-semibold transition-colors ${
+                    r.modeSimulationAvantage === 'indicatif'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  📊 Indicatif
+                </button>
+              </div>
+              <span className="text-slate-500 italic">
+                {r.modeSimulationAvantage === 'indicatif'
+                  ? 'Avantage intégré sous réserve de vérification'
+                  : 'Avantage exclu tant que conditions non validées'}
+              </span>
+            </div>
+          )}
+
+          {/* ── Données manquantes bloquantes ── */}
+          {eligibilite.avertissements.length > 0 && (
+            <details className="group">
+              <summary className="cursor-pointer text-xs font-semibold text-amber-800 select-none list-none flex items-center gap-1">
+                <span className="group-open:hidden">▶</span>
+                <span className="hidden group-open:inline">▼</span>
+                {eligibilite.avertissements.length} donnée{eligibilite.avertissements.length > 1 ? 's' : ''} manquante{eligibilite.avertissements.length > 1 ? 's' : ''} — impact sur le calcul
+              </summary>
+              <div className="mt-1 overflow-hidden rounded-lg border border-amber-200">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-amber-100 text-amber-900">
+                      <th className="text-left px-2 py-1 font-semibold">Donnée manquante</th>
+                      <th className="text-left px-2 py-1 font-semibold">Impact</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {eligibilite.conditions
+                      .filter(c => c.status === 'a_verifier')
+                      .map((c, i) => (
+                        <tr key={i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-amber-50'} border-t border-amber-100`}>
+                          <td className="px-2 py-1 font-medium text-slate-700">{c.label}</td>
+                          <td className="px-2 py-1 text-amber-800">{c.note ?? 'À vérifier'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+
           {/* Blocages (toujours visibles si présents) */}
           {eligibilite.erreurs.length > 0 && (
             <div className="space-y-1">
@@ -1474,18 +1557,6 @@ export function Step8({ data, onChange }: SP) {
                 <div key={i} className="flex items-start gap-2 text-xs text-red-800 bg-red-50 rounded-lg px-3 py-2 border border-red-200">
                   <span className="shrink-0">🚫</span>
                   <span>{e}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Avertissements */}
-          {eligibilite.avertissements.length > 0 && (
-            <div className="space-y-1">
-              {eligibilite.avertissements.map((w, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 rounded-lg px-3 py-2 border border-amber-200">
-                  <span className="shrink-0">⚠️</span>
-                  <span>{w}</span>
                 </div>
               ))}
             </div>
@@ -1591,20 +1662,35 @@ export function Step8({ data, onChange }: SP) {
           </p>
         </div>
       ) : eligibilite && eligibilite.status === 'a_verifier' ? (
-        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
-          <p className="text-sm font-semibold text-amber-900 mb-1">⚠️ Simulation indicative possible</p>
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-2">
+          <p className="text-sm font-semibold text-amber-900">⚠️ Simulation indicative possible</p>
           <p className="text-sm text-amber-800">
-            Des conditions restent à vérifier. La simulation est générée <strong>sans intégrer l&apos;avantage fiscal</strong> dans le TRI et la VAN, pour rester prudente.
-            Complétez l&apos;audit ci-dessus pour obtenir les chiffres avec avantage confirmé.
+            Des conditions restent à vérifier. En mode <strong>prudent</strong> (défaut), l&apos;avantage fiscal n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN.
+            Passez en mode <strong>indicatif</strong> ci-dessus pour simuler l&apos;avantage sous réserve, ou complétez l&apos;audit pour le valider.
           </p>
+          {dispositif === 'deficit_foncier_renforce' && (
+            <p className="text-xs text-amber-700 border-t border-amber-200 pt-2">
+              ℹ Par défaut, le moteur applique le <strong>plafond standard de 10 700 €/an</strong>.
+              Le plafond renforcé de 21 400 € n&apos;est activé que si le DPE avant travaux E/F/G <em>et</em> les travaux de rénovation énergétique éligibles sont confirmés.
+            </p>
+          )}
         </div>
       ) : eligibilite && eligibilite.status === 'indicative' ? (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-sm font-semibold text-blue-900 mb-1">ℹ Simulation indicative — validation expert obligatoire</p>
-          <p className="text-sm text-blue-800">
-            Ce dispositif requiert une validation par notaire / fiscaliste avant toute décision.
-            Les chiffres présentés sont indicatifs. L&apos;avantage fiscal n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN.
-          </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+          <p className="text-sm font-semibold text-blue-900">ℹ Simulation indicative — validation expert obligatoire</p>
+          {dispositif === 'monuments_historiques' ? (
+            <p className="text-sm text-blue-800">
+              <strong>Simulation indicative uniquement</strong> — aucun avantage fiscal n&apos;est intégré dans le TRI et la VAN
+              tant que le statut juridique du monument, les charges déductibles, le revenu global et les justificatifs
+              ne sont pas validés par un notaire/fiscaliste spécialisé. Le régime MH peut être très puissant
+              (imputation dérogatoire sur revenu global) mais ne doit jamais être automatisé sans validation experte.
+            </p>
+          ) : (
+            <p className="text-sm text-blue-800">
+              Ce dispositif requiert une validation par notaire / fiscaliste avant toute décision.
+              Les chiffres présentés sont indicatifs. L&apos;avantage fiscal n&apos;est <strong>pas intégré</strong> dans le TRI et la VAN.
+            </p>
+          )}
         </div>
       ) : (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">

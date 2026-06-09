@@ -226,6 +226,10 @@ export interface ReventeInput {
   fraisVentePct: number           // ex: 0.03
   tauxActualisation: number       // pour VAN, ex: 0.05
   rendementAlternatif: number     // pour comparaison, ex: 0.06
+  /** Mode de simulation de l'avantage fiscal :
+   *  - 'prudent'  (défaut) : avantage non intégré dans TRI/VAN si éligibilité non confirmée
+   *  - 'indicatif': avantage intégré même si conditions non totalement vérifiées, marqué "sous réserve" */
+  modeSimulationAvantage?: 'prudent' | 'indicatif'
 }
 
 export interface ProjectInput {
@@ -511,4 +515,8 @@ export interface ProjectAnalysis {
   eligibilite?: EligibilityResult
   /** Comparaison 3 scénarios : hors avantage / théorique / utilisable */
   scerariosAvantage?: ScenariosAvantage
+  /** true si l'avantage fiscal a été intégré dans TRI/VAN (eligible ou mode indicatif) */
+  avantageIntegreDansTRI: boolean
+  /** true si la simulation tourne en mode indicatif (avantage sous réserve) */
+  modeIndicatif: boolean
 }

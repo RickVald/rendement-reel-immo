@@ -119,7 +119,12 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
   // mais N'EST PAS déduit de l'impôt (pas d'impact sur cashflow, TRI, VAN).
   const dispositifActif = input.fiscalite.dispositif !== 'aucun'
   const eligibiliteMain = dispositifActif ? calculerEligibilite(input) : null
-  const integrerAvantage = eligibiliteMain?.status === 'eligible'
+  const modeIndicatif = input.revente.modeSimulationAvantage === 'indicatif'
+  // Mode prudent (défaut) : n'intègre l'avantage que si statut eligible confirmé
+  // Mode indicatif : intègre l'avantage même si conditions non totalement vérifiées (marqué "sous réserve")
+  const integrerAvantage = modeIndicatif
+    ? (eligibiliteMain !== null && eligibiliteMain.status !== 'ineligible' && eligibiliteMain.canGenerate)
+    : (eligibiliteMain?.status === 'eligible')
 
   // 4. Tableau annuel
   let rows = genererTableauAnnuel(input, creditSchedule.tableau, coutTotal, integrerAvantage)
@@ -352,6 +357,8 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     regimeAutoSelectionne,
     eligibilite,
     scerariosAvantage,
+    avantageIntegreDansTRI: integrerAvantage,
+    modeIndicatif,
   }
 }
 
