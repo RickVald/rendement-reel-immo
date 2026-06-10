@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     description: 'Rendement réel, cash-flow, TRI, VAN, fiscalité, revente, dispositifs fiscaux, stress tests et prix cible — un rapport prêt à remettre au client.',
   },
   robots: { index: true, follow: true },
+  verification: {
+    google: 'eBlRFwS2dOEtTc4tIOzjTqRwueF4GhkDNuO05xbzv-U',
+  },
 }
 
 const NAV_LINKS = [
