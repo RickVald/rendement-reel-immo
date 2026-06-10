@@ -336,6 +336,14 @@ export const S = StyleSheet.create({
     flex: 1,
     lineHeight: 1.5,
   },
+  // Standalone paragraph text inside a card (no flex — for use as a direct
+  // sibling of other Text nodes in a column; flex:1 on multiple siblings
+  // causes them to overlap in react-pdf).
+  cardText: {
+    fontSize: 8,
+    color: COLORS.slate600,
+    lineHeight: 1.5,
+  },
 
   // ── Hypothesis grid ───────────────────────────────────────────────────────
   hypRow: {

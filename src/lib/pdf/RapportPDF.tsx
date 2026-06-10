@@ -1540,22 +1540,22 @@ export function RapportPDF({
             const txIR = d >= 22 ? '0' : (19 * (1 - Math.min(1, Math.max(0, (d - 5) * 0.06)))).toFixed(1)
             const txPS = d >= 30 ? '0' : d >= 22 ? (17.2 * (1 - Math.min(1, 0.28 + (d - 22) * 0.09))).toFixed(1) : d < 6 ? '17.2' : (17.2 * (1 - Math.min(1, (d - 5) * 0.0165))).toFixed(1)
             return (
-              <View style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
+              <View wrap={false} style={{ flexDirection: 'row', gap: 12, marginBottom: 8 }}>
                 <View style={[S.card, { flex: 1, marginBottom: 0 }]}>
                   <Text style={S.cardTitle}>Personne physique — IR de droit commun</Text>
-                  <Text style={[S.listText, { marginBottom: 3 }]}>{`Prix de revient fiscal = prix d'achat + frais admissibles + travaux admissibles (CGI art. 150 VB). PV brute = prix de vente net − prix de revient.`}</Text>
-                  <Text style={[S.listText, { marginBottom: 3 }]}>{`Pour ${d} ans : IR résiduel ${txIR} % (abatt. ${abbIR}) · PS résiduel ${txPS} % (abatt. ${abbPS}). Exonération IR à 22 ans, PS à 30 ans.`}</Text>
-                  <Text style={S.listText}>{`Surtaxe si PV brute > 50 000 € (2 % à 6 %). À vérifier avec un notaire.`}</Text>
+                  <Text style={[S.cardText, { marginBottom: 3 }]}>{`Prix de revient fiscal = prix d'achat + frais admissibles + travaux admissibles (CGI art. 150 VB). PV brute = prix de vente net − prix de revient.`}</Text>
+                  <Text style={[S.cardText, { marginBottom: 3 }]}>{`Pour ${d} ans : IR résiduel ${txIR} % (abatt. ${abbIR}) · PS résiduel ${txPS} % (abatt. ${abbPS}). Exonération IR à 22 ans, PS à 30 ans.`}</Text>
+                  <Text style={S.cardText}>{`Surtaxe si PV brute > 50 000 € (2 % à 6 %). À vérifier avec un notaire.`}</Text>
                 </View>
                 <View style={[S.card, { flex: 1, marginBottom: 0 }]}>
                   <Text style={S.cardTitle}>LMNP réel — Réintégration des amortissements (LF 2025)</Text>
-                  <Text style={[S.listText, { marginBottom: 3 }]}>{`Prix de revient fiscal = achat + frais admissibles + travaux − amortissements immobiliers réintégrés (CGI art. 150 VB). Cessions à compter du 15 fév. 2025.`}</Text>
-                  <Text style={S.listText}>{`Mobilier traité séparément (à qualifier). Abattements IR/PS identiques à la PP. L'avantage fiscal annuel se retourne en surcoût à la revente.`}</Text>
+                  <Text style={[S.cardText, { marginBottom: 3 }]}>{`Prix de revient fiscal = achat + frais admissibles + travaux − amortissements immobiliers réintégrés (CGI art. 150 VB). Cessions à compter du 15 fév. 2025.`}</Text>
+                  <Text style={S.cardText}>{`Mobilier traité séparément (à qualifier). Abattements IR/PS identiques à la PP. L'avantage fiscal annuel se retourne en surcoût à la revente.`}</Text>
                 </View>
                 <View style={[S.card, { flex: 1, marginBottom: 0 }]}>
                   <Text style={S.cardTitle}>SCI soumise à l'IS</Text>
-                  <Text style={[S.listText, { marginBottom: 3 }]}>{`PV = Prix de vente − VNC (prix achat − amortissements comptables). IS 15 % jusqu'à 42 500 €, 25 % au-delà.`}</Text>
-                  <Text style={S.listText}>{`Aucun abattement pour durée de détention. Dividendes : flat tax 30 % supplémentaire sur le net d'IS.`}</Text>
+                  <Text style={[S.cardText, { marginBottom: 3 }]}>{`PV = Prix de vente − VNC (prix achat − amortissements comptables). IS 15 % jusqu'à 42 500 €, 25 % au-delà.`}</Text>
+                  <Text style={S.cardText}>{`Aucun abattement pour durée de détention. Dividendes : flat tax 30 % supplémentaire sur le net d'IS.`}</Text>
                 </View>
               </View>
             )
@@ -2612,7 +2612,7 @@ export function RapportPDF({
 
           <Text style={S.sectionTitle}>Définitions & Méthode de calcul</Text>
 
-          <View style={[S.row2, { marginBottom: 10 }]}>
+          <View wrap={false} style={[S.row2, { marginBottom: 10 }]}>
             <View style={S.col}>
               <View style={[S.card, { marginBottom: 8 }]}>
                 <Text style={S.cardTitle}>Rendements — définitions et calcul sur ce projet</Text>
@@ -2676,10 +2676,10 @@ export function RapportPDF({
               </View>
               <View style={S.card}>
                 <Text style={S.cardTitle}>Piste d'audit</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Moteur v2.0 — Juin 2026. Référentiel fiscal 2025-2026 (PS 17,2 %).</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>DPE : Loi Climat et Résilience n°2021-1104 du 22 août 2021 — calendrier de décence énergétique : G 2025, F 2028, E 2034.</Text>
-                <Text style={[S.listText, { marginBottom: 2 }]}>Plus-value : abattements IR progressifs (6 %/an ans 6-21, exo. an 22 ; PS exo. an 30).</Text>
-                <Text style={S.listText}>Chiffres arrondis à l'euro. Crédit : amortissement à la française.</Text>
+                <Text style={[S.cardText, { marginBottom: 2 }]}>Moteur v2.0 — Juin 2026. Référentiel fiscal 2025-2026 (PS 17,2 %).</Text>
+                <Text style={[S.cardText, { marginBottom: 2 }]}>DPE : Loi Climat et Résilience n°2021-1104 du 22 août 2021 — calendrier de décence énergétique : G 2025, F 2028, E 2034.</Text>
+                <Text style={[S.cardText, { marginBottom: 2 }]}>Plus-value : abattements IR progressifs (6 %/an ans 6-21, exo. an 22 ; PS exo. an 30).</Text>
+                <Text style={S.cardText}>Chiffres arrondis à l'euro. Crédit : amortissement à la française.</Text>
               </View>
             </View>
           </View>
