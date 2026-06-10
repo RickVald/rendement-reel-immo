@@ -9,6 +9,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/professionnels`, lastModified: new Date(), changeFrequency: 'weekly', priority: 0.95 },
     { url: `${BASE}/tarifs`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/white-label`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${BASE}/exemple-rapport`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${BASE}/qui-sommes-nous`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/simulateur-rentabilite-locative`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.95 },
     { url: `${BASE}/rendement-locatif-net-net`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/cash-flow-immobilier`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.9 },

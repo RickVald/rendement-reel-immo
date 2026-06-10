@@ -14,6 +14,7 @@ const CAPTURES = [
   { src: '/exemples/captures/cover.png', title: 'Page de garde', desc: 'Verdict global, score sur 100 et chiffres clés du dossier en un coup d\'œil.' },
   { src: '/exemples/captures/verdict.png', title: 'Décision investisseur', desc: 'Checklist de viabilité, prix cible de négociation et indicateurs financiers détaillés.' },
   { src: '/exemples/captures/tri-van.png', title: 'Synthèse exécutive — TRI / VAN', desc: 'Score de rentabilité détaillé, seuils de viabilité et recommandations.' },
+  { src: '/exemples/captures/regimes-fiscaux.png', title: 'Comparaison des régimes fiscaux', desc: 'Simulation automatique de tous les régimes compatibles (micro-foncier, réel, LMNP, SCI IS…) et audit d\'éligibilité fiscale, pour objectiver le choix de structure avec votre client.' },
   { src: '/exemples/captures/audit.png', title: 'Audit de cohérence', desc: 'Vérification automatique des hypothèses et des résultats, point par point.' },
 ]
 
@@ -62,7 +63,7 @@ export default function ExempleRapportPage() {
                 </div>
               </div>
               <div className="md:w-1/3">
-                <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Page {i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '4' : '15'} / 17</p>
+                <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Page {i === 0 ? '1' : i === 1 ? '2' : i === 2 ? '4' : i === 3 ? '8' : '15'} / 17</p>
                 <h2 className="font-playfair text-2xl font-bold text-[#0B1B2B] mb-3 leading-tight">{c.title}</h2>
                 <p className="text-sm text-slate-600 leading-relaxed">{c.desc}</p>
               </div>

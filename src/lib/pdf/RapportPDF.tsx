@@ -2,15 +2,18 @@ import React from 'react'
 import { Document, Page, View, Text, Font } from '@react-pdf/renderer'
 import path from 'path'
 
-// ── Enregistrement de la police Arial avec support Unicode complet ─────────────
-// Résout le mojibake (Ã©/Ã ) causé par l'encodage UTF-8 de Helvetica built-in
+// ── Enregistrement de la police "Arial" (mappée sur Arimo, libre de droits) ────
+// Résout le mojibake (Ã©/Ã ) causé par l'encodage UTF-8 de Helvetica built-in.
+// Arimo (licence Apache 2.0, via @fontsource/arimo) est métriquement compatible
+// avec Arial : on conserve le nom interne "Arial" pour ne pas toucher aux ~120
+// références fontFamily: 'Arial' dans ce fichier et dans styles.ts.
 const FONT_DIR = path.join(process.cwd(), 'public', 'fonts')
 Font.register({
   family: 'Arial',
   fonts: [
-    { src: path.join(FONT_DIR, 'Arial.ttf'),      fontWeight: 'normal',  fontStyle: 'normal' },
-    { src: path.join(FONT_DIR, 'Arial-Bold.ttf'), fontWeight: 'bold',    fontStyle: 'normal' },
-    { src: path.join(FONT_DIR, 'Arial-Italic.ttf'), fontWeight: 'normal', fontStyle: 'italic' },
+    { src: path.join(FONT_DIR, 'Arimo-Regular.woff'), fontWeight: 'normal', fontStyle: 'normal' },
+    { src: path.join(FONT_DIR, 'Arimo-Bold.woff'),    fontWeight: 'bold',   fontStyle: 'normal' },
+    { src: path.join(FONT_DIR, 'Arimo-Italic.woff'),  fontWeight: 'normal', fontStyle: 'italic' },
   ],
 })
 
