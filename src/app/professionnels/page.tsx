@@ -34,6 +34,44 @@ const COUVERTURE = [
   'Audit d\'éligibilité fiscale par dispositif',
 ]
 
+const PERSONNALISATION = [
+  { title: 'Logo et identité du cabinet', desc: 'Votre logo et vos couleurs sur chaque page du rapport remis au client.' },
+  { title: 'Coordonnées', desc: 'Adresse, téléphone, email et site affichés en pied de page ou en couverture.' },
+  { title: 'Mentions et disclaimers', desc: 'Mentions légales et formules de conformité adaptées à votre statut (CGP, courtier, agent immobilier...).' },
+  { title: 'Hypothèses par défaut', desc: 'TMI, taux de revalorisation, durée de détention et autres paramètres pré-réglés selon vos pratiques.' },
+]
+
+const CAS_USAGE = [
+  { title: 'Pendant le rendez-vous', desc: 'Vous saisissez les données du bien proposé et le rapport se génère en quelques minutes — devant le client ou juste après.' },
+  { title: 'Comparer plusieurs scénarios', desc: 'LMNP réel vs micro-BIC vs SCI à l\'IS, avec ou sans dispositif fiscal : le client visualise l\'impact réel sur son rendement net-net.' },
+  { title: 'Justifier un prix cible', desc: 'Le rapport calcule le prix d\'achat qui rendrait l\'opération viable — un argument de négociation factuel face au vendeur.' },
+  { title: 'Support de comité ou de suivi', desc: 'Le PDF sert de document de référence pour un comité d\'investissement ou pour le suivi du dossier dans le temps.' },
+]
+
+const NE_REMPLACE_PAS = [
+  'Le conseil réglementé : devoir de conseil, profil de risque et adéquation restent de votre responsabilité.',
+  'L\'analyse juridique et notariale du bien (titre de propriété, servitudes, copropriété...).',
+  'La vérification terrain : visite, état réel du bien, devis travaux.',
+  'La connaissance client (KYC) et l\'adéquation de la recommandation à sa situation.',
+  'Une expertise comptable ou fiscale personnalisée sur des montages complexes.',
+]
+
+const DEMO_ETAPES = [
+  { n: '1', title: 'Échange de 20 minutes', desc: 'En visio, on présente l\'outil et on répond à vos questions sur votre activité.' },
+  { n: '2', title: 'Simulation en direct', desc: 'On génère un rapport à partir d\'un de vos dossiers récents ou d\'un cas type de votre activité.' },
+  { n: '3', title: 'Configuration marque blanche', desc: 'Si besoin, on prépare votre logo, vos couleurs et vos mentions pour les rapports clients.' },
+  { n: '4', title: 'Mise en place de l\'offre pilote', desc: 'On définit ensemble la formule adaptée à votre volume de dossiers, sans engagement.' },
+]
+
+const FAQ = [
+  { q: 'Les chiffres et règles fiscales sont-ils à jour ?', r: 'Le référentiel fiscal 2025-2026 est intégré et documenté. Chaque rapport inclut un audit de cohérence des hypothèses et des résultats.' },
+  { q: 'Est-ce que ça remplace mon rôle de conseil ?', r: 'Non. L\'outil produit une simulation et un document de travail. L\'analyse, la connaissance client et la recommandation finale restent de votre responsabilité.' },
+  { q: 'Mes clients vont-ils comprendre le rapport ?', r: 'Oui : en plus des tableaux détaillés, chaque rapport inclut une synthèse automatique en langage clair (points forts, risques, leviers de négociation).' },
+  { q: 'Que deviennent les données saisies ?', r: 'Les données ne sont pas stockées de façon permanente. Voir notre page Sécurité des données pour le détail.' },
+  { q: 'Combien de temps pour générer un rapport ?', r: 'Quelques minutes, une fois les données du bien et du financement saisies.' },
+  { q: 'Puis-je tester avant de m\'engager ?', r: 'Oui, via l\'offre pilote : 99 €/mois pendant 2 mois, sans engagement.' },
+]
+
 export default function ProfessionnelsPage() {
   return (
     <main className="min-h-screen bg-white">
@@ -173,6 +211,60 @@ export default function ProfessionnelsPage() {
         </div>
       </section>
 
+      {/* ── PERSONNALISATION ─────────────────────────────────────────── */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Personnalisation</p>
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-12 leading-tight">
+            Ce que vous pouvez personnaliser
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {PERSONNALISATION.map((p) => (
+              <div key={p.title} className="bg-[#F8F7F4] rounded-2xl p-6 border border-slate-200">
+                <h3 className="font-playfair text-lg font-bold text-[#0B1B2B] mb-2">{p.title}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CAS D'USAGE ──────────────────────────────────────────────── */}
+      <section className="bg-[#F8F7F4] py-20 md:py-28 border-y border-slate-200">
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">En rendez-vous client</p>
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-12 leading-tight">
+            Comment l&apos;outil s&apos;intègre dans votre rendez-vous
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {CAS_USAGE.map((c) => (
+              <div key={c.title} className="bg-white rounded-2xl p-6 border border-slate-200">
+                <h3 className="font-playfair text-lg font-bold text-[#0B1B2B] mb-2">{c.title}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{c.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CE QUE L'OUTIL NE REMPLACE PAS ───────────────────────────── */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-3xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Limites de l&apos;outil</p>
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-8 leading-tight">
+            Ce que l&apos;outil ne remplace pas
+          </h2>
+          <ul className="space-y-4">
+            {NE_REMPLACE_PAS.map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm text-slate-600 leading-relaxed">
+                <span className="text-[#0B1B2B] shrink-0 mt-1 font-bold">—</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
       {/* ── WHITE LABEL ──────────────────────────────────────────────── */}
       <section className="py-20 md:py-28">
         <div className="max-w-5xl mx-auto px-6">
@@ -195,34 +287,72 @@ export default function ProfessionnelsPage() {
         </div>
       </section>
 
+      {/* ── COMMENT SE PASSE UNE DÉMO ────────────────────────────────── */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4 text-center">La démo</p>
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-12 text-center leading-tight">
+            Comment se passe une démo
+          </h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {DEMO_ETAPES.map((e) => (
+              <div key={e.n} className="bg-[#F8F7F4] rounded-2xl p-6 border border-slate-200">
+                <div className="font-playfair text-3xl font-bold text-[#C9A96E] mb-3">{e.n}</div>
+                <h3 className="font-playfair text-base font-bold text-[#0B1B2B] mb-2 leading-tight">{e.title}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{e.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── OFFRE PILOTE ─────────────────────────────────────────────── */}
       <section className="bg-[#F8F7F4] py-20 md:py-28 border-y border-slate-200">
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Offre pilote — 30 jours</p>
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Offre pilote fondateur</p>
           <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-8 leading-tight">
-            Testez l&apos;outil avec votre activité réelle
+            Testez l&apos;outil avec votre activité réelle, sans engagement
           </h2>
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 mb-8 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
-            <div>
-              <div className="font-playfair text-3xl font-bold text-[#0B1B2B]">10</div>
-              <p className="text-sm text-slate-500">rapports client</p>
-            </div>
-            <div>
-              <div className="font-playfair text-3xl font-bold text-[#0B1B2B]">1</div>
-              <p className="text-sm text-slate-500">onboarding personnalisé</p>
-            </div>
-            <div>
-              <div className="font-playfair text-3xl font-bold text-[#0B1B2B]">✓</div>
-              <p className="text-sm text-slate-500">support direct</p>
-            </div>
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-left">
+            {[
+              { label: '99 € / mois', desc: 'pendant 2 mois, puis 299 €/mois si vous continuez' },
+              { label: '10 rapports', desc: 'inclus pour tester sur vos dossiers réels' },
+              { label: 'Logo de votre cabinet', desc: 'sur les rapports dès la période pilote' },
+              { label: 'Onboarding 30 minutes', desc: 'prise en main personnalisée en visio' },
+              { label: 'Support direct', desc: 'un interlocuteur unique pour vos questions' },
+              { label: 'Sans engagement', desc: 'vous arrêtez quand vous voulez' },
+            ].map((item) => (
+              <div key={item.label} className="flex items-start gap-3">
+                <span className="text-[#C9A96E] shrink-0 mt-1"><IconCheck /></span>
+                <div>
+                  <p className="font-semibold text-[#0B1B2B] text-sm">{item.label}</p>
+                  <p className="text-sm text-slate-500">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <p className="text-slate-600 mb-8">
-            <strong className="text-[#0B1B2B]">99 € ou 199 €</strong> le premier mois selon formule.
-          </p>
           <Link href="/tarifs"
             className="inline-flex items-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-7 py-3.5 rounded-lg transition-colors text-sm">
             Voir les tarifs <IconArrow />
           </Link>
+        </div>
+      </section>
+
+      {/* ── FAQ OBJECTIONS ───────────────────────────────────────────── */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-3xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4 text-center">Questions fréquentes</p>
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-12 text-center leading-tight">
+            Les questions qu&apos;on nous pose le plus
+          </h2>
+          <div className="space-y-4">
+            {FAQ.map((f) => (
+              <div key={f.q} className="bg-[#F8F7F4] rounded-2xl p-6 border border-slate-200">
+                <h3 className="font-playfair text-base font-bold text-[#0B1B2B] mb-2">{f.q}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{f.r}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
