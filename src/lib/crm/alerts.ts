@@ -1,12 +1,13 @@
-// Moteur d'alertes — Phase 0 (calculs en mémoire sur les données mock).
+// Moteur d'alertes — branché sur Prisma/Postgres (Neon).
 // En Phase 1, ces règles tourneront en cron (cf. CRM_DESIGN.md, section 7
 // "Automatisations" — colonne "Mode V1").
 import {
-  organisations, contacts, opportunites, pilotes, leadsB2C, objections, getOrganisation,
-} from './mockData'
+  getOrganisations, getContacts, getOpportunites, getPilotes, getLeadsB2C, getObjections,
+} from './data'
+import type { Organisation } from './types'
 
-// Date de référence (mock). En production : `new Date()`.
-export const TODAY = '2026-06-10'
+// Date de référence : aujourd'hui (réel).
+export const TODAY = new Date().toISOString().slice(0, 10)
 
 function daysBetween(a: string, b: string): number {
   const msPerDay = 24 * 60 * 60 * 1000
@@ -23,7 +24,13 @@ export interface CrmAlert {
   href: string
 }
 
-export function getAlerts(): CrmAlert[] {
+export async function getAlerts(): Promise<CrmAlert[]> {
+  const [organisations, contacts, opportunites, pilotes, leadsB2C, objections] = await Promise.all([
+    getOrganisations(), getContacts(), getOpportunites(), getPilotes(), getLeadsB2C(), getObjections(),
+  ])
+  const orgMap = new Map<string, Organisation>(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+
   const alerts: CrmAlert[] = []
 
   // 1. Démo faite sans prochaine action
@@ -159,7 +166,13 @@ export interface TodaySection {
   actions: TodayAction[]
 }
 
-export function getTodaySections(): TodaySection[] {
+export async function getTodaySections(): Promise<TodaySection[]> {
+  const [organisations, contacts, opportunites, pilotes, leadsB2C] = await Promise.all([
+    getOrganisations(), getContacts(), getOpportunites(), getPilotes(), getLeadsB2C(),
+  ])
+  const orgMap = new Map<string, Organisation>(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+
   const sections: TodaySection[] = []
 
   // Relances dues
@@ -234,8 +247,4 @@ export function getTodaySections(): TodaySection[] {
   })
 
   return sections.filter(s => s.actions.length > 0)
-}
-
-export function countOrganisationsTotal() {
-  return organisations.length
 }

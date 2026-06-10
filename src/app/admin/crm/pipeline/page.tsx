@@ -1,9 +1,15 @@
 import Link from 'next/link'
 import { PrioriteBadge } from '@/components/crm/Badges'
-import { opportunites, getOrganisation } from '@/lib/crm/mockData'
+import { getOpportunites, getOrganisations } from '@/lib/crm/data'
 import { PIPELINE_STAGES } from '@/lib/crm/types'
 
-export default function PipelinePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function PipelinePage() {
+  const [opportunites, organisations] = await Promise.all([getOpportunites(), getOrganisations()])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+
   const total = opportunites
     .filter(o => o.etape !== 'PERDU' && o.etape !== 'ABONNEMENT')
     .reduce((s, o) => s + (o.montant ?? 0), 0)

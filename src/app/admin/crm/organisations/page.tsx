@@ -1,10 +1,11 @@
 import Link from 'next/link'
 import { SegmentBadge, StageBadge, PrioriteBadge } from '@/components/crm/Badges'
-import { organisations, opportunites } from '@/lib/crm/mockData'
+import { getOrganisations, getOpportunites } from '@/lib/crm/data'
 import { SEGMENT_LABELS, type Segment } from '@/lib/crm/types'
 
 export default async function OrganisationsPage({ searchParams }: { searchParams: Promise<{ segment?: string; ville?: string }> }) {
   const { segment = '', ville = '' } = await searchParams
+  const [organisations, opportunites] = await Promise.all([getOrganisations(), getOpportunites()])
 
   const villes = Array.from(new Set(organisations.map(o => o.ville).filter(Boolean))).sort()
 

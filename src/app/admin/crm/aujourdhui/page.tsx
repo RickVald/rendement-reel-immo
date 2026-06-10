@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { getAlerts, getTodaySections, TODAY } from '@/lib/crm/alerts'
 
+export const dynamic = 'force-dynamic'
+
 const SEVERITY_STYLES: Record<string, string> = {
   urgente: 'border-red-200 bg-red-50',
   haute: 'border-amber-200 bg-amber-50',
@@ -19,9 +21,8 @@ const SEVERITY_BADGE: Record<string, string> = {
   moyenne: 'bg-slate-400 text-white',
 }
 
-export default function AujourdhuiPage() {
-  const alerts = getAlerts()
-  const sections = getTodaySections()
+export default async function AujourdhuiPage() {
+  const [alerts, sections] = await Promise.all([getAlerts(), getTodaySections()])
   const totalActions = sections.reduce((s, sec) => s + sec.actions.length, 0)
 
   return (

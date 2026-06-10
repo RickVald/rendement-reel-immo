@@ -1,0 +1,464 @@
+// Schéma Prisma — CRM Rendement Réel Immo
+// Mirroring src/lib/crm/types.ts (mêmes enums/champs en français) pour
+// faciliter le branchement progressif des pages CRM (mock -> DB).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(VIEWER)
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastLoginAt  DateTime?
+}
+
+// ── Enums CRM ────────────────────────────────────────────────────────────
+enum Segment {
+  CHASSEUR_INVESTISSEUR
+  CGP_IMMOBILIER
+  COURTIER_INVESTISSEUR
+  EXPERT_LMNP
+  AGENCE_INVESTISSEUR
+  PARTICULIER_B2C
+  SCPI_PLATEFORME
+  AUTRE
+}
+
+enum PipelineStage {
+  PROSPECT_IDENTIFIE
+  CONTACTE
+  REPONSE
+  DEMO_BOOKEE
+  DEMO_FAITE
+  PILOTE_PROPOSE
+  PILOTE_SIGNE
+  ACTIVE
+  ABONNEMENT
+  PERDU
+}
+
+enum ContactType {
+  PROSPECT_SAAS_B2B
+  CLIENT_SAAS_B2B
+  LEAD_PARTICULIER
+  PARTENAIRE_PRO
+  PRESCRIPTEUR
+  ACQUEREUR_POTENTIEL
+  FOURNISSEUR
+  INVESTISSEUR
+}
+
+enum ConsentementStatus {
+  INCONNU
+  OPT_IN
+  OPT_OUT
+}
+
+enum EmailStatus {
+  VALIDE
+  BOUNCE
+  OPT_OUT
+}
+
+enum SequenceStatut {
+  EN_COURS
+  EN_PAUSE
+  STOPPEE
+  TERMINEE
+}
+
+enum ActiviteType {
+  EMAIL
+  APPEL
+  LINKEDIN
+  DEMO
+  NOTE
+  TACHE
+}
+
+enum ActiviteResultat {
+  OK
+  SANS_REPONSE
+  POSITIF
+  NEGATIF
+  A_RELANCER
+}
+
+enum PiloteStatut {
+  ACTIF
+  ACTIVE_OK
+  SANS_USAGE
+  CONVERTI
+  EXPIRE
+}
+
+enum AbonnementStatut {
+  ACTIF
+  EN_RISQUE
+  CHURN
+}
+
+enum NiveauAbonnement {
+  AUCUN
+  PILOTE
+  PRO
+  CABINET
+}
+
+enum BesoinType {
+  CGP
+  COURTIER
+  CHASSEUR
+  FISCALITE
+  GESTION_LOCATIVE
+}
+
+enum LeadB2CStatus {
+  NOUVEAU
+  QUALIFIE
+  RAPPELE
+  TRANSMIS
+  ACCEPTE
+  VENDU
+  REFUSE
+  EXPIRE
+}
+
+enum LeadB2CSource {
+  SIMULATEUR
+  SEO
+  ADS
+  REFERRAL
+}
+
+enum TransmissionStatut {
+  ENVOYE
+  ACCEPTE
+  REFUSE
+  SANS_REPONSE
+}
+
+enum TransactionType {
+  SETUP_FEE
+  PILOTE_PAYANT
+  ABONNEMENT
+  UPGRADE
+  LEAD_VENDU
+  COMMISSION
+}
+
+enum TransactionStatut {
+  FACTURE_ENVOYEE
+  PAYEE
+  EN_RETARD
+  PREVUE
+}
+
+enum SourcingStatut {
+  NOUVEAU
+  DOUBLON_POTENTIEL
+  DEJA_EN_BASE
+  IMPORTE
+  IGNORE
+}
+
+enum ObjectionStatut {
+  OUVERTE
+  TRAITEE
+}
+
+// ── Modèles CRM ──────────────────────────────────────────────────────────
+
+model Organisation {
+  id            String   @id @default(cuid())
+  nom           String
+  segment       Segment
+  taille        String?
+  site          String?
+  ville         String?
+  potentiel     Int?
+  source        String?
+
+  // Module matching leads B2C
+  partenaireLeads      Boolean        @default(false)
+  zonesCouvertes       String[]
+  metiersLeads         BesoinType[]
+  niveauAbonnement     NiveauAbonnement @default(AUCUN)
+  exclusiviteLeads     Boolean        @default(false)
+  prixLead             Int?
+  tauxConversionLeads  Int?
+  delaiReponseHeures   Int?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contacts      Contact[]
+  opportunites  Opportunite[]
+  activites     Activite[]
+  pilotes       Pilote[]
+  abonnements   Abonnement[]
+  transactions  Transaction[]
+  leadAssignments LeadB2CTransmission[]
+}
+
+model Contact {
+  id              String   @id @default(cuid())
+  organisationId  String?
+  organisation    Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+
+  type            ContactType
+  nom             String
+  role            String?
+  email           String
+  telephone       String?
+  linkedin        String?
+
+  consentement    ConsentementStatus @default(INCONNU)
+  statutEmail     EmailStatus        @default(VALIDE)
+  consentementDetail Json?
+
+  sequence        String?
+  sequenceEtape   String?
+  prochaineRelance DateTime?
+  sequenceStatut  SequenceStatut?
+  dernierEmailEnvoye DateTime?
+  dernierModele   String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  activites       Activite[]
+}
+
+model Opportunite {
+  id              String   @id @default(cuid())
+  organisationId  String
+  organisation    Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  offre           String
+  montant         Int?
+  etape           PipelineStage
+  probabilite     Int?
+  prochainPas     String?
+  prochainPasDate DateTime?
+
+  scoreICP        Int
+  scoreEngagement Int?
+  scoreClosing    Int?
+  raisonPerte     String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  activites       Activite[]
+  pilotes         Pilote[]
+  abonnements     Abonnement[]
+}
+
+model Activite {
+  id              String   @id @default(cuid())
+  contactId       String?
+  contact         Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  opportuniteId   String?
+  opportunite     Opportunite? @relation(fields: [opportuniteId], references: [id], onDelete: SetNull)
+  organisationId  String?
+  organisation    Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+
+  type            ActiviteType
+  date            DateTime
+  resultat        ActiviteResultat?
+  resume          String?
+  owner           String
+  campagneId      String?
+  campagne        Campagne? @relation(fields: [campagneId], references: [id], onDelete: SetNull)
+  fait            Boolean?
+
+  createdAt       DateTime @default(now())
+}
+
+model Campagne {
+  id          String   @id @default(cuid())
+  nom         String
+  segment     Segment?
+  sequence    String?
+  outil       String?
+  dateDebut   DateTime?
+  dateFin     DateTime?
+  envoyes     Int @default(0)
+  reponses    Int @default(0)
+  clics       Int @default(0)
+  bounces     Int @default(0)
+  optOuts     Int @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  activites   Activite[]
+  events      CampagneEvent[]
+}
+
+model CampagneEvent {
+  id              String   @id @default(cuid())
+  campagneId      String
+  campagne        Campagne @relation(fields: [campagneId], references: [id], onDelete: Cascade)
+  contactId       String?
+  provider        String
+  providerEventId String?
+  eventType       String
+  eventTimestamp  DateTime
+  metadata        Json?
+
+  createdAt       DateTime @default(now())
+}
+
+model Pilote {
+  id              String   @id @default(cuid())
+  opportuniteId   String
+  opportunite     Opportunite @relation(fields: [opportuniteId], references: [id], onDelete: Cascade)
+  organisationId  String
+  organisation    Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  dateDebut       DateTime
+  dateFin         DateTime
+  quotaRapports   Int
+  rapportsGeneres Int @default(0)
+  feedback        String?
+  statut          PiloteStatut
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Abonnement {
+  id              String   @id @default(cuid())
+  opportuniteId   String?
+  opportunite     Opportunite? @relation(fields: [opportuniteId], references: [id], onDelete: SetNull)
+  organisationId  String
+  organisation    Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  plan            String
+  mrr             Int
+  statut          AbonnementStatut
+  dateDebut       DateTime
+  dateRenouvellement DateTime?
+  derniereActiviteUsage DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Objection {
+  id            String   @id @default(cuid())
+  categorie     String
+  texte         String
+  reponse       String?
+  opportuniteId String?
+  statut        ObjectionStatut @default(OUVERTE)
+
+  createdAt     DateTime @default(now())
+}
+
+model LeadB2C {
+  id                    String   @id @default(cuid())
+  nom                   String
+  email                 String
+  telephone             String?
+
+  ville                 String
+  budget                Int?
+  typeBien              String?
+  horizonAchat          String?
+  fiscaliteCible        String?
+
+  scoreLead             Int
+  consentementPartenaire ConsentementStatus @default(INCONNU)
+  consentementDetail    Json?
+
+  professionnelAssigneId String?
+  statut                LeadB2CStatus @default(NOUVEAU)
+  source                LeadB2CSource
+  rapportGenere         Boolean @default(false)
+  besoins               BesoinType[]
+  valeurPotentielle     Int @default(0)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  transmissions         LeadB2CTransmission[]
+  transactions          Transaction[]
+}
+
+model LeadB2CTransmission {
+  id                  String   @id @default(cuid())
+  leadId              String
+  lead                LeadB2C  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  organisationId      String
+  organisation        Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  date                DateTime @default(now())
+  statut              TransmissionStatut @default(ENVOYE)
+  prixLead            Int?
+  exclusive           Boolean @default(false)
+  responseDelayHours  Int?
+  note                String?
+}
+
+model Transaction {
+  id                  String   @id @default(cuid())
+  organisationId      String?
+  organisation        Organisation? @relation(fields: [organisationId], references: [id], onDelete: SetNull)
+  leadId              String?
+  lead                LeadB2C? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  type                TransactionType
+  montant             Int
+  statut              TransactionStatut
+  date                DateTime
+  facturationManuelle Boolean @default(true)
+  stripeId            String?
+  description         String?
+
+  createdAt           DateTime @default(now())
+}
+
+model ScanRun {
+  id          String   @id @default(cuid())
+  date        DateTime
+  categories  Segment[]
+  zone        String
+  sources     String[]
+  nbResultats Int
+  nbNouveaux  Int
+  nbDoublons  Int
+}
+
+model SourcingResult {
+  id                    String   @id @default(cuid())
+  nom                   String
+  segment               Segment
+  ville                 String
+  site                  String?
+  dirigeant             String?
+  email                 String?
+  telephone             String?
+  source                String
+  scoreEstime           Int
+  statut                SourcingStatut @default(NOUVEAU)
+  dateScan              DateTime
+  organisationExistanteId String?
+}

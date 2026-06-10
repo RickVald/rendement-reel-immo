@@ -1,9 +1,12 @@
 import Link from 'next/link'
-import { contacts, getOrganisation } from '@/lib/crm/mockData'
+import { getContacts, getOrganisations } from '@/lib/crm/data'
 import { CONTACT_TYPE_LABELS, type ContactType } from '@/lib/crm/types'
 
 export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ type?: string; consentement?: string; statutEmail?: string }> }) {
   const { type = '', consentement = '', statutEmail = '' } = await searchParams
+  const [contacts, organisations] = await Promise.all([getContacts(), getOrganisations()])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
 
   const filtered = contacts.filter(c =>
     (!type || c.type === type) &&

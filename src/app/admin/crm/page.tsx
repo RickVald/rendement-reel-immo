@@ -1,9 +1,19 @@
 import Link from 'next/link'
 import { Card, StageBadge, SegmentBadge } from '@/components/crm/Badges'
-import { organisations, opportunites, activites, pilotes, abonnements, objections, leadsB2C, getOrganisation } from '@/lib/crm/mockData'
+import {
+  getOrganisations, getOpportunites, getActivites, getPilotes, getAbonnements, getObjections, getLeadsB2C,
+} from '@/lib/crm/data'
 import { getAlerts } from '@/lib/crm/alerts'
 
-export default function CrmDashboardPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function CrmDashboardPage() {
+  const [organisations, opportunites, activites, pilotes, abonnements, objections, leadsB2C, alerts] = await Promise.all([
+    getOrganisations(), getOpportunites(), getActivites(), getPilotes(), getAbonnements(), getObjections(), getLeadsB2C(), getAlerts(),
+  ])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+
   const mrrActuel = abonnements.filter(a => a.statut === 'ACTIF').reduce((s, a) => s + a.mrr, 0)
   const mrrPipeline = opportunites
     .filter(o => o.etape !== 'PERDU' && o.etape !== 'ABONNEMENT')
@@ -21,7 +31,7 @@ export default function CrmDashboardPage() {
   for (const o of objections) objectionsCount[o.categorie] = (objectionsCount[o.categorie] ?? 0) + 1
   const topObjections = Object.entries(objectionsCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
-  // Conversion pilote -> abonnement (mock)
+  // Conversion pilote -> abonnement
   const pilotesTermines = pilotes.length
   const conversions = abonnements.length
   const tauxConversion = pilotesTermines > 0 ? Math.round((conversions / pilotesTermines) * 100) : 0
@@ -30,13 +40,11 @@ export default function CrmDashboardPage() {
   const leadsChauds = leadsB2C.filter(l => l.scoreLead >= 60 && !['VENDU', 'REFUSE', 'EXPIRE'].includes(l.statut))
   const valeurPipelineLeads = leadsB2C.filter(l => !['VENDU', 'REFUSE', 'EXPIRE'].includes(l.statut)).reduce((s, l) => s + l.valeurPotentielle, 0)
 
-  const alerts = getAlerts()
-
   return (
     <div className="space-y-8">
       <div>
         <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Vue CEO</h1>
-        <p className="text-sm text-slate-500 mt-1">Pilotage commercial — données d&apos;exemple (mock).</p>
+        <p className="text-sm text-slate-500 mt-1">Pilotage commercial.</p>
       </div>
 
       {alerts.length > 0 && (
@@ -161,7 +169,7 @@ export default function CrmDashboardPage() {
       </div>
 
       <div className="text-xs text-slate-400">
-        {organisations.length} organisations · {opportunites.length} opportunités · {activites.length} activités enregistrées (données d&apos;exemple).
+        {organisations.length} organisations · {opportunites.length} opportunités · {activites.length} activités enregistrées.
       </div>
     </div>
   )
