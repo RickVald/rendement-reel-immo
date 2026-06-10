@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { StepIndicator } from './StepIndicator'
+import { LeadGateModal } from './LeadGateModal'
 import { Step1, StepPF, Step2, Step3, Step4, Step5, Step6, Step7, Step8 } from './steps'
 import { DEFAULT_INPUT } from '@/data/defaults'
 import type { ProjectInput } from '@/lib/calculator/types'
@@ -25,6 +26,7 @@ export function SimulatorForm() {
   const [data, setData] = useState<ProjectInput>(DEFAULT_INPUT)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [gateOpen, setGateOpen] = useState(false)
 
   const updateData = (patch: Partial<ProjectInput>) => {
     setData(prev => {
@@ -75,7 +77,7 @@ export function SimulatorForm() {
     scrollToTop()
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (opts?: { simplifie?: boolean }) => {
     setLoading(true)
     setError(null)
     try {
@@ -88,11 +90,20 @@ export function SimulatorForm() {
       const analysis = await res.json()
       // Store in sessionStorage and redirect
       sessionStorage.setItem('rri_analysis', JSON.stringify(analysis))
+      if (opts?.simplifie) {
+        sessionStorage.setItem('rri_simplified', 'true')
+      } else {
+        sessionStorage.removeItem('rri_simplified')
+      }
       router.push('/resultats')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur inattendue')
       setLoading(false)
     }
+  }
+
+  const handleAnalyzeClick = () => {
+    setGateOpen(true)
   }
 
   return (
@@ -150,7 +161,7 @@ export function SimulatorForm() {
           ) : (
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={handleAnalyzeClick}
               disabled={loading}
               className={clsx(
                 'font-bold px-6 py-2 rounded-lg text-sm transition-all',
@@ -176,6 +187,16 @@ export function SimulatorForm() {
       <p className="text-xs text-slate-400 text-center mt-4">
         Simulation indicative. Ne constitue pas un conseil en investissement ni un conseil fiscal.
       </p>
+
+      <LeadGateModal
+        open={gateOpen}
+        onClose={() => setGateOpen(false)}
+        onUnlockParticulier={() => {
+          setGateOpen(false)
+          handleSubmit({ simplifie: true })
+        }}
+        input={data}
+      />
     </div>
   )
 }

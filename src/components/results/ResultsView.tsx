@@ -8,6 +8,7 @@ import {
   Tooltip, Legend, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import type { ProjectAnalysis, AIInterpretation, Verdict, SummaryKPIs, ProjectInput, YearlyRow } from '@/lib/calculator/types'
+import { SimplifiedResultsView } from './SimplifiedResultsView'
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -64,6 +65,7 @@ export function ResultsView() {
   const [aiLoading, setAiLoading]     = useState(false)
   const [pdfLoading, setPdfLoading]   = useState(false)
   const [activeTab, setActiveTab]     = useState(0)
+  const [simplified, setSimplified]   = useState(false)
 
   async function downloadPdf() {
     if (!analysis) return
@@ -95,6 +97,12 @@ export function ResultsView() {
     if (!raw) { router.push('/simulateur'); return }
     const parsed = JSON.parse(raw) as ProjectAnalysis
     setAnalysis(parsed)
+
+    if (sessionStorage.getItem('rri_simplified') === 'true') {
+      setSimplified(true)
+      return
+    }
+
     setAiLoading(true)
     fetch('/api/ai-interpretation', {
       method: 'POST',
@@ -116,6 +124,10 @@ export function ResultsView() {
         </div>
       </div>
     )
+  }
+
+  if (simplified) {
+    return <SimplifiedResultsView analysis={analysis} onEdit={() => router.push('/simulateur')} />
   }
 
   const { summary, verdict, yearlyTable, scenarios, prixMax, creditSchedule, input } = analysis
