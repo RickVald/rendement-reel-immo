@@ -5,6 +5,7 @@ import {
   getOrganisationById, getContacts, getOpportunites, getActivites, getPilotes,
 } from '@/lib/crm/data'
 import { ACTIVITE_TYPE_LABELS, CONTACT_TYPE_LABELS, PILOTE_STATUT_LABELS, BESOIN_LABELS } from '@/lib/crm/types'
+import { QuickActions } from './QuickActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,18 +81,11 @@ export default async function OrganisationDetailPage({ params }: { params: Promi
             <div className="px-5 py-3 border-b border-slate-200">
               <h2 className="font-bold text-sm text-[#0B1B2B]">Actions rapides</h2>
             </div>
-            <div className="px-5 py-4 flex flex-wrap gap-2">
-              {['Envoyer un email', 'Créer une tâche', 'Noter un appel', 'Programmer une relance', 'Étape suivante', 'Créer un pilote', 'Convertir en abonnement', 'Marquer perdu', 'Enregistrer une objection', 'Associer un lead B2C'].map(label => (
-                <button
-                  key={label}
-                  type="button"
-                  disabled
-                  title="Disponible une fois la base de données connectée"
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed"
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="px-5 py-4">
+              <QuickActions organisationId={org.id} opportunites={opportunites.map(o => ({ id: o.id, offre: o.offre, etape: o.etape }))} />
+              <p className="text-xs text-slate-400 mt-3">
+                Bientôt : créer un pilote, convertir en abonnement, associer un lead B2C.
+              </p>
             </div>
           </div>
 
