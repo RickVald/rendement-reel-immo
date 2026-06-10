@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next'
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: { userAgent: '*', allow: '/' },
-    sitemap: 'https://rendement-reel-immo.fr/sitemap.xml',
-    host: 'https://rendement-reel-immo.fr',
+    sitemap: 'https://rendementreelimmo.fr/sitemap.xml',
+    host: 'https://rendementreelimmo.fr',
   }
 }

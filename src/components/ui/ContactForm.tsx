@@ -35,7 +35,7 @@ export function ContactForm() {
       `Dossiers investisseurs / mois : ${form.volume}\n` +
       `Besoin : ${form.besoin}\n`
     )
-    window.location.href = `mailto:contact@rendement-reel-immo.fr?subject=${subject}&body=${body}`
+    window.location.href = `mailto:contact@rendementreelimmo.fr?subject=${subject}&body=${body}`
     setSent(true)
   }
 

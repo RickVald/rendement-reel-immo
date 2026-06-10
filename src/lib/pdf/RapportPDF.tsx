@@ -106,7 +106,7 @@ export function RapportPDF({
       title={`Rapport Rendement Réel Immo — ${input.bien.ville}`}
       author="Rendement Réel Immo"
       subject="Analyse financière investissement locatif"
-      creator="rendement-reel-immo.fr"
+      creator="rendementreelimmo.fr"
     >
 
       {/* ══════════════════════════════════════════════════════════════════════

@@ -12,7 +12,7 @@ export default function MentionsLegalesPage() {
 
       <LegalSection title="Éditeur du site">
         <p>
-          Le site Rendement Réel Immo (https://rendement-reel-immo.fr) est édité par :
+          Le site Rendement Réel Immo (https://rendementreelimmo.fr) est édité par :
         </p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Raison sociale / nom : <ToComplete>raison sociale ou nom et prénom</ToComplete></li>

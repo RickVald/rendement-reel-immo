@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://rendement-reel-immo.fr'),
+  metadataBase: new URL('https://rendementreelimmo.fr'),
   title: {
     default: 'Rendement Réel Immo — Rapports d\'arbitrage immobilier pour CGP & professionnels',
     template: '%s | Rendement Réel Immo',
