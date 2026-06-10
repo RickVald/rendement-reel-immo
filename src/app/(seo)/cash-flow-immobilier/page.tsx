@@ -56,17 +56,17 @@ const RELATED = [
   {
     title: 'Simulateur de rendement locatif',
     description: 'Calculez le cash-flow, la fiscalité, le TRI, la VAN et le prix cible de votre projet.',
-    href: '/simulateur',
+    href: '/simulateur-rendement-locatif',
   },
   {
-    title: 'Exemple de rapport d\'investissement',
-    description: 'Visualisez un rapport complet : cash-flow, fiscalité, revente et stress test.',
-    href: '/exemple-rapport',
+    title: 'TRI immobilier : comment l\'interpréter',
+    description: 'La performance globale du projet, revente comprise.',
+    href: '/tri-immobilier',
   },
   {
-    title: 'Rendement Réel Immo pour les professionnels',
-    description: 'Générez des rapports d\'arbitrage pour vos clients, en marque blanche.',
-    href: '/professionnels',
+    title: 'LMNP au réel ou micro-BIC',
+    description: 'Le régime fiscal qui peut transformer un cash-flow négatif en cash-flow positif.',
+    href: '/lmnp-reel-ou-micro-bic',
   },
 ]
 
@@ -320,7 +320,7 @@ export default function CashFlowImmobilierPage() {
             Cash-flow et TRI : deux indicateurs complémentaires
           </h2>
           <p className="text-slate-600 leading-relaxed mb-4">
-            Le cash-flow mesure la trésorerie générée période par période. Le <a href="/simulateur" className="text-[#C9A96E] hover:underline">TRI (taux de rentabilité interne)</a> intègre
+            Le cash-flow mesure la trésorerie générée période par période. Le <a href="/tri-immobilier" className="text-[#C9A96E] hover:underline">TRI (taux de rentabilité interne)</a> intègre
             l&apos;ensemble des flux du projet — apport initial, cash-flows annuels et produit de la
             revente — pour donner une mesure de performance globale sur la durée de détention.
           </p>
