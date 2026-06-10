@@ -2,19 +2,25 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { SegmentBadge, StageBadge, PrioriteBadge, ScoreTriple } from '@/components/crm/Badges'
 import {
-  getOrganisation, getContactsByOrg, getOpportunitesByOrg, getActivitesByOrg, getPiloteByOrg,
-} from '@/lib/crm/mockData'
+  getOrganisationById, getContacts, getOpportunites, getActivites, getPilotes,
+} from '@/lib/crm/data'
 import { ACTIVITE_TYPE_LABELS, CONTACT_TYPE_LABELS, PILOTE_STATUT_LABELS, BESOIN_LABELS } from '@/lib/crm/types'
+
+export const dynamic = 'force-dynamic'
 
 export default async function OrganisationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const org = getOrganisation(id)
+  const [org, allContacts, allOpportunites, allActivites, allPilotes] = await Promise.all([
+    getOrganisationById(id), getContacts(), getOpportunites(), getActivites(), getPilotes(),
+  ])
   if (!org) notFound()
 
-  const contacts = getContactsByOrg(id)
-  const opportunites = getOpportunitesByOrg(id)
-  const activites = getActivitesByOrg(id)
-  const pilote = getPiloteByOrg(id)
+  const contacts = allContacts.filter(c => c.organisationId === id)
+  const opportunites = allOpportunites.filter(o => o.organisationId === id)
+  const activites = allActivites
+    .filter(a => a.organisationId === id)
+    .sort((a, b) => b.date.localeCompare(a.date))
+  const pilote = allPilotes.find(p => p.organisationId === id)
 
   return (
     <div className="space-y-6">

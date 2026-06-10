@@ -1,6 +1,8 @@
 import Link from 'next/link'
-import { pilotes, getOrganisation } from '@/lib/crm/mockData'
+import { getPilotes, getOrganisations } from '@/lib/crm/data'
 import { PILOTE_STATUT_LABELS } from '@/lib/crm/types'
+
+export const dynamic = 'force-dynamic'
 
 const STATUT_COLORS: Record<string, string> = {
   ACTIF: 'bg-sky-100 text-sky-700',
@@ -10,7 +12,11 @@ const STATUT_COLORS: Record<string, string> = {
   EXPIRE: 'bg-red-100 text-red-700',
 }
 
-export default function PilotesPage() {
+export default async function PilotesPage() {
+  const [pilotes, organisations] = await Promise.all([getPilotes(), getOrganisations()])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+
   return (
     <div className="space-y-6">
       <div>

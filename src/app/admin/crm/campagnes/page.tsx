@@ -1,8 +1,11 @@
 import { Card } from '@/components/crm/Badges'
-import { campagnes } from '@/lib/crm/mockData'
+import { getCampagnes } from '@/lib/crm/data'
 import { SEGMENT_LABELS } from '@/lib/crm/types'
 
-export default function CampagnesPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function CampagnesPage() {
+  const campagnes = await getCampagnes()
   const totalEnvoyes = campagnes.reduce((s, c) => s + c.envoyes, 0)
   const totalReponses = campagnes.reduce((s, c) => s + c.reponses, 0)
   const tauxReponse = totalEnvoyes > 0 ? ((totalReponses / totalEnvoyes) * 100).toFixed(1) : '0'

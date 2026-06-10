@@ -1,8 +1,14 @@
 import Link from 'next/link'
-import { activites, getOrganisation } from '@/lib/crm/mockData'
+import { getActivites, getOrganisations } from '@/lib/crm/data'
 import { ACTIVITE_TYPE_LABELS } from '@/lib/crm/types'
 
-export default function ActivitesPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function ActivitesPage() {
+  const [activites, organisations] = await Promise.all([getActivites(), getOrganisations()])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+
   const taches = activites
     .filter(a => a.type === 'TACHE')
     .sort((a, b) => a.date.localeCompare(b.date))

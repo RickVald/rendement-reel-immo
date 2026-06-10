@@ -49,7 +49,7 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="px-5 py-4 border-t border-white/10 text-[11px] text-slate-500 leading-relaxed">
-          Connecté à la base de données (Neon Postgres). Certaines pages utilisent encore des données d&apos;exemple — voir CRM_DESIGN.md.
+          Connecté à la base de données (Neon Postgres). Voir CRM_DESIGN.md.
         </div>
         <form action="/api/auth/logout" method="POST" className="px-5 py-3 border-t border-white/10">
           <button type="submit" className="text-[11px] text-slate-400 hover:text-white transition-colors">

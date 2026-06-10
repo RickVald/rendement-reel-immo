@@ -1,7 +1,13 @@
 import Link from 'next/link'
-import { objections, opportunites, getOrganisation } from '@/lib/crm/mockData'
+import { getObjections, getOpportunites, getOrganisations } from '@/lib/crm/data'
 
-export default function ObjectionsPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function ObjectionsPage() {
+  const [objections, opportunites, organisations] = await Promise.all([getObjections(), getOpportunites(), getOrganisations()])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+
   const ouvertes = objections.filter(o => o.statut === 'ouverte')
   const traitees = objections.filter(o => o.statut === 'traitée')
 

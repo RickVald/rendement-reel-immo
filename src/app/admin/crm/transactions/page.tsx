@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { Card } from '@/components/crm/Badges'
-import { transactions, abonnements, getOrganisation, getLeadB2C } from '@/lib/crm/mockData'
+import { getTransactions, getAbonnements, getOrganisations, getLeadsB2C } from '@/lib/crm/data'
 import { TRANSACTION_TYPE_LABELS, TRANSACTION_STATUT_LABELS } from '@/lib/crm/types'
+
+export const dynamic = 'force-dynamic'
 
 const STATUT_COLORS: Record<string, string> = {
   PAYEE: 'bg-emerald-100 text-emerald-700',
@@ -10,7 +12,15 @@ const STATUT_COLORS: Record<string, string> = {
   PREVUE: 'bg-slate-100 text-slate-500',
 }
 
-export default function TransactionsPage() {
+export default async function TransactionsPage() {
+  const [transactions, abonnements, organisations, leadsB2C] = await Promise.all([
+    getTransactions(), getAbonnements(), getOrganisations(), getLeadsB2C(),
+  ])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
+  const leadMap = new Map(leadsB2C.map(l => [l.id, l]))
+  const getLeadB2C = (id: string) => leadMap.get(id)
+
   const mrrActuel = abonnements.filter(a => a.statut === 'ACTIF').reduce((s, a) => s + a.mrr, 0)
   const encaisse = transactions.filter(t => t.statut === 'PAYEE').reduce((s, t) => s + t.montant, 0)
   const enAttente = transactions.filter(t => t.statut === 'FACTURE_ENVOYEE').reduce((s, t) => s + t.montant, 0)

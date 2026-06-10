@@ -5,8 +5,8 @@
 // afin de pouvoir réutiliser la logique existante (alerts.ts, pages CRM).
 import { prisma } from '@/lib/db'
 import type {
-  Organisation, Contact, Opportunite, Activite, Pilote, Abonnement, Objection, LeadB2C,
-  ConsentementDetail,
+  Organisation, Contact, Opportunite, Activite, Pilote, Abonnement, Objection, LeadB2C, Campagne, Transaction, ScanRun, SourcingResult,
+  ConsentementDetail, Segment,
 } from './types'
 import type {
   Organisation as DbOrganisation,
@@ -18,6 +18,10 @@ import type {
   Objection as DbObjection,
   LeadB2C as DbLeadB2C,
   LeadB2CTransmission as DbLeadB2CTransmission,
+  Campagne as DbCampagne,
+  Transaction as DbTransaction,
+  ScanRun as DbScanRun,
+  SourcingResult as DbSourcingResult,
 } from '@prisma/client'
 
 function dateOnly(d: Date | null | undefined): string | undefined {
@@ -174,6 +178,69 @@ function mapLeadB2C(l: DbLeadB2C & { transmissions?: DbLeadB2CTransmission[] }):
   }
 }
 
+function mapCampagne(c: DbCampagne): Campagne {
+  return {
+    id: c.id,
+    nom: c.nom,
+    segment: c.segment ?? undefined,
+    sequence: c.sequence ?? undefined,
+    outil: c.outil ?? undefined,
+    dateDebut: dateOnly(c.dateDebut),
+    dateFin: dateOnly(c.dateFin),
+    envoyes: c.envoyes,
+    reponses: c.reponses,
+    clics: c.clics,
+    bounces: c.bounces,
+    optOuts: c.optOuts,
+  }
+}
+
+function mapTransaction(t: DbTransaction): Transaction {
+  return {
+    id: t.id,
+    organisationId: t.organisationId ?? undefined,
+    leadId: t.leadId ?? undefined,
+    type: t.type,
+    montant: t.montant,
+    statut: t.statut,
+    date: dateOnly(t.date)!,
+    facturationManuelle: t.facturationManuelle,
+    stripeId: t.stripeId ?? undefined,
+    description: t.description ?? undefined,
+  }
+}
+
+function mapScanRun(s: DbScanRun): ScanRun {
+  return {
+    id: s.id,
+    date: s.date.toISOString(),
+    categories: s.categories as Segment[],
+    zone: s.zone,
+    sources: s.sources,
+    nbResultats: s.nbResultats,
+    nbNouveaux: s.nbNouveaux,
+    nbDoublons: s.nbDoublons,
+  }
+}
+
+function mapSourcingResult(r: DbSourcingResult): SourcingResult {
+  return {
+    id: r.id,
+    nom: r.nom,
+    segment: r.segment,
+    ville: r.ville,
+    site: r.site ?? undefined,
+    dirigeant: r.dirigeant ?? undefined,
+    email: r.email ?? undefined,
+    telephone: r.telephone ?? undefined,
+    source: r.source,
+    scoreEstime: r.scoreEstime,
+    statut: r.statut,
+    dateScan: r.dateScan.toISOString(),
+    organisationExistanteId: r.organisationExistanteId ?? undefined,
+  }
+}
+
 export async function getOrganisations(): Promise<Organisation[]> {
   const rows = await prisma.organisation.findMany({ orderBy: { nom: 'asc' } })
   return rows.map(mapOrganisation)
@@ -222,6 +289,35 @@ export async function getLeadsB2C(): Promise<LeadB2C[]> {
   return rows.map(mapLeadB2C)
 }
 
+export async function getLeadB2C(id: string): Promise<LeadB2C | undefined> {
+  const row = await prisma.leadB2C.findUnique({ where: { id }, include: { transmissions: true } })
+  return row ? mapLeadB2C(row) : undefined
+}
+
 export async function countOrganisations(): Promise<number> {
   return prisma.organisation.count()
+}
+
+export async function getCampagnes(): Promise<Campagne[]> {
+  const rows = await prisma.campagne.findMany({ orderBy: { createdAt: 'asc' } })
+  return rows.map(mapCampagne)
+}
+
+export async function getTransactions(): Promise<Transaction[]> {
+  const rows = await prisma.transaction.findMany({ orderBy: { date: 'desc' } })
+  return rows.map(mapTransaction)
+}
+
+export async function getSourcingResults(): Promise<SourcingResult[]> {
+  const rows = await prisma.sourcingResult.findMany({ orderBy: { dateScan: 'desc' } })
+  return rows.map(mapSourcingResult)
+}
+
+export async function getScanRuns(): Promise<ScanRun[]> {
+  const rows = await prisma.scanRun.findMany({ orderBy: { date: 'desc' } })
+  return rows.map(mapScanRun)
+}
+
+export async function getLastScanRun(): Promise<ScanRun | undefined> {
+  return (await getScanRuns())[0]
 }

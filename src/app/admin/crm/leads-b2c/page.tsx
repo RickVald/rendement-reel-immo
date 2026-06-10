@@ -1,9 +1,12 @@
 import Link from 'next/link'
 import { Card, LeadStatusBadge, LeadPrioriteBadge } from '@/components/crm/Badges'
-import { leadsB2C } from '@/lib/crm/mockData'
+import { getLeadsB2C } from '@/lib/crm/data'
 import { BESOIN_LABELS, LEAD_B2C_SOURCE_LABELS } from '@/lib/crm/types'
 
-export default function LeadsB2CPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function LeadsB2CPage() {
+  const leadsB2C = await getLeadsB2C()
   const enCours = leadsB2C.filter(l => !['VENDU', 'REFUSE', 'EXPIRE'].includes(l.statut))
   const valeurPipeline = enCours.reduce((s, l) => s + l.valeurPotentielle, 0)
   const aRappeler = leadsB2C.filter(l => l.statut === 'NOUVEAU' || l.statut === 'QUALIFIE')

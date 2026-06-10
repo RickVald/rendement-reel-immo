@@ -1,10 +1,14 @@
 import Link from 'next/link'
 import { Card, SegmentBadge, SourcingStatutBadge } from '@/components/crm/Badges'
-import { sourcingResults, getScanRuns, getLastScanRun } from '@/lib/crm/mockData'
+import { getSourcingResults, getScanRuns } from '@/lib/crm/data'
 import { SEGMENT_LABELS, type Segment } from '@/lib/crm/types'
+
+export const dynamic = 'force-dynamic'
 
 export default async function SourcingPage({ searchParams }: { searchParams: Promise<{ segment?: string; ville?: string }> }) {
   const { segment = '', ville = '' } = await searchParams
+
+  const [sourcingResults, scanRuns] = await Promise.all([getSourcingResults(), getScanRuns()])
 
   const villes = Array.from(new Set(sourcingResults.map(r => r.ville).filter(Boolean))).sort()
 
@@ -12,8 +16,7 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
     (!segment || r.segment === segment) &&
     (!ville || r.ville === ville))
 
-  const lastScan = getLastScanRun()
-  const scanRuns = getScanRuns()
+  const lastScan = scanRuns[0]
   const enAttente = sourcingResults.filter(r => r.statut === 'NOUVEAU' || r.statut === 'DOUBLON_POTENTIEL')
   const doublons = sourcingResults.filter(r => r.statut === 'DOUBLON_POTENTIEL' || r.statut === 'DEJA_EN_BASE')
 

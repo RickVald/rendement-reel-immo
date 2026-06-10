@@ -1,10 +1,18 @@
 import Link from 'next/link'
 import { SegmentBadge, LeadStatusBadge } from '@/components/crm/Badges'
-import { organisations, contacts, leadsB2C, objections, getOrganisation } from '@/lib/crm/mockData'
+import { getOrganisations, getContacts, getLeadsB2C, getObjections } from '@/lib/crm/data'
+
+export const dynamic = 'force-dynamic'
 
 export default async function RecherchePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = '' } = await searchParams
   const needle = q.trim().toLowerCase()
+
+  const [organisations, contacts, leadsB2C, objections] = await Promise.all([
+    getOrganisations(), getContacts(), getLeadsB2C(), getObjections(),
+  ])
+  const orgMap = new Map(organisations.map(o => [o.id, o]))
+  const getOrganisation = (id: string) => orgMap.get(id)
 
   const orgs = needle
     ? organisations.filter(o =>
