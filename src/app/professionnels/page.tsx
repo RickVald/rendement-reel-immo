@@ -315,7 +315,7 @@ export default function ProfessionnelsPage() {
           </h2>
           <div className="bg-white rounded-2xl border border-slate-200 p-8 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-left">
             {[
-              { label: '99 € / mois', desc: 'pendant 2 mois, puis 299 €/mois si vous continuez' },
+              { label: '99 € HT / mois', desc: 'pendant 2 mois, puis 299 € HT/mois si vous continuez' },
               { label: '10 rapports', desc: 'inclus pour tester sur vos dossiers réels' },
               { label: 'Logo de votre cabinet', desc: 'sur les rapports dès la période pilote' },
               { label: 'Onboarding 30 minutes', desc: 'prise en main personnalisée en visio' },

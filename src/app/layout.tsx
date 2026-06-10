@@ -125,7 +125,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="border-t border-slate-800 pt-6 text-xs text-slate-600 flex flex-col md:flex-row justify-between gap-2">
               <p>Rendement Réel Immo fournit un outil de simulation et de documentation. Le professionnel reste responsable
                 de l&apos;analyse, de la connaissance client, de l&apos;adéquation de la recommandation et du respect de ses obligations réglementaires.</p>
-              <p className="shrink-0">© {new Date().getFullYear()} Rendement Réel Immo</p>
+              <p className="shrink-0">© {new Date().getFullYear()} Rendement Réel Immo — site v3 (2026-06-10)</p>
             </div>
           </div>
         </footer>

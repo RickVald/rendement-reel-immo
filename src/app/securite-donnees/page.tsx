@@ -53,9 +53,10 @@ export default function SecuriteDonneesPage() {
 
       <LegalSection title="Hébergement">
         <p>
-          Le site est hébergé chez : <ToComplete>nom de l'hébergeur (ex. Vercel)</ToComplete>, infrastructure
-          conforme aux standards de sécurité usuels du secteur (datacenters certifiés, sauvegardes,
-          surveillance).
+          Le site et l&apos;application sont hébergés chez Vercel Inc., infrastructure cloud reposant sur des
+          datacenters certifiés, avec chiffrement systématique en transit (HTTPS/TLS) et surveillance continue.
+          Les données du simulateur transitent par cette infrastructure sans y être stockées de façon
+          permanente (voir ci-dessus).
         </p>
       </LegalSection>
 

@@ -32,7 +32,7 @@ const REPORT_PAGES = [
   'Comparaison automatique des régimes et dispositifs fiscaux',
   'Audit d\'éligibilité fiscale par dispositif',
   'Projection cash-flow sur 15–30 ans',
-  'Fiscalité de la revente — LF 2025-2026 (amortissements réintégrés)',
+  'Fiscalité de la revente — référentiel fiscal 2025-2026 (amortissements réintégrés)',
   'Matrice de sensibilité & stress tests',
   'Audit de cohérence des données saisies',
 ]
@@ -194,7 +194,7 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-center md:justify-between gap-4 text-xs text-slate-400 font-medium">
             {[
               'Régimes + dispositifs fiscaux modélisés',
-              'Loi de finances 2025-2026 intégrée (amortissements réintégrés)',
+              'Référentiel fiscal 2025-2026 intégré et documenté',
               'DPE F/G — calendrier 2025-2034',
               'Rapport PDF professionnel personnalisable',
               'Moteur de calcul v3 · Juin 2026',
@@ -213,7 +213,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-200 rounded-2xl overflow-hidden">
             {[
-              { n: 'Jusqu\'à −40 %', label: 'Écart constaté sur nos simulations entre rendement brut affiché et rendement net-net réel, selon les hypothèses saisies' },
+              { n: 'Jusqu\'à −40 %', label: 'Écart constaté sur nos simulations entre rendement brut affiché et rendement net-net réel, selon les hypothèses saisies *' },
               { n: '15 min', label: 'Pour générer un rapport client complet — verdict, TRI, fiscalité et dispositifs' },
               { n: '9 étapes', label: 'De saisie guidée — bien, profil fiscal, dispositifs, audit d\'éligibilité, revente' },
             ].map((s) => (
@@ -223,6 +223,10 @@ export default function Home() {
               </div>
             ))}
           </div>
+          <p className="text-xs text-slate-400 leading-relaxed mt-4 max-w-2xl">
+            * Sur simulations internes bêta, selon hypothèses de charges, fiscalité, vacance, financement et travaux.
+            Ce chiffre ne constitue pas une moyenne de marché.
+          </p>
         </div>
       </section>
 

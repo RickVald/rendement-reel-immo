@@ -13,7 +13,7 @@ const PLANS = [
   {
     name: 'Starter',
     price: '149 €',
-    period: '/ mois',
+    period: 'HT / mois',
     desc: 'Pour démarrer avec des rapports clients réguliers.',
     features: [
       '10 rapports / mois',
@@ -28,7 +28,7 @@ const PLANS = [
   {
     name: 'Pro',
     price: '399 €',
-    period: '/ mois',
+    period: 'HT / mois',
     desc: 'Pour les cabinets avec un volume de dossiers soutenu.',
     features: [
       '50 rapports / mois',
@@ -43,10 +43,10 @@ const PLANS = [
   {
     name: 'Marque blanche',
     price: 'Sur devis',
-    period: 'dès 990 € / mois',
+    period: 'dès 990 € HT / mois',
     desc: 'Pour les réseaux, plateformes et cabinets qui veulent leur propre outil.',
     features: [
-      'Rapports illimités',
+      'Volume de rapports adapté au contrat',
       'Marque blanche complète (logo, couleurs, mentions)',
       'Multi-utilisateurs',
       'Intégration à vos outils (API)',
@@ -85,7 +85,7 @@ export default function TarifsPage() {
             <div>
               <p className="text-xs font-semibold text-[#C9A96E] uppercase tracking-widest mb-1">Offre pilote fondateur</p>
               <p className="text-[#0B1B2B] font-medium">
-                <strong>99 € / mois</strong> pendant 2 mois, puis <strong>299 € / mois</strong> si vous continuez.
+                <strong>99 € HT / mois</strong> pendant 2 mois, puis <strong>299 € HT / mois</strong> si vous continuez.
               </p>
             </div>
             <Link href="/professionnels#demo"

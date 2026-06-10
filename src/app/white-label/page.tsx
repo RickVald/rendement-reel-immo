@@ -102,7 +102,7 @@ export default function WhiteLabelPage() {
           style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
         <div className="relative max-w-2xl mx-auto px-6 text-center">
           <h2 className="font-playfair text-3xl md:text-4xl font-bold mb-4 leading-tight">
-            Marque blanche sur devis, à partir de 990 € / mois
+            Marque blanche sur devis, à partir de 990 € HT / mois
           </h2>
           <p className="text-slate-400 leading-relaxed mb-10">
             Chaque déploiement en marque blanche est configuré selon votre volume, votre identité visuelle
