@@ -1,14 +1,47 @@
 import Link from 'next/link'
 import { contacts, getOrganisation } from '@/lib/crm/mockData'
-import { CONTACT_TYPE_LABELS } from '@/lib/crm/types'
+import { CONTACT_TYPE_LABELS, type ContactType } from '@/lib/crm/types'
 
-export default function ContactsPage() {
+export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ type?: string; consentement?: string; statutEmail?: string }> }) {
+  const { type = '', consentement = '', statutEmail = '' } = await searchParams
+
+  const filtered = contacts.filter(c =>
+    (!type || c.type === type) &&
+    (!consentement || c.consentement === consentement) &&
+    (!statutEmail || c.statutEmail === statutEmail))
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Contacts</h1>
-        <p className="text-sm text-slate-500 mt-1">{contacts.length} contacts en base.</p>
+        <p className="text-sm text-slate-500 mt-1">{filtered.length} / {contacts.length} contacts.</p>
       </div>
+
+      {/* Filtres */}
+      <form className="flex flex-wrap gap-3" method="get">
+        <select name="type" defaultValue={type} className="text-sm rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <option value="">Tous les types</option>
+          {Object.entries(CONTACT_TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+        <select name="consentement" defaultValue={consentement} className="text-sm rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <option value="">Tous les consentements</option>
+          <option value="OPT_IN">Opt-in</option>
+          <option value="OPT_OUT">Opt-out</option>
+          <option value="INCONNU">Inconnu</option>
+        </select>
+        <select name="statutEmail" defaultValue={statutEmail} className="text-sm rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <option value="">Tous les statuts email</option>
+          <option value="VALIDE">Valide</option>
+          <option value="BOUNCE">Bounce</option>
+          <option value="OPT_OUT">Opt-out</option>
+        </select>
+        <button type="submit" className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#0B1B2B] text-white hover:bg-[#0B1B2B]/90 transition-colors">Filtrer</button>
+        {(type || consentement || statutEmail) && (
+          <Link href="/admin/crm/contacts" className="text-sm px-4 py-2 rounded-lg border border-slate-200 text-slate-500 hover:text-[#0B1B2B] transition-colors">Réinitialiser</Link>
+        )}
+      </form>
 
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
@@ -18,13 +51,13 @@ export default function ContactsPage() {
               <th className="px-4 py-3 font-semibold">Organisation</th>
               <th className="px-4 py-3 font-semibold">Type</th>
               <th className="px-4 py-3 font-semibold">Email</th>
-              <th className="px-4 py-3 font-semibold">Téléphone</th>
+              <th className="px-4 py-3 font-semibold">Séquence</th>
               <th className="px-4 py-3 font-semibold">Consentement</th>
               <th className="px-4 py-3 font-semibold">Statut email</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {contacts.map(c => {
+            {filtered.map(c => {
               const org = c.organisationId ? getOrganisation(c.organisationId) : undefined
               return (
                 <tr key={c.id} className="hover:bg-[#F8F7F4]/60 transition-colors">
@@ -36,10 +69,21 @@ export default function ContactsPage() {
                     {org ? <Link href={`/admin/crm/organisations/${org.id}`} className="hover:underline text-[#0B1B2B]">{org.nom}</Link> : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{CONTACT_TYPE_LABELS[c.type]}</span>
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 whitespace-nowrap">{CONTACT_TYPE_LABELS[c.type as ContactType]}</span>
                   </td>
                   <td className="px-4 py-3 text-slate-600">{c.email}</td>
-                  <td className="px-4 py-3 text-slate-600">{c.telephone ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">
+                    {c.sequence ? (
+                      <>
+                        <p>{c.sequence}</p>
+                        <p className="text-slate-400">
+                          {c.sequenceEtape ?? '—'}
+                          {c.sequenceStatut ? ` · ${c.sequenceStatut === 'EN_COURS' ? 'en cours' : c.sequenceStatut === 'EN_PAUSE' ? 'en pause' : c.sequenceStatut === 'STOPPEE' ? 'stoppée' : 'terminée'}` : ''}
+                          {c.prochaineRelance ? ` · prochaine relance ${new Date(c.prochaineRelance).toLocaleDateString('fr-FR')}` : ''}
+                        </p>
+                      </>
+                    ) : '—'}
+                  </td>
                   <td className="px-4 py-3">
                     {c.consentement === 'OPT_IN' && <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Opt-in</span>}
                     {c.consentement === 'OPT_OUT' && <span className="text-[11px] px-1.5 py-0.5 rounded bg-red-100 text-red-600">Opt-out</span>}
@@ -53,6 +97,9 @@ export default function ContactsPage() {
                 </tr>
               )
             })}
+            {filtered.length === 0 && (
+              <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-slate-400">Aucun contact ne correspond à ces filtres.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

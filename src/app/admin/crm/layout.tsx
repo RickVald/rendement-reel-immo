@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { GlobalSearch } from '@/components/crm/GlobalSearch'
 
 export const metadata = {
   title: 'CRM — Rendement Réel Immo',
@@ -6,14 +7,17 @@ export const metadata = {
 }
 
 const NAV = [
+  { href: '/admin/crm/aujourdhui', label: 'Aujourd\'hui', icon: '⚡' },
   { href: '/admin/crm', label: 'Vue CEO', icon: '◆' },
   { href: '/admin/crm/pipeline', label: 'Pipeline', icon: '▤' },
+  { href: '/admin/crm/leads-b2c', label: 'Leads B2C', icon: '⚲' },
   { href: '/admin/crm/organisations', label: 'Organisations', icon: '🏢' },
   { href: '/admin/crm/contacts', label: 'Contacts', icon: '◎' },
   { href: '/admin/crm/activites', label: 'Activités & tâches', icon: '✓' },
   { href: '/admin/crm/pilotes', label: 'Pilotes', icon: '★' },
   { href: '/admin/crm/campagnes', label: 'Campagnes', icon: '✉' },
   { href: '/admin/crm/objections', label: 'Objections', icon: '!' },
+  { href: '/admin/crm/transactions', label: 'Transactions', icon: '€' },
   { href: '/admin/crm/import', label: 'Import CSV', icon: '↓' },
   { href: '/admin/crm/parametres', label: 'Paramètres', icon: '⚙' },
 ]
@@ -51,6 +55,9 @@ export default function CrmLayout({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <main className="flex-1 min-w-0">
         <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="mb-6">
+            <GlobalSearch />
+          </div>
           {children}
         </div>
       </main>

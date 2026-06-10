@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { IcpBadge } from '@/components/crm/Badges'
+import { PrioriteBadge } from '@/components/crm/Badges'
 import { opportunites, getOrganisation } from '@/lib/crm/mockData'
 import { PIPELINE_STAGES } from '@/lib/crm/types'
 
@@ -45,7 +45,7 @@ export default function PipelinePage() {
                         <p className="text-[11px] text-red-500 mt-1.5">{o.raisonPerte}</p>
                       )}
                       <div className="mt-2">
-                        <IcpBadge score={o.scoreICP} />
+                        <PrioriteBadge icpFit={o.scoreICP} engagement={o.scoreEngagement} closing={o.scoreClosing} />
                       </div>
                     </Link>
                   )

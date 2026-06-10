@@ -1,4 +1,8 @@
-import { SEGMENT_LABELS, PIPELINE_STAGES, icpTier, type Segment, type PipelineStage } from '@/lib/crm/types'
+import {
+  SEGMENT_LABELS, PIPELINE_STAGES, icpTier, prioriteTier, computePrioriteCommerciale,
+  leadPrioriteTier, LEAD_B2C_STATUS_LABELS, LEAD_B2C_STATUS_COLORS,
+  type Segment, type PipelineStage, type LeadB2CStatus,
+} from '@/lib/crm/types'
 
 export function SegmentBadge({ segment }: { segment: Segment }) {
   return (
@@ -32,6 +36,43 @@ export function StageBadge({ stage }: { stage: PipelineStage }) {
 
 export function IcpBadge({ score }: { score: number }) {
   const tier = icpTier(score)
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${tier.color}`}>
+      {score} · {tier.label}
+    </span>
+  )
+}
+
+export function PrioriteBadge({ icpFit, engagement, closing }: { icpFit: number; engagement?: number; closing?: number }) {
+  const score = computePrioriteCommerciale(icpFit, engagement, closing)
+  const tier = prioriteTier(score)
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${tier.color}`} title={tier.action}>
+      {score} · {tier.label}
+    </span>
+  )
+}
+
+export function ScoreTriple({ icpFit, engagement, closing }: { icpFit: number; engagement?: number; closing?: number }) {
+  return (
+    <div className="flex items-center gap-3 text-xs text-slate-500">
+      <span title="ICP Fit : est-ce la bonne cible ?">ICP <strong className="text-[#0B1B2B]">{icpFit}</strong></span>
+      <span title="Engagement : a-t-il répondu, cliqué, booké ?">Engagement <strong className="text-[#0B1B2B]">{engagement ?? '—'}</strong></span>
+      <span title="Closing probability : va-t-il payer ?">Closing <strong className="text-[#0B1B2B]">{closing ?? '—'}</strong></span>
+    </div>
+  )
+}
+
+export function LeadStatusBadge({ statut }: { statut: LeadB2CStatus }) {
+  return (
+    <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${LEAD_B2C_STATUS_COLORS[statut]}`}>
+      {LEAD_B2C_STATUS_LABELS[statut]}
+    </span>
+  )
+}
+
+export function LeadPrioriteBadge({ score }: { score: number }) {
+  const tier = leadPrioriteTier(score)
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${tier.color}`}>
       {score} · {tier.label}

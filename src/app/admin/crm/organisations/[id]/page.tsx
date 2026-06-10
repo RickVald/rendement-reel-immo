@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { SegmentBadge, StageBadge, IcpBadge } from '@/components/crm/Badges'
+import { SegmentBadge, StageBadge, PrioriteBadge, ScoreTriple } from '@/components/crm/Badges'
 import {
   getOrganisation, getContactsByOrg, getOpportunitesByOrg, getActivitesByOrg, getPiloteByOrg,
 } from '@/lib/crm/mockData'
-import { ACTIVITE_TYPE_LABELS, CONTACT_TYPE_LABELS, PILOTE_STATUT_LABELS } from '@/lib/crm/types'
+import { ACTIVITE_TYPE_LABELS, CONTACT_TYPE_LABELS, PILOTE_STATUT_LABELS, BESOIN_LABELS } from '@/lib/crm/types'
 
 export default async function OrganisationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -57,13 +57,36 @@ export default async function OrganisationDetailPage({ params }: { params: Promi
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <StageBadge stage={o.etape} />
-                      <IcpBadge score={o.scoreICP} />
+                      <PrioriteBadge icpFit={o.scoreICP} engagement={o.scoreEngagement} closing={o.scoreClosing} />
                     </div>
+                  </div>
+                  <div className="mt-2">
+                    <ScoreTriple icpFit={o.scoreICP} engagement={o.scoreEngagement} closing={o.scoreClosing} />
                   </div>
                 </li>
               ))}
               {opportunites.length === 0 && <li className="px-5 py-4 text-sm text-slate-400">Aucune opportunité.</li>}
             </ul>
+          </div>
+
+          {/* Actions rapides */}
+          <div className="bg-white border border-slate-200 rounded-xl">
+            <div className="px-5 py-3 border-b border-slate-200">
+              <h2 className="font-bold text-sm text-[#0B1B2B]">Actions rapides</h2>
+            </div>
+            <div className="px-5 py-4 flex flex-wrap gap-2">
+              {['Envoyer un email', 'Créer une tâche', 'Noter un appel', 'Programmer une relance', 'Étape suivante', 'Créer un pilote', 'Convertir en abonnement', 'Marquer perdu', 'Enregistrer une objection', 'Associer un lead B2C'].map(label => (
+                <button
+                  key={label}
+                  type="button"
+                  disabled
+                  title="Disponible une fois la base de données connectée"
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Activités */}
@@ -129,6 +152,23 @@ export default async function OrganisationDetailPage({ params }: { params: Promi
                 </p>
                 <p className="text-slate-700">Période : {new Date(pilote.dateDebut).toLocaleDateString('fr-FR')} → {new Date(pilote.dateFin).toLocaleDateString('fr-FR')}</p>
                 {pilote.feedback && <p className="text-xs text-slate-500 mt-2 italic">&laquo; {pilote.feedback} &raquo;</p>}
+              </div>
+            </div>
+          )}
+
+          {/* Partenaire leads B2C */}
+          {org.partenaireLeads && (
+            <div className="bg-white border border-slate-200 rounded-xl">
+              <div className="px-5 py-3 border-b border-slate-200">
+                <h2 className="font-bold text-sm text-[#0B1B2B]">Partenaire leads B2C</h2>
+              </div>
+              <div className="px-5 py-3 space-y-1.5 text-sm text-slate-700">
+                {org.zonesCouvertes && <p>Zones couvertes : {org.zonesCouvertes.join(', ')}</p>}
+                {org.metiersLeads && <p>Métiers : {org.metiersLeads.map(m => BESOIN_LABELS[m]).join(', ')}</p>}
+                {org.niveauAbonnement && <p>Niveau d&apos;abonnement : {org.niveauAbonnement}</p>}
+                {org.prixLead !== undefined && <p>Prix du lead : {org.prixLead} €{org.exclusiviteLeads ? ' (exclusif)' : ''}</p>}
+                {org.tauxConversionLeads !== undefined && <p>Taux de conversion historique : {org.tauxConversionLeads}%</p>}
+                {org.delaiReponseHeures !== undefined && <p>Délai de réponse moyen : ~{org.delaiReponseHeures}h</p>}
               </div>
             </div>
           )}

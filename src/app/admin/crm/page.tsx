@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Card, StageBadge, SegmentBadge } from '@/components/crm/Badges'
-import { organisations, opportunites, activites, pilotes, abonnements, objections, getOrganisation } from '@/lib/crm/mockData'
+import { organisations, opportunites, activites, pilotes, abonnements, objections, leadsB2C, getOrganisation } from '@/lib/crm/mockData'
+import { getAlerts } from '@/lib/crm/alerts'
 
 export default function CrmDashboardPage() {
   const mrrActuel = abonnements.filter(a => a.statut === 'ACTIF').reduce((s, a) => s + a.mrr, 0)
@@ -25,6 +26,12 @@ export default function CrmDashboardPage() {
   const conversions = abonnements.length
   const tauxConversion = pilotesTermines > 0 ? Math.round((conversions / pilotesTermines) * 100) : 0
 
+  // Leads B2C
+  const leadsChauds = leadsB2C.filter(l => l.scoreLead >= 60 && !['VENDU', 'REFUSE', 'EXPIRE'].includes(l.statut))
+  const valeurPipelineLeads = leadsB2C.filter(l => !['VENDU', 'REFUSE', 'EXPIRE'].includes(l.statut)).reduce((s, l) => s + l.valeurPotentielle, 0)
+
+  const alerts = getAlerts()
+
   return (
     <div className="space-y-8">
       <div>
@@ -32,12 +39,27 @@ export default function CrmDashboardPage() {
         <p className="text-sm text-slate-500 mt-1">Pilotage commercial — données d&apos;exemple (mock).</p>
       </div>
 
+      {alerts.length > 0 && (
+        <Link href="/admin/crm/aujourdhui" className="block bg-[#0B1B2B] text-white rounded-xl px-5 py-3 hover:bg-[#0B1B2B]/90 transition-colors">
+          <p className="text-sm font-semibold">⚡ {alerts.length} alerte(s) à traiter aujourd&apos;hui</p>
+          <p className="text-xs text-slate-300 mt-0.5">{alerts[0].titre} {alerts.length > 1 ? `+ ${alerts.length - 1} autre(s)` : ''} — voir la page Aujourd&apos;hui →</p>
+        </Link>
+      )}
+
       {/* KPIs */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card title="MRR actuel" value={`${mrrActuel.toLocaleString('fr-FR')} €`} sub={`${abonnements.length} abonnement(s) actif(s)`} />
         <Card title="MRR pipeline pondéré" value={`${Math.round(mrrPipeline).toLocaleString('fr-FR')} €`} sub={`${opportunites.filter(o => o.etape !== 'PERDU' && o.etape !== 'ABONNEMENT').length} opportunités ouvertes`} />
         <Card title="Pilotes actifs" value={`${pilotesActifs.length}`} sub="voir échéances ci-dessous" />
         <Card title="Conversion pilote → abonnement" value={`${tauxConversion} %`} sub={`${conversions} / ${pilotesTermines} pilotes`} />
+      </div>
+
+      {/* KPIs B2C */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card title="Leads B2C en cours" value={`${leadsB2C.filter(l => !['VENDU', 'REFUSE', 'EXPIRE'].includes(l.statut)).length}`} sub={`${leadsChauds.length} chaud(s) (score ≥ 60)`} />
+        <Card title="Valeur pipeline leads" value={`${valeurPipelineLeads.toLocaleString('fr-FR')} €`} sub="prix de revente estimé" />
+        <Card title="Rapports générés (pilotes)" value={`${pilotes.reduce((s, p) => s + p.rapportsGeneres, 0)}`} sub="cumul sur les pilotes en cours" />
+        <Card title="Top objection" value={objections[0]?.categorie ?? '—'} sub={`${objections.filter(o => o.statut === 'ouverte').length} sans réponse validée`} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
