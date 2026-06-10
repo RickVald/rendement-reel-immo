@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import {
-  createTaskAction, logActivityAction, scheduleFollowupAction, advanceStageAction, markLostAction, addObjectionAction,
+  createOpportuniteAction, createTaskAction, logActivityAction, scheduleFollowupAction, advanceStageAction, markLostAction, addObjectionAction,
   type ActionState,
 } from './actions'
 import { ACTIVITE_TYPE_LABELS, PIPELINE_STAGES, type PipelineStage } from '@/lib/crm/types'
@@ -42,6 +42,7 @@ function OppSelect({ opportunites, name = 'opportuniteId', required = false }: {
 }
 
 const ACTIONS = [
+  { id: 'opportunite', label: 'Nouvelle opportunité' },
   { id: 'task', label: 'Créer une tâche' },
   { id: 'activity', label: 'Noter une activité' },
   { id: 'followup', label: 'Programmer une relance' },
@@ -55,6 +56,7 @@ export function QuickActions({ organisationId, opportunites }: { organisationId:
   const advanceable = opportunites.filter(o => o.etape !== 'PERDU' && o.etape !== PIPELINE_STAGES[PIPELINE_STAGES.length - 2].id)
   const losable = opportunites.filter(o => o.etape !== 'PERDU')
 
+  const [oppState, oppAction, oppPending] = useActionState(createOpportuniteAction, initialState)
   const [taskState, taskAction, taskPending] = useActionState(createTaskAction, initialState)
   const [activityState, activityAction, activityPending] = useActionState(logActivityAction, initialState)
   const [followupState, followupAction, followupPending] = useActionState(scheduleFollowupAction, initialState)
@@ -80,6 +82,30 @@ export function QuickActions({ organisationId, opportunites }: { organisationId:
           </button>
         ))}
       </div>
+
+      {open === 'opportunite' && (
+        <form action={oppAction} className="rounded-lg border border-slate-200 p-4 space-y-3">
+          <input type="hidden" name="organisationId" value={organisationId} />
+          <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Offre</label>
+              <input name="offre" required className="w-full text-sm rounded-lg border border-slate-200 px-3 py-2" placeholder="Ex : Abonnement SaaS" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Montant (€, optionnel)</label>
+              <input type="number" name="montant" min={0} className="text-sm rounded-lg border border-slate-200 px-3 py-2" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">Score ICP (0-100)</label>
+              <input type="number" name="scoreICP" min={0} max={100} defaultValue={50} className="text-sm rounded-lg border border-slate-200 px-3 py-2 w-24" />
+            </div>
+          </div>
+          <button type="submit" disabled={oppPending} className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#0B1B2B] text-white hover:bg-[#0B1B2B]/90 transition-colors disabled:opacity-50">
+            {oppPending ? '...' : 'Créer l\'opportunité'}
+          </button>
+          <FormFeedback state={oppState} />
+        </form>
+      )}
 
       {open === 'task' && (
         <form action={taskAction} className="rounded-lg border border-slate-200 p-4 space-y-3">

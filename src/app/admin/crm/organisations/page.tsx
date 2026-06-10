@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { SegmentBadge, StageBadge, PrioriteBadge } from '@/components/crm/Badges'
 import { getOrganisations, getOpportunites } from '@/lib/crm/data'
 import { SEGMENT_LABELS, type Segment } from '@/lib/crm/types'
+import { NewOrganisationForm } from './NewOrganisationForm'
 
 export default async function OrganisationsPage({ searchParams }: { searchParams: Promise<{ segment?: string; ville?: string }> }) {
   const { segment = '', ville = '' } = await searchParams
@@ -15,9 +16,12 @@ export default async function OrganisationsPage({ searchParams }: { searchParams
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Organisations</h1>
-        <p className="text-sm text-slate-500 mt-1">{filtered.length} / {organisations.length} organisations.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Organisations</h1>
+          <p className="text-sm text-slate-500 mt-1">{filtered.length} / {organisations.length} organisations.</p>
+        </div>
+        <NewOrganisationForm />
       </div>
 
       {/* Filtres */}

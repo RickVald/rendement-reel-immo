@@ -25,6 +25,38 @@ function revalidateAll(orgId: string) {
   revalidatePath('/admin/crm')
 }
 
+/** Crée une nouvelle opportunité pour l'organisation. */
+export async function createOpportuniteAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requireEditor()
+  if ('error' in auth) return { error: auth.error }
+
+  const organisationId = String(formData.get('organisationId') ?? '')
+  const offre = String(formData.get('offre') ?? '').trim()
+  const montantStr = String(formData.get('montant') ?? '').trim()
+  const scoreICPStr = String(formData.get('scoreICP') ?? '').trim()
+
+  if (!offre) return { error: 'Décris l\'offre proposée.' }
+
+  const montant = montantStr ? Number(montantStr) : undefined
+  if (montantStr && (Number.isNaN(montant) || montant! < 0)) return { error: 'Montant invalide.' }
+
+  const scoreICP = scoreICPStr ? Number(scoreICPStr) : 50
+  if (Number.isNaN(scoreICP) || scoreICP < 0 || scoreICP > 100) return { error: 'Score ICP invalide (0-100).' }
+
+  await prisma.opportunite.create({
+    data: {
+      organisationId,
+      offre,
+      montant,
+      etape: 'PROSPECT_IDENTIFIE',
+      scoreICP,
+    },
+  })
+
+  revalidateAll(organisationId)
+  return { success: 'Opportunité créée.' }
+}
+
 /** Crée une tâche à faire, liée à l'organisation (et éventuellement une opportunité). */
 export async function createTaskAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireEditor()

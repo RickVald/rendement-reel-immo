@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getContacts, getOrganisations } from '@/lib/crm/data'
 import { CONTACT_TYPE_LABELS, type ContactType } from '@/lib/crm/types'
+import { NewContactForm } from './NewContactForm'
 
 export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ type?: string; consentement?: string; statutEmail?: string }> }) {
   const { type = '', consentement = '', statutEmail = '' } = await searchParams
@@ -15,9 +16,12 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Contacts</h1>
-        <p className="text-sm text-slate-500 mt-1">{filtered.length} / {contacts.length} contacts.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Contacts</h1>
+          <p className="text-sm text-slate-500 mt-1">{filtered.length} / {contacts.length} contacts.</p>
+        </div>
+        <NewContactForm organisations={organisations.map(o => ({ id: o.id, nom: o.nom }))} />
       </div>
 
       {/* Filtres */}
