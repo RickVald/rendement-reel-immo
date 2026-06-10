@@ -52,10 +52,10 @@ function LogoMark({ light = false }: { light?: boolean }) {
       </svg>
       {/* Wordmark */}
       <div className="leading-none">
-        <div className={`text-sm font-bold tracking-tight ${light ? 'text-white' : 'text-[#0B1B2B]'}`}>
+        <div className={`text-sm font-bold tracking-tight whitespace-nowrap ${light ? 'text-white' : 'text-[#0B1B2B]'}`}>
           Rendement Réel<span style={{ color: gold }}> Immo</span>
         </div>
-        <div className="text-[9px] tracking-[0.18em] uppercase mt-0.5 font-medium" style={{ color: sub }}>
+        <div className="hidden sm:block text-[9px] tracking-[0.18em] uppercase mt-0.5 font-medium whitespace-nowrap" style={{ color: sub }}>
           Outil de simulation pro
         </div>
       </div>
@@ -70,8 +70,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* HEADER */}
         <header className="sticky top-0 z-50 bg-white/98 backdrop-blur-sm border-b border-slate-100 shadow-[0_1px_0_0_rgba(0,0,0,0.04)]">
-          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
-            <Link href="/"><LogoMark /></Link>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
+            <Link href="/" className="shrink-0"><LogoMark /></Link>
             <nav className="hidden md:flex items-center gap-0.5">
               {NAV_LINKS.map((l) => (
                 <Link key={l.href} href={l.href}
@@ -81,8 +81,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               ))}
             </nav>
             <Link href="/professionnels#demo"
-              className="bg-[#C9A96E] hover:bg-[#b8966a] text-[#0B1B2B] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
-              Demander une démo pro →
+              className="shrink-0 bg-[#C9A96E] hover:bg-[#b8966a] text-[#0B1B2B] text-xs sm:text-sm font-bold px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+              <span className="sm:hidden">Démo pro →</span>
+              <span className="hidden sm:inline">Demander une démo pro →</span>
             </Link>
           </div>
         </header>
