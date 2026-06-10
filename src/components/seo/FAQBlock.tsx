@@ -1,8 +1,8 @@
 import { FaqJsonLd, type FaqItem } from './JsonLd'
 
-export function FAQBlock({ items }: { items: FaqItem[] }) {
+export function FAQBlock({ items, id }: { items: FaqItem[]; id?: string }) {
   return (
-    <section className="py-12 md:py-16 border-t border-slate-200">
+    <section id={id} className="py-12 md:py-16 border-t border-slate-200 scroll-mt-24">
       <div className="max-w-3xl mx-auto px-6">
         <FaqJsonLd items={items} />
         <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Questions fréquentes</p>
