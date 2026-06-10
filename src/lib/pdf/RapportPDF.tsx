@@ -2649,13 +2649,13 @@ export function RapportPDF({
               </View>
               <View style={[S.card, { marginBottom: 8 }]}>
                 <Text style={S.cardTitle}>TRI (Taux de Rendement Interne)</Text>
-                <Text style={S.listText}>
+                <Text style={S.cardText}>
                   Méthode de bissection sur les flux annuels (cash-flows + produit net de revente). Taux qui annule la VAN. Investissement initial = coût total − emprunt. Fiscalité de plus-value intégrée (abattements progressifs, exonération IR an 22 / PS an 30).
                 </Text>
               </View>
               <View style={S.card}>
                 <Text style={S.cardTitle}>VAN (Valeur Actuelle Nette)</Text>
-                <Text style={S.listText}>
+                <Text style={S.cardText}>
                   {`Flux actualisés au taux de référence (${pct(input.revente.tauxActualisation)}). VAN > 0 : l'investissement crée de la valeur vs. le placement alternatif.`}
                 </Text>
               </View>
@@ -2663,14 +2663,14 @@ export function RapportPDF({
             <View style={S.col}>
               <View style={[S.card, { marginBottom: 8 }]}>
                 <Text style={S.cardTitle}>Cash-flow &amp; Effort d'épargne</Text>
-                <Text style={S.listText}>
+                <Text style={S.cardText}>
                   Cash-flow annuel = Loyers encaissés - Charges - Travaux - Mensualités crédit - Impôts.
                   Effort d'épargne = |cash-flow mensuel négatif moyen|. Exprime le montant réel à sortir de poche chaque mois.
                 </Text>
               </View>
               <View style={[S.card, { marginBottom: 8 }]}>
                 <Text style={S.cardTitle}>Prix cible de simulation</Text>
-                <Text style={S.listText}>
+                <Text style={S.cardText}>
                   {`Recherche dichotomique (précision 100 €) sur le prix d'achat — convergence vers l'objectif "${prixMax.objectifCible}". Le moteur recalcule la simulation à chaque itération.`}
                 </Text>
               </View>
