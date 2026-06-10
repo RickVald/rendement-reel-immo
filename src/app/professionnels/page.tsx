@@ -66,6 +66,10 @@ export default function ProfessionnelsPage() {
               Voir le simulateur
             </Link>
           </div>
+          <Link href="/exemple-rapport"
+            className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mt-6 transition-colors">
+            Voir un rapport exemple <IconArrow />
+          </Link>
         </div>
       </section>
 
@@ -113,6 +117,12 @@ export default function ProfessionnelsPage() {
               </div>
               <p className="text-sm text-slate-500 mt-4">La réalité financière, chiffrée et documentée.</p>
             </div>
+          </div>
+          <div className="text-center mt-10">
+            <Link href="/exemple-rapport"
+              className="inline-flex items-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+              Voir le rapport complet de cet exemple <IconArrow />
+            </Link>
           </div>
         </div>
       </section>

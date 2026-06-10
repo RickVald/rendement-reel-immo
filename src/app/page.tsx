@@ -158,6 +158,11 @@ export default function Home() {
                 </Link>
               </div>
 
+              <Link href="/exemple-rapport"
+                className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mb-8 transition-colors">
+                Voir un rapport exemple <IconArrow />
+              </Link>
+
               {/* Trust micro-signals */}
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {[
@@ -331,6 +336,10 @@ export default function Home() {
                   className="inline-flex items-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
                   Tester le simulateur
                 </Link>
+                <Link href="/exemple-rapport"
+                  className="inline-flex items-center gap-2 text-[#0B1B2B] font-semibold px-2 py-3.5 transition-colors text-sm underline decoration-[#C9A96E] decoration-2 underline-offset-4">
+                  Voir un rapport exemple
+                </Link>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-7 border border-slate-200 shadow-sm">
@@ -458,6 +467,10 @@ export default function Home() {
               Tester le simulateur
             </Link>
           </div>
+          <Link href="/exemple-rapport"
+            className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mt-6 transition-colors">
+            Voir un rapport exemple <IconArrow />
+          </Link>
           <p className="text-slate-600 text-xs mt-8 max-w-lg mx-auto leading-relaxed">
             Les résultats sont des simulations indicatives basées sur les données saisies. Ils ne constituent pas
             un conseil en investissement ni un conseil fiscal personnalisé.

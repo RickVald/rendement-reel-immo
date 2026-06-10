@@ -1,8 +1,10 @@
 import { StyleSheet } from '@react-pdf/renderer'
 
 export const COLORS = {
-  navy:        '#0F1B2D',
-  navyLight:   '#1a2d47',
+  navy:        '#0B1B2B',
+  navyLight:   '#16283d',
+  gold:        '#C9A96E',
+  goldDark:    '#b8966a',
   emerald:     '#10b981',
   emeraldDark: '#059669',
   red:         '#ef4444',
@@ -50,7 +52,7 @@ export const S = StyleSheet.create({
   },
   coverBrand: {
     fontSize: 8,
-    color: COLORS.amber,
+    color: COLORS.gold,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 32,
@@ -64,7 +66,7 @@ export const S = StyleSheet.create({
   },
   coverSubtitle: {
     fontSize: 13,
-    color: COLORS.emerald,
+    color: COLORS.gold,
     fontFamily: 'Arial',
     marginBottom: 32,
   },
@@ -122,7 +124,7 @@ export const S = StyleSheet.create({
   },
   pageHeaderTitle: {
     fontSize: 9,
-    color: COLORS.emerald,
+    color: COLORS.gold,
     fontFamily: 'Arial',
     letterSpacing: 1,
     textTransform: 'uppercase',
@@ -164,7 +166,7 @@ export const S = StyleSheet.create({
     marginBottom: 10,
     paddingBottom: 6,
     borderBottomWidth: 2,
-    borderBottomColor: COLORS.emerald,
+    borderBottomColor: COLORS.gold,
   },
   subTitle: {
     fontSize: 9,

@@ -56,6 +56,10 @@ export default function WhiteLabelPage() {
               Voir les tarifs
             </Link>
           </div>
+          <Link href="/exemple-rapport"
+            className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mt-6 transition-colors">
+            Voir un rapport exemple <IconArrow />
+          </Link>
         </div>
       </section>
 
