@@ -14,31 +14,43 @@ const IconShield = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="n
 /* ── Data ────────────────────────────────────────────────────────────── */
 const FEATURES = [
   { Icon: IconChart, title: 'Brut · Net · Net-net', desc: 'Les trois rendements calculés avec précision — après charges, vacance, travaux et fiscalité réelle.' },
-  { Icon: IconCash, title: 'Cash-flow mensuel réel', desc: "Ce que vous sortez de poche chaque mois, crédit inclus. Projection sur toute la durée de détention." },
+  { Icon: IconCash, title: 'Cash-flow mensuel réel', desc: "Ce que le client sort de poche chaque mois, crédit inclus. Projection sur toute la durée de détention." },
   { Icon: IconTRI, title: 'TRI & VAN comparatifs', desc: "Comparez objectivement avec un placement financier. Même méthodologie que les analystes de fonds." },
-  { Icon: IconTarget, title: 'Prix cible de négociation', desc: "Quel prix d'achat maximum pour atteindre votre objectif ? Calculé à 100 € près par dichotomie." },
+  { Icon: IconTarget, title: 'Prix cible de négociation', desc: "Quel prix d'achat maximum pour atteindre l'objectif ? Calculé à 100 € près par dichotomie." },
   { Icon: IconAlert, title: 'Alerte DPE intégrée', desc: "Gel des loyers F/G, interdictions 2025-2034. Impact chiffré sur la rentabilité et la valeur de revente." },
   { Icon: IconAI, title: 'Interprétation IA', desc: "Analyse automatique : points forts, risques, conseils de négociation. En langage clair, pas en tableau." },
 ]
 
 const REGIMES = ['Micro-foncier', 'Réel foncier', 'LMNP micro-BIC', 'LMNP réel', 'SCI IR', 'SCI IS']
 
+const DISPOSITIFS = ['Denormandie', 'Déficit foncier renforcé', 'Loc\'Avantages', 'Relance logement (LF 2026)', 'Malraux', 'Monuments historiques']
+
 const REPORT_PAGES = [
   'Verdict investisseur — go / no-go motivé',
   'Promesse commerciale vs réalité financière',
   'Score de robustesse et décomposition du rendement',
-  'Comparaison automatique des 6 régimes fiscaux',
+  'Comparaison automatique des régimes et dispositifs fiscaux',
+  'Audit d\'éligibilité fiscale par dispositif',
   'Projection cash-flow sur 15–30 ans',
-  'Fiscalité de la revente — LF 2025 (amortissements réintégrés)',
+  'Fiscalité de la revente — LF 2025-2026 (amortissements réintégrés)',
   'Matrice de sensibilité & stress tests',
   'Audit de cohérence des données saisies',
 ]
 
 const PRO_USAGES = [
-  { title: 'Conseillers en gestion de patrimoine', desc: 'Intégrez le rapport PDF dans vos livrables clients. Marque blanche disponible.' },
-  { title: 'Chasseurs immobiliers', desc: 'Argumentez chaque offre avec un dossier financier complet. Prix cible calculé à 100 € près.' },
-  { title: 'Agents immobiliers', desc: 'Différenciez-vous avec une analyse indépendante plutôt qu\'un simulateur vendeur.' },
-  { title: 'Investisseurs avertis', desc: 'Comparez plusieurs projets sur des critères identiques. Décision factuelle, pas intuitive.' },
+  { title: 'Conseillers en gestion de patrimoine', desc: "Documentez les arbitrages immobiliers de vos clients sans refaire un Excel pendant 2 heures." },
+  { title: 'Chasseurs immobiliers', desc: 'Justifiez pourquoi un bien mérite une offre — ou doit être écarté. Prix cible calculé à 100 € près.' },
+  { title: 'Courtiers en financement', desc: "Montrez l'effort d'épargne réel et la soutenabilité du projet face au reste à vivre." },
+  { title: 'Cabinets / experts-comptables LMNP', desc: 'Objectivez les régimes et hypothèses fiscales, évitez les promesses commerciales dangereuses.' },
+]
+
+const SIMULATEUR_HIGHLIGHTS = [
+  { title: '9 étapes guidées', desc: 'Bien, profil fiscal, acquisition, financement, location, charges, travaux, fiscalité, revente.' },
+  { title: 'Dispositifs fiscaux avancés', desc: "Denormandie, déficit foncier renforcé, Loc'Avantages, Relance logement, Malraux, Monuments historiques." },
+  { title: "Audit d'éligibilité automatique", desc: "Chaque dispositif est vérifié condition par condition : éligible, à vérifier, ou non applicable." },
+  { title: 'Mode prudent / indicatif', desc: "L'avantage fiscal n'est intégré au TRI/VAN que s'il est confirmé — ou affiché « sous réserve » en mode indicatif." },
+  { title: 'Marque blanche', desc: 'Logo, coordonnées et couleurs du cabinet sur le rapport PDF remis au client.' },
+  { title: 'Comparaison multicritère', desc: 'Comparaison automatique des régimes fiscaux pour identifier le plus avantageux.' },
 ]
 
 /* ── Composant : mini-rapport (visuel hero droite) ───────────────────── */
@@ -87,14 +99,14 @@ function MiniReport() {
 
         {/* Pied de carte */}
         <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[10px] text-slate-400">17 pages · PDF exportable</span>
+          <span className="text-[10px] text-slate-400">Rapport PDF · personnalisable</span>
           <span className="text-[10px] text-[#C9A96E] font-semibold">Rendement Réel Immo</span>
         </div>
       </div>
 
       {/* Badge flottant */}
       <div className="absolute -top-3 -right-3 bg-[#C9A96E] text-[#0B1B2B] text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg">
-        Rapport PDF inclus
+        Marque blanche disponible
       </div>
     </div>
   )
@@ -121,39 +133,38 @@ export default function Home() {
             <div>
               <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-8">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]"/>
-                <span className="text-xs text-slate-300 tracking-wide">Analyse financière indépendante · Référentiel fiscal 2025</span>
+                <span className="text-xs text-slate-300 tracking-wide">Outil pro · Référentiel fiscal 2025–2026</span>
               </div>
 
               <h1 className="font-playfair text-4xl md:text-5xl lg:text-[3.25rem] leading-[1.1] font-bold mb-6">
-                Votre investissement locatif<br />
-                <em className="text-slate-400 not-italic">est-il vraiment rentable ?</em>
+                Générez des rapports d&apos;arbitrage<br />
+                <em className="text-slate-400 not-italic">immobilier en marque blanche</em>
               </h1>
 
               <p className="text-slate-400 text-lg leading-relaxed mb-8 max-w-lg">
-                Transformez une promesse de{' '}
-                <span className="text-white font-semibold">4 % brut</span>{' '}
-                en vérité financière — rendement net-net, cash-flow réel, TRI, fiscalité sur 6 régimes.
-                Verdict clair en 15 minutes.
+                Analysez un projet locatif en quelques minutes : rendement réel, cash-flow, TRI, VAN, fiscalité,
+                revente, dispositifs fiscaux, stress tests et prix cible. Un rapport professionnel prêt
+                à remettre à vos clients investisseurs.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <Link href="/simulateur"
+                <Link href="/professionnels#demo"
                   className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
-                  Analyser mon projet <IconArrow />
+                  Demander une démo pro <IconArrow />
                 </Link>
-                <Link href="#methode"
+                <Link href="/simulateur"
                   className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-400 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
-                  Voir la méthode
+                  Tester le simulateur
                 </Link>
               </div>
 
               {/* Trust micro-signals */}
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {[
-                  'Gratuit · sans inscription',
-                  'Conforme LF 2025',
-                  '6 régimes fiscaux',
-                  'Rapport PDF inclus',
+                  'Conforme LF 2025-2026',
+                  'Régimes + dispositifs fiscaux',
+                  'Audit d\'éligibilité automatique',
+                  'Marque blanche disponible',
                 ].map((t) => (
                   <div key={t} className="flex items-center gap-1.5 text-xs text-slate-500">
                     <IconShield />
@@ -177,11 +188,11 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-wrap items-center justify-center md:justify-between gap-4 text-xs text-slate-400 font-medium">
             {[
-              '6 régimes fiscaux modélisés',
-              'Loi de finances 2025 intégrée (amortissements réintégrés)',
+              'Régimes + dispositifs fiscaux modélisés',
+              'Loi de finances 2025-2026 intégrée (amortissements réintégrés)',
               'DPE F/G — calendrier 2025-2034',
-              'Rapport PDF 17 pages exportable',
-              'Moteur de calcul v2.0 · Juin 2026',
+              'Rapport PDF professionnel personnalisable',
+              'Moteur de calcul v3 · Juin 2026',
             ].map((t, i) => (
               <div key={i} className="flex items-center gap-2">
                 {i > 0 && <span className="hidden md:block w-px h-3 bg-slate-300"/>}
@@ -198,8 +209,8 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-200 rounded-2xl overflow-hidden">
             {[
               { n: '−40 %', label: 'Écart moyen entre rendement brut affiché et rendement net-net réel constaté' },
-              { n: '15 min', label: 'Pour une analyse financière complète sur 15 ans — avec verdict, TRI et rapport PDF' },
-              { n: '17 pages', label: 'De rapport PDF structuré — audit, sensibilité, fiscalité, méthode détaillée' },
+              { n: '15 min', label: 'Pour générer un rapport client complet — verdict, TRI, fiscalité et dispositifs' },
+              { n: '9 étapes', label: 'De saisie guidée — bien, profil fiscal, dispositifs, audit d\'éligibilité, revente' },
             ].map((s) => (
               <div key={s.n} className="bg-white px-8 py-10">
                 <div className="font-playfair text-5xl font-bold text-[#0B1B2B] mb-3">{s.n}</div>
@@ -305,19 +316,25 @@ export default function Home() {
             <div>
               <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Rapport PDF exportable</p>
               <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-6 leading-tight">
-                Un livrable professionnel,<br />prêt à partager
+                Un livrable professionnel,<br />prêt à remettre au client
               </h2>
               <p className="text-slate-500 leading-relaxed mb-8">
-                Chaque simulation génère un rapport PDF de 17 pages structuré pour être remis à un client,
-                présenté en réunion ou archivé dans un dossier patrimonial.
+                Chaque simulation génère un rapport PDF structuré, personnalisable à vos couleurs,
+                pour être remis à un client, présenté en rendez-vous ou archivé dans un dossier patrimonial.
               </p>
-              <Link href="/simulateur"
-                className="inline-flex items-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
-                Générer mon rapport <IconArrow />
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/professionnels#demo"
+                  className="inline-flex items-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                  Demander une démo pro <IconArrow />
+                </Link>
+                <Link href="/simulateur"
+                  className="inline-flex items-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                  Tester le simulateur
+                </Link>
+              </div>
             </div>
             <div className="bg-white rounded-2xl p-7 border border-slate-200 shadow-sm">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Contenu du rapport — 17 pages</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Contenu du rapport</p>
               <ul className="space-y-3">
                 {REPORT_PAGES.map((page, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm">
@@ -331,11 +348,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── RÉGIMES ──────────────────────────────────────────────────── */}
-      <section className="py-10">
+      {/* ── RÉGIMES & DISPOSITIFS ────────────────────────────────────── */}
+      <section className="py-10 space-y-5">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-center gap-5">
-            <p className="text-slate-400 text-xs uppercase tracking-widest font-mono shrink-0">6 régimes modélisés</p>
+            <p className="text-slate-400 text-xs uppercase tracking-widest font-mono shrink-0">Régimes modélisés</p>
             <div className="hidden md:block w-px h-5 bg-slate-200"/>
             <div className="flex flex-wrap gap-2">
               {REGIMES.map((r) => (
@@ -346,6 +363,45 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-5">
+            <p className="text-slate-400 text-xs uppercase tracking-widest font-mono shrink-0">Dispositifs fiscaux</p>
+            <div className="hidden md:block w-px h-5 bg-slate-200"/>
+            <div className="flex flex-wrap gap-2">
+              {DISPOSITIFS.map((d) => (
+                <span key={d} className="bg-[#0B1B2B]/[0.03] border border-[#C9A96E]/30 rounded-lg px-4 py-2 text-sm font-medium text-[#0B1B2B]">
+                  {d}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── LE SIMULATEUR V3 ─────────────────────────────────────────── */}
+      <section className="py-20 md:py-28 border-t border-slate-200">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="mb-14 max-w-2xl">
+            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le simulateur</p>
+            <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-4 leading-tight">
+              Un moteur d&apos;audit complet,<br />pas un simple calculateur
+            </h2>
+            <p className="text-slate-500 leading-relaxed">
+              Le parcours de saisie couvre désormais le profil fiscal, les principaux dispositifs, l&apos;audit
+              d&apos;éligibilité par condition et deux modes de simulation (prudent / indicatif) pour rester
+              transparent sur ce qui est intégré au calcul.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {SIMULATEUR_HIGHLIGHTS.map((h) => (
+              <div key={h.title}
+                className="p-6 rounded-xl border border-slate-200 bg-[#F8F7F4]">
+                <h3 className="font-semibold text-[#0B1B2B] mb-2 text-sm">{h.title}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{h.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── POUR LES PROFESSIONNELS ──────────────────────────────────── */}
@@ -354,7 +410,7 @@ export default function Home() {
           <div className="mb-14">
             <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Usage professionnel</p>
             <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] max-w-xl leading-tight">
-              Pour les professionnels<br />du patrimoine et de l'immobilier
+              Pour les professionnels<br />du patrimoine et de l&apos;immobilier
             </h2>
           </div>
           <div className="grid md:grid-cols-2 gap-5 mb-8">
@@ -368,12 +424,12 @@ export default function Home() {
           </div>
           <div className="bg-[#0B1B2B] rounded-xl p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div>
-              <p className="font-semibold text-white mb-1">Marque blanche & intégration disponibles</p>
-              <p className="text-sm text-slate-400">Rapport à vos couleurs, données privées, API sur mesure.</p>
+              <p className="font-semibold text-white mb-1">Marque blanche & offre pilote disponibles</p>
+              <p className="text-sm text-slate-400">Rapport à vos couleurs, coordonnées, mentions personnalisées — découvrez la page dédiée aux professionnels.</p>
             </div>
-            <Link href="mailto:contact@rendement-reel-immo.fr"
+            <Link href="/professionnels"
               className="shrink-0 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-6 py-3 rounded-lg text-sm transition-colors">
-              Nous contacter
+              Découvrir l&apos;offre pro
             </Link>
           </div>
         </div>
@@ -390,12 +446,18 @@ export default function Home() {
             Avant de signer,<br />vérifiez les chiffres.
           </h2>
           <p className="text-slate-400 mb-10 text-lg max-w-md mx-auto leading-relaxed">
-            Analyse complète, rapport PDF 17 pages.<br />Gratuit, sans inscription, résultat immédiat.
+            Rapport d&apos;arbitrage complet, personnalisable.<br />Demandez une démo ou testez le simulateur.
           </p>
-          <Link href="/simulateur"
-            className="inline-flex items-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-10 py-4 rounded-lg text-base transition-colors shadow-lg shadow-[#C9A96E]/20">
-            Analyser mon investissement <IconArrow />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/professionnels#demo"
+              className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-10 py-4 rounded-lg text-base transition-colors shadow-lg shadow-[#C9A96E]/20">
+              Demander une démo pro <IconArrow />
+            </Link>
+            <Link href="/simulateur"
+              className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-10 py-4 rounded-lg transition-colors text-base">
+              Tester le simulateur
+            </Link>
+          </div>
           <p className="text-slate-600 text-xs mt-8 max-w-lg mx-auto leading-relaxed">
             Les résultats sont des simulations indicatives basées sur les données saisies. Ils ne constituent pas
             un conseil en investissement ni un conseil fiscal personnalisé.

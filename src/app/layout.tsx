@@ -9,24 +9,25 @@ const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfa
 export const metadata: Metadata = {
   metadataBase: new URL('https://rendement-reel-immo.fr'),
   title: {
-    default: 'Rendement Réel Immo — Simulateur de rentabilité locative net-net',
+    default: 'Rendement Réel Immo — Rapports d\'arbitrage immobilier pour CGP & professionnels',
     template: '%s | Rendement Réel Immo',
   },
   description:
-    'Calculez la vraie rentabilité de votre investissement locatif : rendement net-net, cash-flow, TRI, VAN, fiscalité, verdict automatique. Gratuit, sans inscription.',
-  keywords: ['simulateur rentabilité locative', 'rendement locatif net net', 'cash flow immobilier', 'TRI investissement locatif'],
+    'Générez en quelques minutes un rapport d\'arbitrage immobilier complet : rendement net-net, cash-flow, TRI, VAN, fiscalité, dispositifs fiscaux, stress tests et prix cible. Marque blanche pour CGP, chasseurs, courtiers et cabinets patrimoniaux.',
+  keywords: ['rapport arbitrage immobilier', 'simulateur rentabilité locative CGP', 'rendement locatif net net', 'cash flow immobilier', 'TRI investissement locatif', 'marque blanche immobilier'],
   openGraph: {
     type: 'website', locale: 'fr_FR', siteName: 'Rendement Réel Immo',
-    title: 'Simulateur de rentabilité locative — rendement réel net-net',
-    description: 'Transformez une promesse de 4% brut en vérité financière : cash-flow, TRI, VAN, fiscalité, verdict.',
+    title: 'Rapports d\'arbitrage immobilier en marque blanche pour CGP & professionnels',
+    description: 'Rendement réel, cash-flow, TRI, VAN, fiscalité, revente, dispositifs fiscaux, stress tests et prix cible — un rapport prêt à remettre au client.',
   },
   robots: { index: true, follow: true },
 }
 
 const NAV_LINKS = [
   { href: '/simulateur', label: 'Simulateur' },
-  { href: '#methode', label: 'Méthode' },
-  { href: '#professionnels', label: 'Professionnels' },
+  { href: '/professionnels', label: 'Professionnels' },
+  { href: '/white-label', label: 'Marque blanche' },
+  { href: '/tarifs', label: 'Tarifs' },
 ]
 
 /* ── Logo mark ──────────────────────────────────────────────────────── */
@@ -55,7 +56,7 @@ function LogoMark({ light = false }: { light?: boolean }) {
           Rendement Réel<span style={{ color: gold }}> Immo</span>
         </div>
         <div className="text-[9px] tracking-[0.18em] uppercase mt-0.5 font-medium" style={{ color: sub }}>
-          Analyse indépendante
+          Outil de simulation pro
         </div>
       </div>
     </div>
@@ -79,9 +80,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               ))}
             </nav>
-            <Link href="/simulateur"
+            <Link href="/professionnels#demo"
               className="bg-[#C9A96E] hover:bg-[#b8966a] text-[#0B1B2B] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
-              Analyser un projet →
+              Demander une démo pro →
             </Link>
           </div>
         </header>
@@ -95,7 +96,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="max-w-xs">
                 <Link href="/"><LogoMark light /></Link>
                 <p className="text-sm leading-relaxed text-slate-500 mt-4">
-                  Analyse financière indépendante pour investisseurs locatifs et professionnels du patrimoine.
+                  Le moteur d&apos;audit immobilier pour CGP, chasseurs immobiliers, courtiers et cabinets patrimoniaux.
+                  Rapports clients personnalisables, marque blanche disponible.
                 </p>
               </div>
               <div className="flex gap-12 text-sm">
@@ -117,7 +119,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </div>
             <div className="border-t border-slate-800 pt-6 text-xs text-slate-600 flex flex-col md:flex-row justify-between gap-2">
-              <p>Les simulations sont indicatives et ne constituent pas un conseil en investissement, fiscal ou juridique.</p>
+              <p>Rendement Réel Immo fournit un outil de simulation et de documentation. Le professionnel reste responsable
+                de l&apos;analyse, de la connaissance client, de l&apos;adéquation de la recommandation et du respect de ses obligations réglementaires.</p>
               <p className="shrink-0">© {new Date().getFullYear()} Rendement Réel Immo</p>
             </div>
           </div>
