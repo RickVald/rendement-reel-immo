@@ -78,69 +78,71 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
           <h2 className="font-bold text-sm text-[#0B1B2B]">Résultats à valider</h2>
           <span className="text-xs text-slate-400">{filtered.length} / {sourcingResults.length}</span>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[#F8F7F4] text-left text-xs uppercase tracking-wide text-slate-400">
-              <th className="px-4 py-3 font-semibold">Nom</th>
-              <th className="px-4 py-3 font-semibold">Segment</th>
-              <th className="px-4 py-3 font-semibold">Ville</th>
-              <th className="px-4 py-3 font-semibold">Site</th>
-              <th className="px-4 py-3 font-semibold">Dirigeant</th>
-              <th className="px-4 py-3 font-semibold">Email</th>
-              <th className="px-4 py-3 font-semibold">Téléphone</th>
-              <th className="px-4 py-3 font-semibold">Source</th>
-              <th className="px-4 py-3 font-semibold">Score</th>
-              <th className="px-4 py-3 font-semibold">Statut</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.map(r => (
-              <tr key={r.id} className="hover:bg-[#F8F7F4]/60 transition-colors">
-                <td className="px-4 py-3 font-medium text-[#0B1B2B]">{r.nom}</td>
-                <td className="px-4 py-3"><SegmentBadge segment={r.segment} /></td>
-                <td className="px-4 py-3 text-slate-600">{r.ville}</td>
-                <td className="px-4 py-3 text-slate-500">
-                  {r.site ? <a href={`https://${r.site}`} target="_blank" rel="noreferrer" className="text-[#C9A96E] hover:underline">{r.site} ↗</a> : '—'}
-                </td>
-                <td className="px-4 py-3 text-slate-600">{r.dirigeant ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-500">{r.email ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-500">{r.telephone ?? '—'}</td>
-                <td className="px-4 py-3 text-slate-400 text-xs">{r.source}</td>
-                <td className="px-4 py-3 text-slate-600">{r.scoreEstime}</td>
-                <td className="px-4 py-3">
-                  <SourcingStatutBadge statut={r.statut} />
-                  {r.organisationExistanteId && (
-                    <Link href={`/admin/crm/organisations/${r.organisationExistanteId}`} className="block text-[11px] text-[#C9A96E] hover:underline mt-1">voir l&apos;organisation →</Link>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col gap-1">
-                    <button
-                      type="button"
-                      disabled
-                      title="Disponible une fois la base de données connectée (Phase 1)"
-                      className="text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed whitespace-nowrap"
-                    >
-                      Importer en organisation
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      title="Disponible une fois la base de données connectée (Phase 1)"
-                      className="text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed whitespace-nowrap"
-                    >
-                      Ignorer
-                    </button>
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[1100px]">
+            <thead>
+              <tr className="bg-[#F8F7F4] text-left text-xs uppercase tracking-wide text-slate-400">
+                <th className="px-4 py-3 font-semibold">Nom</th>
+                <th className="px-4 py-3 font-semibold">Segment</th>
+                <th className="px-4 py-3 font-semibold">Ville</th>
+                <th className="px-4 py-3 font-semibold">Site</th>
+                <th className="px-4 py-3 font-semibold">Dirigeant</th>
+                <th className="px-4 py-3 font-semibold">Email</th>
+                <th className="px-4 py-3 font-semibold">Téléphone</th>
+                <th className="px-4 py-3 font-semibold">Source</th>
+                <th className="px-4 py-3 font-semibold">Score</th>
+                <th className="px-4 py-3 font-semibold">Statut</th>
+                <th className="px-4 py-3 font-semibold">Actions</th>
               </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-slate-400">Aucun résultat ne correspond à ces filtres.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map(r => (
+                <tr key={r.id} className="hover:bg-[#F8F7F4]/60 transition-colors">
+                  <td className="px-4 py-3 font-medium text-[#0B1B2B] whitespace-nowrap">{r.nom}</td>
+                  <td className="px-4 py-3"><SegmentBadge segment={r.segment} /></td>
+                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{r.ville}</td>
+                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
+                    {r.site ? <a href={`https://${r.site}`} target="_blank" rel="noreferrer" className="text-[#C9A96E] hover:underline">{r.site} ↗</a> : '—'}
+                  </td>
+                  <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{r.dirigeant ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{r.email ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{r.telephone ?? '—'}</td>
+                  <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{r.source}</td>
+                  <td className="px-4 py-3 text-slate-600">{r.scoreEstime}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <SourcingStatutBadge statut={r.statut} />
+                    {r.organisationExistanteId && (
+                      <Link href={`/admin/crm/organisations/${r.organisationExistanteId}`} className="block text-[11px] text-[#C9A96E] hover:underline mt-1">voir l&apos;organisation →</Link>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        disabled
+                        title="Disponible une fois la base de données connectée (Phase 1)"
+                        className="text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed whitespace-nowrap"
+                      >
+                        Importer en organisation
+                      </button>
+                      <button
+                        type="button"
+                        disabled
+                        title="Disponible une fois la base de données connectée (Phase 1)"
+                        className="text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed whitespace-nowrap"
+                      >
+                        Ignorer
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-slate-400">Aucun résultat ne correspond à ces filtres.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Historique des scans */}
