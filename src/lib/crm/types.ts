@@ -456,3 +456,55 @@ export interface Transaction {
   stripeId?: string
   description?: string
 }
+
+// ── Sourcing / scan de prospects ──────────────────────────────────────────
+// Module de prospection : déclenche un "scan" (manuel) qui va chercher des
+// professionnels par catégorie/zone sur des sources publiques (annuaires,
+// API officielles type Pappers/Société.com, Google Places, sites pro — à
+// brancher en Phase 1, cf. CRM_DESIGN.md). V1 : résultats mock à valider/
+// importer, avec détection de doublons contre la base Organisations.
+
+export type SourcingStatut = 'NOUVEAU' | 'DOUBLON_POTENTIEL' | 'DEJA_EN_BASE' | 'IMPORTE' | 'IGNORE'
+
+export const SOURCING_STATUT_LABELS: Record<SourcingStatut, string> = {
+  NOUVEAU: 'Nouveau',
+  DOUBLON_POTENTIEL: 'Doublon potentiel',
+  DEJA_EN_BASE: 'Déjà en base',
+  IMPORTE: 'Importé',
+  IGNORE: 'Ignoré',
+}
+
+export const SOURCING_STATUT_COLORS: Record<SourcingStatut, string> = {
+  NOUVEAU: 'bg-emerald-100 text-emerald-700',
+  DOUBLON_POTENTIEL: 'bg-amber-100 text-amber-700',
+  DEJA_EN_BASE: 'bg-slate-100 text-slate-500',
+  IMPORTE: 'bg-teal-100 text-teal-700',
+  IGNORE: 'bg-slate-100 text-slate-400',
+}
+
+export interface SourcingResult {
+  id: string
+  nom: string
+  segment: Segment
+  ville: string
+  site?: string
+  dirigeant?: string
+  email?: string
+  telephone?: string
+  source: string // ex : "Pages Jaunes", "Pappers", "Google Places", "Site web"
+  scoreEstime: number
+  statut: SourcingStatut
+  dateScan: string
+  organisationExistanteId?: string
+}
+
+export interface ScanRun {
+  id: string
+  date: string
+  categories: Segment[]
+  zone: string
+  sources: string[]
+  nbResultats: number
+  nbNouveaux: number
+  nbDoublons: number
+}

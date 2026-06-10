@@ -1,7 +1,8 @@
 import {
   SEGMENT_LABELS, PIPELINE_STAGES, icpTier, prioriteTier, computePrioriteCommerciale,
   leadPrioriteTier, LEAD_B2C_STATUS_LABELS, LEAD_B2C_STATUS_COLORS,
-  type Segment, type PipelineStage, type LeadB2CStatus,
+  SOURCING_STATUT_LABELS, SOURCING_STATUT_COLORS,
+  type Segment, type PipelineStage, type LeadB2CStatus, type SourcingStatut,
 } from '@/lib/crm/types'
 
 export function SegmentBadge({ segment }: { segment: Segment }) {
@@ -76,6 +77,14 @@ export function LeadPrioriteBadge({ score }: { score: number }) {
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${tier.color}`}>
       {score} · {tier.label}
+    </span>
+  )
+}
+
+export function SourcingStatutBadge({ statut }: { statut: SourcingStatut }) {
+  return (
+    <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${SOURCING_STATUT_COLORS[statut]}`}>
+      {SOURCING_STATUT_LABELS[statut]}
     </span>
   )
 }

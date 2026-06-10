@@ -2,6 +2,7 @@
 // À remplacer par des requêtes Prisma/Postgres une fois le schéma validé.
 import type {
   Organisation, Contact, Opportunite, Activite, Campagne, Pilote, Abonnement, Objection, LeadB2C, Transaction,
+  SourcingResult, ScanRun,
 } from './types'
 
 export const organisations: Organisation[] = [
@@ -121,6 +122,23 @@ export const transactions: Transaction[] = [
   { id: 'tx_4', organisationId: 'org_1', type: 'ABONNEMENT', montant: 1990, statut: 'PREVUE', date: '2026-07-01', facturationManuelle: true, description: 'Abonnement Cabinet White Label, à partir de l\'activation' },
 ]
 
+export const scanRuns: ScanRun[] = [
+  { id: 'scan_1', date: '2026-06-08T09:00:00', categories: ['CGP_IMMOBILIER', 'EXPERT_LMNP'], zone: 'Lyon, Nantes', sources: ['Pages Jaunes', 'Pappers', 'Site web'], nbResultats: 6, nbNouveaux: 4, nbDoublons: 2 },
+  { id: 'scan_2', date: '2026-06-10T07:30:00', categories: ['CHASSEUR_INVESTISSEUR', 'COURTIER_INVESTISSEUR', 'AGENCE_INVESTISSEUR'], zone: 'Bretagne, Nouvelle-Aquitaine', sources: ['Pages Jaunes', 'Google Places'], nbResultats: 4, nbNouveaux: 3, nbDoublons: 1 },
+]
+
+export const sourcingResults: SourcingResult[] = [
+  { id: 'src_1', nom: 'Cabinet Vasseur Patrimoine', segment: 'CGP_IMMOBILIER', ville: 'Lyon', site: 'vasseur-patrimoine.fr', dirigeant: 'Émilie Vasseur', email: 'contact@vasseur-patrimoine.fr', telephone: '+33 4 78 00 00 00', source: 'Pages Jaunes', scoreEstime: 70, statut: 'NOUVEAU', dateScan: '2026-06-08T09:00:00' },
+  { id: 'src_2', nom: 'Lefèvre Patrimoine', segment: 'CGP_IMMOBILIER', ville: 'Lyon', site: 'lefevre-patrimoine.fr', dirigeant: 'Marc Lefèvre', email: 'contact@lefevre-patrimoine.fr', telephone: '+33 4 78 11 11 11', source: 'Pappers', scoreEstime: 60, statut: 'DEJA_EN_BASE', dateScan: '2026-06-08T09:00:00', organisationExistanteId: 'org_1' },
+  { id: 'src_3', nom: 'Atlantique Gestion Privée', segment: 'CGP_IMMOBILIER', ville: 'Nantes', site: 'atlantique-gestion-privee.fr', dirigeant: 'Olivier Mercier', email: 'o.mercier@atlantique-gp.fr', telephone: '+33 2 40 00 00 00', source: 'Pappers', scoreEstime: 65, statut: 'NOUVEAU', dateScan: '2026-06-08T09:00:00' },
+  { id: 'src_4', nom: 'Renoux Expertise Comptable', segment: 'EXPERT_LMNP', ville: 'Nantes', site: 'renoux-expertise.fr', dirigeant: 'Claire Renoux', email: 'contact@renoux-expertise.fr', telephone: '+33 2 40 11 11 11', source: 'Site web', scoreEstime: 55, statut: 'DOUBLON_POTENTIEL', dateScan: '2026-06-08T09:00:00', organisationExistanteId: 'org_4' },
+  { id: 'src_5', nom: 'Cabinet Fiscal Loire', segment: 'EXPERT_LMNP', ville: 'Nantes', site: 'cabinet-fiscal-loire.fr', dirigeant: 'Hugo Lemaire', email: 'h.lemaire@fiscal-loire.fr', telephone: '+33 2 40 22 22 22', source: 'Pages Jaunes', scoreEstime: 50, statut: 'NOUVEAU', dateScan: '2026-06-08T09:00:00' },
+  { id: 'src_6', nom: 'Bretagne Invest Chasseurs', segment: 'CHASSEUR_INVESTISSEUR', ville: 'Brest', site: 'bretagne-invest-chasseurs.fr', dirigeant: 'Maël Le Goff', email: 'mael@bretagne-invest.fr', telephone: '+33 2 98 00 00 00', source: 'Google Places', scoreEstime: 68, statut: 'NOUVEAU', dateScan: '2026-06-10T07:30:00' },
+  { id: 'src_7', nom: 'Locatis Chasseurs', segment: 'CHASSEUR_INVESTISSEUR', ville: 'Lille', site: 'locatis.fr', dirigeant: 'Léa Fontaine', email: 'l.fontaine@locatis.fr', telephone: '+33 6 70 11 22 33', source: 'Site web', scoreEstime: 60, statut: 'DEJA_EN_BASE', dateScan: '2026-06-10T07:30:00', organisationExistanteId: 'org_8' },
+  { id: 'src_8', nom: 'Courtage Atlantique', segment: 'COURTIER_INVESTISSEUR', ville: 'Bordeaux', site: 'courtage-atlantique.fr', dirigeant: 'Nicolas Faure', email: 'n.faure@courtage-atlantique.fr', telephone: '+33 5 56 00 00 00', source: 'Pages Jaunes', scoreEstime: 62, statut: 'NOUVEAU', dateScan: '2026-06-10T07:30:00' },
+  { id: 'src_9', nom: 'ImmoSelect Aquitaine', segment: 'AGENCE_INVESTISSEUR', ville: 'Bordeaux', site: 'immoselect-aquitaine.fr', dirigeant: 'Camille Roy', email: 'c.roy@immoselect-aquitaine.fr', telephone: '+33 5 56 11 11 11', source: 'Google Places', scoreEstime: 45, statut: 'NOUVEAU', dateScan: '2026-06-10T07:30:00' },
+]
+
 // ── Helpers de lecture (mock) ───────────────────────────────────────────
 export function getLeadB2C(id: string) {
   return leadsB2C.find(l => l.id === id)
@@ -142,4 +160,13 @@ export function getActivitesByOrg(orgId: string) {
 }
 export function getPiloteByOrg(orgId: string) {
   return pilotes.find(p => p.organisationId === orgId)
+}
+export function getSourcingResults() {
+  return sourcingResults
+}
+export function getScanRuns() {
+  return [...scanRuns].sort((a, b) => b.date.localeCompare(a.date))
+}
+export function getLastScanRun() {
+  return getScanRuns()[0]
 }

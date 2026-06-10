@@ -18,6 +18,7 @@ const NAV = [
   { href: '/admin/crm/campagnes', label: 'Campagnes', icon: '✉' },
   { href: '/admin/crm/objections', label: 'Objections', icon: '!' },
   { href: '/admin/crm/transactions', label: 'Transactions', icon: '€' },
+  { href: '/admin/crm/sourcing', label: 'Sourcing', icon: '⌕' },
   { href: '/admin/crm/import', label: 'Import CSV', icon: '↓' },
   { href: '/admin/crm/parametres', label: 'Paramètres', icon: '⚙' },
 ]
