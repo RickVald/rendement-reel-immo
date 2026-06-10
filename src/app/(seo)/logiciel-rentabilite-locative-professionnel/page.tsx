@@ -9,7 +9,7 @@ import { ArticleJsonLd, SoftwareApplicationJsonLd } from '@/components/seo/JsonL
 const URL = 'https://rendementreelimmo.fr/logiciel-rentabilite-locative-professionnel'
 
 export const metadata: Metadata = {
-  title: 'Logiciel de rentabilité locative pour professionnels | Rendement Réel Immo',
+  title: 'Logiciel de rentabilité locative pour professionnels',
   description: 'Logiciel de calcul de rentabilité locative pour CGP, chasseurs immobiliers, courtiers et cabinets patrimoniaux : cash-flow, TRI, fiscalité et rapports PDF en marque blanche.',
   alternates: { canonical: URL },
 }

@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/white-label`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.85 },
     { url: `${BASE}/exemple-rapport`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.85 },
     { url: `${BASE}/qui-sommes-nous`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE}/guides`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.85 },
     { url: `${BASE}/cash-flow-immobilier`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/simulateur-rendement-locatif`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.9 },
     { url: `${BASE}/calcul-rentabilite-locative`, lastModified: new Date(), changeFrequency: 'monthly', priority: 0.85 },

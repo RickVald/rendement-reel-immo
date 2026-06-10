@@ -5,11 +5,12 @@ import { RelatedPages } from '@/components/seo/RelatedPages'
 import { TableOfContents } from '@/components/seo/TableOfContents'
 import { CalculatorCTA, ProCTA } from '@/components/seo/CtaBlocks'
 import { ArticleJsonLd } from '@/components/seo/JsonLd'
+import { SourceBox } from '@/components/seo/SourceBox'
 
 const URL = 'https://rendementreelimmo.fr/calcul-rentabilite-locative'
 
 export const metadata: Metadata = {
-  title: 'Calcul de rentabilité locative : méthode, formules et exemple | Rendement Réel Immo',
+  title: 'Calcul de rentabilité locative : méthode, formules et exemple',
   description: 'Comment calculer la rentabilité locative d\'un investissement immobilier : rendement brut, net de charges, net-net (après impôts), avec formules, exemple chiffré et erreurs fréquentes à éviter.',
   alternates: { canonical: URL },
 }
@@ -181,6 +182,13 @@ export default function CalculRentabiliteLocativePage() {
             régime fiscal retenu. C&apos;est pourquoi il doit être calculé au cas par cas plutôt
             qu&apos;estimé de façon générique.
           </p>
+          <SourceBox
+            sources={[
+              { label: 'Service-public.fr — Régime micro-foncier', href: 'https://www.service-public.fr/particuliers/vosdroits/F1991' },
+              { label: 'Impots.gouv.fr — Location meublée non professionnelle (LMNP)', href: 'https://www.impots.gouv.fr/particulier/location-meublee' },
+            ]}
+            dateMaj="juin 2026"
+          />
         </section>
 
         {/* ── EXEMPLE CHIFFRÉ ────────────────────────────────────────── */}
@@ -228,6 +236,9 @@ export default function CalculRentabiliteLocativePage() {
           buttonText="Lancer le simulateur"
           subtext="Gratuit, sans inscription — rapport PDF disponible à la fin."
         />
+        <p className="text-center -mt-6 mb-10 text-sm">
+          <a href="/exemple-rapport" className="text-[#C9A96E] hover:underline font-medium">Voir un rapport exemple →</a>
+        </p>
 
         {/* ── ERREURS FRÉQUENTES ─────────────────────────────────────── */}
         <section id="erreurs" className="mb-12 scroll-mt-24">

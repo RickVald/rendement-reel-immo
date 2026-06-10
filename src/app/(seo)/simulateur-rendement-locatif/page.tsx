@@ -9,7 +9,7 @@ import { ArticleJsonLd, SoftwareApplicationJsonLd } from '@/components/seo/JsonL
 const URL = 'https://rendementreelimmo.fr/simulateur-rendement-locatif'
 
 export const metadata: Metadata = {
-  title: 'Simulateur de rendement locatif gratuit : cash-flow, fiscalité, TRI, prix cible | Rendement Réel Immo',
+  title: 'Simulateur de rendement locatif gratuit : cash-flow, fiscalité, TRI, prix cible',
   description: 'Simulateur de rendement locatif et de rentabilité immobilière en ligne : calcul du rendement net-net, du cash-flow après impôts, du TRI, de la VAN et du prix cible d\'achat. Gratuit, sans inscription.',
   alternates: { canonical: URL },
 }
@@ -199,18 +199,46 @@ export default function SimulateurRendementLocatifPage() {
         {/* ── EXEMPLE D'UTILISATION ──────────────────────────────────── */}
         <section id="exemple" className="mb-12 scroll-mt-24">
           <h2 className="font-playfair text-2xl md:text-3xl font-bold text-[#0B1B2B] mb-4 leading-tight">
-            Exemple d&apos;utilisation
+            Exemple d&apos;utilisation : ce que le rendement affiché ne dit pas
           </h2>
           <p className="text-slate-600 leading-relaxed mb-4">
-            Pour un appartement à 150 000 € (frais de notaire et travaux compris), loué 750 €/mois,
-            financé à 100 % sur 20 ans :
+            Un appartement est affiché à 150 000 € (frais de notaire et travaux compris), loué
+            750 €/mois, financé à 100 % sur 20 ans. Voici ce que le simulateur révèle, au-delà du
+            rendement brut mis en avant dans l&apos;annonce :
           </p>
-          <ul className="space-y-2 text-sm text-slate-700 leading-relaxed list-disc pl-5">
-            <li>Le rendement brut affiché est d&apos;environ 6 %.</li>
-            <li>Le simulateur calcule un cash-flow avant impôts proche de l&apos;équilibre une fois le crédit, les charges et la taxe foncière déduits.</li>
-            <li>En comparant les régimes, le LMNP au réel peut neutraliser l&apos;imposition pendant plusieurs années grâce à l&apos;amortissement, alors que le micro-foncier ferait basculer le projet en cash-flow négatif.</li>
-            <li>Le TRI sur 15 ans dépend ensuite fortement de l&apos;hypothèse de revente retenue.</li>
-          </ul>
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-sm border border-slate-200 rounded-xl overflow-hidden">
+              <tbody>
+                <tr className="border-b border-slate-200">
+                  <td className="px-4 py-2.5 text-slate-500">Rendement brut affiché</td>
+                  <td className="px-4 py-2.5 text-right font-medium text-[#0B1B2B]">6,0 %</td>
+                </tr>
+                <tr className="border-b border-slate-200 bg-[#F8F7F4]">
+                  <td className="px-4 py-2.5 text-slate-500">Rendement net-net (réel, après impôts)</td>
+                  <td className="px-4 py-2.5 text-right font-medium text-[#0B1B2B]">3,5 %</td>
+                </tr>
+                <tr className="border-b border-slate-200">
+                  <td className="px-4 py-2.5 text-slate-500">Cash-flow mensuel (régime micro-foncier)</td>
+                  <td className="px-4 py-2.5 text-right font-medium text-[#0B1B2B]">− 180 €/mois</td>
+                </tr>
+                <tr className="border-b border-slate-200 bg-[#F8F7F4]">
+                  <td className="px-4 py-2.5 text-slate-500">TRI sur 15 ans (hypothèse de revente prudente)</td>
+                  <td className="px-4 py-2.5 text-right font-medium text-[#0B1B2B]">3,9 %</td>
+                </tr>
+                <tr className="bg-[#0B1B2B] text-white">
+                  <td className="px-4 py-3 font-semibold">Prix cible pour un cash-flow neutre</td>
+                  <td className="px-4 py-3 text-right font-bold text-[#C9A96E]">≈ 14 % sous le prix affiché</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="text-slate-600 leading-relaxed">
+            En comparant les régimes fiscaux, le LMNP au réel peut neutraliser l&apos;imposition
+            pendant plusieurs années grâce à l&apos;amortissement et ramener le cash-flow proche de
+            l&apos;équilibre, là où le micro-foncier le fait basculer en négatif. C&apos;est ce type
+            d&apos;écart — entre le chiffre affiché et la réalité après crédit, charges et fiscalité —
+            que le simulateur met en évidence avant l&apos;achat.
+          </p>
         </section>
 
         {/* ── POUR QUI ───────────────────────────────────────────────── */}

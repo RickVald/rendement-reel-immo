@@ -11,7 +11,7 @@ import { ArticleJsonLd } from '@/components/seo/JsonLd'
 const URL = 'https://rendementreelimmo.fr/cash-flow-immobilier'
 
 export const metadata: Metadata = {
-  title: 'Cash-flow immobilier : définition, calcul, exemple et simulateur | Rendement Réel Immo',
+  title: 'Cash-flow immobilier : définition, calcul, exemple et simulateur',
   description: 'Comment calculer le cash flow immobilier (cashflow) net après impôts : formule, exemple chiffré, impact du crédit, de la fiscalité et de la vacance, mini-calculateur et simulateur gratuit.',
   alternates: { canonical: URL },
 }
@@ -204,11 +204,19 @@ export default function CashFlowImmobilierPage() {
             </table>
           </div>
           <p className="text-slate-600 leading-relaxed">
-            Ce projet est à l&apos;équilibre avant impôts. Une fois la fiscalité appliquée (au régime
-            réel, avec amortissement par exemple en LMNP, l&apos;impôt peut être proche de zéro grâce
-            au déficit comptable), le cash-flow net peut rester proche de zéro voire légèrement
-            positif — alors qu&apos;au régime micro-foncier, l&apos;imposition sur 70 % des loyers
-            ferait basculer ce même projet en cash-flow négatif.
+            Ce projet est à l&apos;équilibre avant impôts. En LMNP au réel, les charges et les
+            amortissements peuvent réduire fortement le résultat imposable, parfois jusqu&apos;à
+            neutraliser l&apos;imposition pendant plusieurs années — le cash-flow net peut alors
+            rester proche de zéro, voire légèrement positif. À l&apos;inverse, au régime
+            micro-foncier, l&apos;imposition sur 70 % des loyers ferait basculer ce même projet en
+            cash-flow négatif.
+          </p>
+          <p className="text-xs text-slate-400 leading-relaxed mt-2">
+            Les amortissements non déduits une année ne sont pas perdus : ils sont reportés selon
+            les règles applicables et ne doivent pas être présentés comme un déficit librement
+            imputable sur le revenu global. Le BOFiP rappelle que, pour une personne physique,
+            l&apos;amortissement des biens donnés en location est admis en déduction dans la
+            limite du loyer acquis diminué des autres charges afférentes.
           </p>
         </section>
 
@@ -252,6 +260,7 @@ export default function CashFlowImmobilierPage() {
             sources={[
               { label: 'Service-public.fr — Régime micro-foncier', href: 'https://www.service-public.fr/particuliers/vosdroits/F1991' },
               { label: 'Impots.gouv.fr — Location meublée non professionnelle (LMNP)', href: 'https://www.impots.gouv.fr/particulier/location-meublee' },
+              { label: 'BOFiP — Amortissement des biens donnés en location (BIC-AMT-20-30)', href: 'https://bofip.impots.gouv.fr/bofip/' },
             ]}
             dateMaj="juin 2026"
           />

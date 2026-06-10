@@ -5,11 +5,12 @@ import { RelatedPages } from '@/components/seo/RelatedPages'
 import { TableOfContents } from '@/components/seo/TableOfContents'
 import { CalculatorCTA, ProCTA } from '@/components/seo/CtaBlocks'
 import { ArticleJsonLd } from '@/components/seo/JsonLd'
+import { SourceBox } from '@/components/seo/SourceBox'
 
 const URL = 'https://rendementreelimmo.fr/tri-immobilier'
 
 export const metadata: Metadata = {
-  title: 'TRI immobilier : définition, calcul et interprétation | Rendement Réel Immo',
+  title: 'TRI immobilier : définition, calcul et interprétation',
   description: 'Le TRI (taux de rentabilité interne) immobilier explique et illustré : formule, calcul avec revente, exemple chiffré et seuils pour juger un investissement locatif.',
   alternates: { canonical: URL },
 }
@@ -196,6 +197,9 @@ export default function TriImmobilierPage() {
           buttonText="Calculer mon TRI"
           subtext="Gratuit, sans inscription — rapport PDF disponible à la fin."
         />
+        <p className="text-center -mt-6 mb-10 text-sm">
+          <a href="/exemple-rapport" className="text-[#C9A96E] hover:underline font-medium">Voir un rapport exemple →</a>
+        </p>
 
         {/* ── INTERPRETATION ─────────────────────────────────────────── */}
         <section id="interpretation" className="mb-12 scroll-mt-24">
@@ -246,6 +250,13 @@ export default function TriImmobilierPage() {
             <li><strong>L&apos;hypothèse de revente</strong> : valorisation stable, en hausse ou en baisse — c&apos;est souvent le facteur le plus déterminant.</li>
             <li><strong>La fiscalité</strong> : régime micro ou réel, plus-value immobilière à la revente selon la durée de détention.</li>
           </ul>
+          <SourceBox
+            sources={[
+              { label: 'Service-public.fr — Plus-value immobilière', href: 'https://www.service-public.fr/particuliers/vosdroits/F10864' },
+              { label: 'Impots.gouv.fr — Location meublée non professionnelle (LMNP)', href: 'https://www.impots.gouv.fr/particulier/location-meublee' },
+            ]}
+            dateMaj="juin 2026"
+          />
         </section>
 
         {/* ── CE QUE LE SIMULATEUR CALCULE ───────────────────────────── */}

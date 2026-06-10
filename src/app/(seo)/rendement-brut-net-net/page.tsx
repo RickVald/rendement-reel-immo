@@ -5,11 +5,12 @@ import { RelatedPages } from '@/components/seo/RelatedPages'
 import { TableOfContents } from '@/components/seo/TableOfContents'
 import { CalculatorCTA, ProCTA } from '@/components/seo/CtaBlocks'
 import { ArticleJsonLd } from '@/components/seo/JsonLd'
+import { SourceBox } from '@/components/seo/SourceBox'
 
 const URL = 'https://rendementreelimmo.fr/rendement-brut-net-net'
 
 export const metadata: Metadata = {
-  title: 'Rendement brut, net et net-net : différences et calculs | Rendement Réel Immo',
+  title: 'Rendement brut, net et net-net : différences et calculs',
   description: 'Rendement brut, rendement net, rendement net-net : définitions, formules, exemple chiffré comparatif et pourquoi un même bien peut afficher des chiffres très différents selon la méthode utilisée.',
   alternates: { canonical: URL },
 }
@@ -171,6 +172,13 @@ export default function RendementBrutNetNetPage() {
             l&apos;indicateur le plus proche de ce que vous gagnez réellement, mais il varie d&apos;un
             investisseur à l&apos;autre pour un même bien.
           </p>
+          <SourceBox
+            sources={[
+              { label: 'Service-public.fr — Régime micro-foncier', href: 'https://www.service-public.fr/particuliers/vosdroits/F1991' },
+              { label: 'Impots.gouv.fr — Location meublée non professionnelle (LMNP)', href: 'https://www.impots.gouv.fr/particulier/location-meublee' },
+            ]}
+            dateMaj="juin 2026"
+          />
         </section>
 
         {/* ── COMPARATIF CHIFFRÉ ─────────────────────────────────────── */}

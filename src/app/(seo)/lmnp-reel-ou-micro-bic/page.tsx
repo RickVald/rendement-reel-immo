@@ -10,7 +10,7 @@ import { SourceBox } from '@/components/seo/SourceBox'
 const URL = 'https://rendementreelimmo.fr/lmnp-reel-ou-micro-bic'
 
 export const metadata: Metadata = {
-  title: 'LMNP au réel ou micro-BIC : comment choisir | Rendement Réel Immo',
+  title: 'LMNP au réel ou micro-BIC : comment choisir',
   description: 'LMNP réel ou micro-BIC : différences, abattement de 50 %, amortissement, exemple chiffré comparatif et seuils pour choisir le régime fiscal le plus avantageux en location meublée.',
   alternates: { canonical: URL },
 }

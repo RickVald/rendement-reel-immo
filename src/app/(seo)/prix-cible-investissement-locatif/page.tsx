@@ -9,7 +9,7 @@ import { ArticleJsonLd } from '@/components/seo/JsonLd'
 const URL = 'https://rendementreelimmo.fr/prix-cible-investissement-locatif'
 
 export const metadata: Metadata = {
-  title: 'Prix cible d\'un investissement locatif : comment le calculer | Rendement Réel Immo',
+  title: 'Prix cible d\'un investissement locatif : comment le calculer',
   description: 'Comment déterminer le prix maximum à payer pour un bien locatif afin d\'atteindre le cash-flow, le rendement ou le TRI visé. Méthode, exemple chiffré et simulateur.',
   alternates: { canonical: URL },
 }
@@ -212,6 +212,9 @@ export default function PrixCibleInvestissementLocatifPage() {
           buttonText="Calculer mon prix cible"
           subtext="Gratuit, sans inscription — rapport PDF disponible à la fin."
         />
+        <p className="text-center -mt-6 mb-10 text-sm">
+          <a href="/exemple-rapport" className="text-[#C9A96E] hover:underline font-medium">Voir un rapport exemple →</a>
+        </p>
 
         {/* ── NEGOCIATION ────────────────────────────────────────────── */}
         <section id="negociation" className="mb-12 scroll-mt-24">

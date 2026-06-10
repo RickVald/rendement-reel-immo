@@ -114,6 +114,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </ul>
                 </div>
                 <div>
+                  <div className="text-white font-semibold mb-3 text-xs tracking-widest uppercase">Guides</div>
+                  <ul className="space-y-2">
+                    <li><Link href="/guides" className="hover:text-white transition-colors">Tous les guides</Link></li>
+                    <li><Link href="/cash-flow-immobilier" className="hover:text-white transition-colors">Cash-flow immobilier</Link></li>
+                    <li><Link href="/tri-immobilier" className="hover:text-white transition-colors">TRI immobilier</Link></li>
+                    <li><Link href="/lmnp-reel-ou-micro-bic" className="hover:text-white transition-colors">LMNP réel ou micro-BIC</Link></li>
+                  </ul>
+                </div>
+                <div>
                   <div className="text-white font-semibold mb-3 text-xs tracking-widest uppercase">Légal</div>
                   <ul className="space-y-2">
                     <li><Link href="/qui-sommes-nous" className="hover:text-white transition-colors">Qui sommes-nous</Link></li>
