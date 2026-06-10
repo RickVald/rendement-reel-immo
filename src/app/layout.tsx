@@ -115,6 +115,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <ul className="space-y-2">
                     <li><Link href="/mentions-legales" className="hover:text-white transition-colors">Mentions légales</Link></li>
                     <li><Link href="/politique-confidentialite" className="hover:text-white transition-colors">Confidentialité</Link></li>
+                    <li><Link href="/cgv" className="hover:text-white transition-colors">CGV</Link></li>
+                    <li><Link href="/cookies" className="hover:text-white transition-colors">Cookies</Link></li>
+                    <li><Link href="/securite-donnees" className="hover:text-white transition-colors">Sécurité des données</Link></li>
                   </ul>
                 </div>
               </div>

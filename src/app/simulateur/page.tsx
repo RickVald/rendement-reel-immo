@@ -21,7 +21,7 @@ export default function SimulateurPage() {
             Analysez la rentabilité réelle de votre projet
           </h1>
           <p className="text-slate-300 text-sm leading-relaxed">
-            9 étapes · Rendement net-net · Cash-flow · TRI · VAN · Verdict · Analyse IA
+            9 étapes · Rendement net-net · Cash-flow · TRI · VAN · Verdict · Synthèse automatique
           </p>
         </div>
       </div>

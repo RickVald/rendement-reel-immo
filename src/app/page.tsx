@@ -18,7 +18,7 @@ const FEATURES = [
   { Icon: IconTRI, title: 'TRI & VAN comparatifs', desc: "Comparez objectivement avec un placement financier. Même méthodologie que les analystes de fonds." },
   { Icon: IconTarget, title: 'Prix cible de négociation', desc: "Quel prix d'achat maximum pour atteindre l'objectif ? Calculé à 100 € près par dichotomie." },
   { Icon: IconAlert, title: 'Alerte DPE intégrée', desc: "Gel des loyers F/G, interdictions 2025-2034. Impact chiffré sur la rentabilité et la valeur de revente." },
-  { Icon: IconAI, title: 'Interprétation IA', desc: "Analyse automatique : points forts, risques, conseils de négociation. En langage clair, pas en tableau." },
+  { Icon: IconAI, title: 'Synthèse automatique', desc: "Interprétation documentée du dossier : points forts, risques, leviers de négociation. En langage clair, pas en tableau." },
 ]
 
 const REGIMES = ['Micro-foncier', 'Réel foncier', 'LMNP micro-BIC', 'LMNP réel', 'SCI IR', 'SCI IS']
@@ -161,7 +161,7 @@ export default function Home() {
               {/* Trust micro-signals */}
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {[
-                  'Conforme LF 2025-2026',
+                  'Référentiel fiscal 2025-2026 intégré',
                   'Régimes + dispositifs fiscaux',
                   'Audit d\'éligibilité automatique',
                   'Marque blanche disponible',
@@ -208,7 +208,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-200 rounded-2xl overflow-hidden">
             {[
-              { n: '−40 %', label: 'Écart moyen entre rendement brut affiché et rendement net-net réel constaté' },
+              { n: 'Jusqu\'à −40 %', label: 'Écart constaté sur nos simulations entre rendement brut affiché et rendement net-net réel, selon les hypothèses saisies' },
               { n: '15 min', label: 'Pour générer un rapport client complet — verdict, TRI, fiscalité et dispositifs' },
               { n: '9 étapes', label: 'De saisie guidée — bien, profil fiscal, dispositifs, audit d\'éligibilité, revente' },
             ].map((s) => (
