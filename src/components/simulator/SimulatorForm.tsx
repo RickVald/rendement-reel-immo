@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { StepIndicator } from './StepIndicator'
@@ -59,12 +59,20 @@ export function SimulatorForm() {
   const CurrentStep = STEPS[step - 1]
   const currentTitle = STEP_TITLES[step - 1]
 
+  const topRef = useRef<HTMLDivElement>(null)
+
+  const scrollToTop = () => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const handleNext = () => {
     if (step < 9) setStep(s => s + 1)
+    scrollToTop()
   }
 
   const handleBack = () => {
     if (step > 1) setStep(s => s - 1)
+    scrollToTop()
   }
 
   const handleSubmit = async () => {
@@ -89,6 +97,8 @@ export function SimulatorForm() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {/* Scroll anchor: jumps here on step change so mobile users land at the top of the form */}
+      <div ref={topRef} className="scroll-mt-20" />
       {/* Step indicator */}
       <div className="mb-8">
         <StepIndicator current={step} />
@@ -125,7 +135,7 @@ export function SimulatorForm() {
             ← Précédent
           </button>
 
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-slate-400 whitespace-nowrap shrink-0">
             {step} / 9
           </div>
 
