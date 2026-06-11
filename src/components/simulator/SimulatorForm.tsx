@@ -195,6 +195,10 @@ export function SimulatorForm() {
           setGateOpen(false)
           handleSubmit({ simplifie: true })
         }}
+        onUnlockComplet={() => {
+          setGateOpen(false)
+          handleSubmit()
+        }}
         input={data}
       />
     </div>

@@ -6,15 +6,20 @@ import type { ProjectInput } from '@/lib/calculator/types'
 
 type Profil = 'particulier' | 'pro'
 
+// Emails internes : accès direct au rapport complet (sans paiement), pour les tests.
+const TEST_EMAILS = ['remy@rendementreelimmo.fr']
+
 interface LeadGateModalProps {
   open: boolean
   onClose: () => void
   /** Appelé après l'enregistrement réussi du lead "particulier" — doit lancer le calcul et afficher le résultat simplifié. */
   onUnlockParticulier: () => void
+  /** Appelé pour les emails de test internes — lance le calcul et affiche le rapport complet (sans paiement). */
+  onUnlockComplet: () => void
   input: ProjectInput
 }
 
-export function LeadGateModal({ open, onClose, onUnlockParticulier, input }: LeadGateModalProps) {
+export function LeadGateModal({ open, onClose, onUnlockParticulier, onUnlockComplet, input }: LeadGateModalProps) {
   const [profil, setProfil] = useState<Profil>('particulier')
   const [nom, setNom] = useState('')
   const [email, setEmail] = useState('')
@@ -29,6 +34,11 @@ export function LeadGateModal({ open, onClose, onUnlockParticulier, input }: Lea
   const handleSubmit = async () => {
     if (!nom.trim()) { setError('Indiquez votre nom.'); return }
     if (!email.trim() || !email.includes('@')) { setError('Indiquez un email valide.'); return }
+
+    if (TEST_EMAILS.includes(email.trim().toLowerCase())) {
+      onUnlockComplet()
+      return
+    }
 
     setLoading(true)
     setError(null)
