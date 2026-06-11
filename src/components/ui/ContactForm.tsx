@@ -15,6 +15,7 @@ export function ContactForm() {
     societe: '',
     metier: '',
     email: '',
+    telephone: '',
     volume: '',
     besoin: BESOINS[0],
   })
@@ -40,7 +41,7 @@ export function ContactForm() {
           societe: form.societe,
           metier: form.metier,
           email: form.email,
-          telephone: '',
+          telephone: form.telephone,
           volume: form.volume,
           besoin: form.besoin,
         }),
@@ -68,13 +69,14 @@ export function ContactForm() {
         <input required type="email" placeholder="Email professionnel" value={form.email} onChange={update('email')} className={inputClass} />
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
+        <input required type="tel" placeholder="Téléphone" value={form.telephone} onChange={update('telephone')} className={inputClass} />
         <input placeholder="Nombre de dossiers investisseurs / mois" value={form.volume} onChange={update('volume')} className={inputClass} />
-        <select value={form.besoin} onChange={update('besoin')} className={inputClass}>
-          {BESOINS.map((b) => (
-            <option key={b} value={b} className="bg-[#0B1B2B]">{b}</option>
-          ))}
-        </select>
       </div>
+      <select value={form.besoin} onChange={update('besoin')} className={inputClass}>
+        {BESOINS.map((b) => (
+          <option key={b} value={b} className="bg-[#0B1B2B]">{b}</option>
+        ))}
+      </select>
       {error && <p className="text-center text-sm text-red-400">{error}</p>}
       <button type="submit" disabled={loading || sent}
         className="w-full bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold py-3.5 rounded-lg text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
