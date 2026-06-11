@@ -321,3 +321,7 @@ export async function getScanRuns(): Promise<ScanRun[]> {
 export async function getLastScanRun(): Promise<ScanRun | undefined> {
   return (await getScanRuns())[0]
 }
+
+export async function getAchatsRapports() {
+  return prisma.achatRapport.findMany({ orderBy: { createdAt: 'desc' } })
+}
