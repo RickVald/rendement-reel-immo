@@ -61,9 +61,9 @@ export default function QuiSommesNousPage() {
                 <p>
                   Avant de créer Rendement Réel Immo, j&apos;ai passé plus de dix ans entre l&apos;immobilier
                   et la gestion de patrimoine : agent immobilier puis fondateur d&apos;une agence
-                  indépendante (+588 % de croissance en 3 ans), avant de rejoindre un cabinet de gestion de
-                  patrimoine où j&apos;accompagne des investisseurs sur des produits complexes — SCPI,
-                  assurance-vie, structuration SCI/holding, effet de levier.
+                  indépendante, avant de rejoindre un cabinet de gestion de patrimoine où
+                  j&apos;accompagnais des investisseurs sur des produits complexes — SCPI, assurance-vie,
+                  structuration SCI/holding, effet de levier.
                 </p>
                 <p>
                   Au fil de centaines de rendez-vous clients, j&apos;ai constaté le même problème : le
@@ -73,9 +73,11 @@ export default function QuiSommesNousPage() {
                   détriment de l&apos;investisseur comme du professionnel qui le conseille.
                 </p>
                 <p>
-                  Rendement Réel Immo est né de ce constat : un outil au service de la vérité des chiffres,
-                  pour supprimer les zones d&apos;ombre, clarifier le rendement réel — net, net-net, après
-                  impôts — et faciliter des décisions d&apos;investissement locatif solides et défendables.
+                  C&apos;est ce constat qui m&apos;a poussé à quitter la gestion de patrimoine pour me
+                  consacrer pleinement à Rendement Réel Immo : un outil au service de la vérité des
+                  chiffres, pour supprimer les zones d&apos;ombre, clarifier le rendement réel — net,
+                  net-net, après impôts — et faciliter des décisions d&apos;investissement locatif solides
+                  et défendables.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm">
