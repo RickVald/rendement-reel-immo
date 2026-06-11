@@ -19,24 +19,40 @@ export function ContactForm() {
     besoin: BESOINS[0],
   })
   const [sent, setSent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const update = (key: keyof typeof form) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => setForm((f) => ({ ...f, [key]: e.target.value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const subject = encodeURIComponent(`Demande de démo pro — ${form.societe || form.nom}`)
-    const body = encodeURIComponent(
-      `Nom : ${form.nom}\n` +
-      `Société : ${form.societe}\n` +
-      `Métier : ${form.metier}\n` +
-      `Email : ${form.email}\n` +
-      `Dossiers investisseurs / mois : ${form.volume}\n` +
-      `Besoin : ${form.besoin}\n`
-    )
-    window.location.href = `mailto:contact@rendementreelimmo.fr?subject=${subject}&body=${body}`
-    setSent(true)
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profil: 'pro',
+          nom: form.nom,
+          societe: form.societe,
+          metier: form.metier,
+          email: form.email,
+          telephone: '',
+          volume: form.volume,
+          besoin: form.besoin,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Erreur, veuillez réessayer.')
+      setSent(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur inattendue')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const inputClass = "w-full bg-white/5 border border-white/15 focus:border-[#C9A96E] rounded-lg px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none transition-colors"
@@ -59,13 +75,14 @@ export function ContactForm() {
           ))}
         </select>
       </div>
-      <button type="submit"
-        className="w-full bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold py-3.5 rounded-lg text-sm transition-colors">
-        Envoyer ma demande
+      {error && <p className="text-center text-sm text-red-400">{error}</p>}
+      <button type="submit" disabled={loading || sent}
+        className="w-full bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold py-3.5 rounded-lg text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+        {loading ? 'Envoi...' : sent ? 'Demande envoyée' : 'Envoyer ma demande'}
       </button>
       {sent && (
         <p className="text-center text-sm text-slate-400">
-          Votre messagerie va s&apos;ouvrir avec les informations pré-remplies — il ne reste qu&apos;à envoyer.
+          Merci ! Votre demande a bien été reçue, nous revenons vers vous rapidement.
         </p>
       )}
     </form>

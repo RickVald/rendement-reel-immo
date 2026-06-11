@@ -11,6 +11,9 @@ interface LeadPayload {
   email: string
   telephone?: string
   societe?: string
+  metier?: string
+  volume?: string
+  besoin?: string
   input?: Partial<ProjectInput>
 }
 
@@ -29,6 +32,9 @@ export async function POST(req: Request) {
   const email = String(body.email ?? '').trim()
   const telephone = String(body.telephone ?? '').trim() || undefined
   const societe = String(body.societe ?? '').trim() || undefined
+  const metier = String(body.metier ?? '').trim() || undefined
+  const volume = String(body.volume ?? '').trim() || undefined
+  const besoin = String(body.besoin ?? '').trim() || undefined
   const input = body.input
 
   if (!nom) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
@@ -77,6 +83,7 @@ export async function POST(req: Request) {
       data: {
         nom: societe || nom,
         segment: 'AUTRE',
+        taille: volume,
         ville: ville !== '—' ? ville : undefined,
         source: 'simulateur',
       },
@@ -87,6 +94,7 @@ export async function POST(req: Request) {
         organisationId: org.id,
         type: 'PROSPECT_SAAS_B2B',
         nom,
+        role: metier,
         email,
         telephone,
       },
@@ -95,7 +103,7 @@ export async function POST(req: Request) {
     await prisma.opportunite.create({
       data: {
         organisationId: org.id,
-        offre: 'Démo SaaS (demande via simulateur)',
+        offre: besoin ? `Démo SaaS — ${besoin}` : 'Démo SaaS (demande via simulateur)',
         etape: 'PROSPECT_IDENTIFIE',
         scoreICP: 50,
       },
@@ -108,7 +116,8 @@ export async function POST(req: Request) {
         organisationId: org.id,
         type: 'TACHE',
         date: rappelDate,
-        resume: `Rappeler ${nom} (${email}${telephone ? `, ${telephone}` : ''}) suite à une demande de démo via le simulateur.`,
+        resume: `Rappeler ${nom} (${email}${telephone ? `, ${telephone}` : ''}) suite à une demande de démo`
+          + `${metier ? ` — métier : ${metier}` : ''}${volume ? `, ${volume} dossiers/mois` : ''}${besoin ? `, besoin : ${besoin}` : ''}.`,
         owner: process.env.SEED_ADMIN_EMAIL || 'admin@rendementreelimmo.fr',
         fait: false,
       },
@@ -121,9 +130,12 @@ export async function POST(req: Request) {
         <h2>Nouvelle demande de démo via le simulateur (professionnel)</h2>
         <p><strong>Nom :</strong> ${nom}</p>
         <p><strong>Société :</strong> ${societe ?? '—'}</p>
+        <p><strong>Métier :</strong> ${metier ?? '—'}</p>
         <p><strong>Email :</strong> ${email}</p>
         <p><strong>Téléphone :</strong> ${telephone ?? '—'}</p>
         <p><strong>Ville du projet :</strong> ${ville}</p>
+        <p><strong>Dossiers investisseurs / mois :</strong> ${volume ?? '—'}</p>
+        <p><strong>Besoin :</strong> ${besoin ?? '—'}</p>
         <p><a href="https://rendementreelimmo.fr/admin/crm/organisations/${org.id}">Voir la fiche dans le CRM</a></p>
       `,
     })
