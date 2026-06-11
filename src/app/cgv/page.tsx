@@ -38,7 +38,9 @@ export default function CGVPage() {
           souscription.
         </p>
         <p>
-          Modalités de paiement détaillées : <ToComplete>moyens de paiement acceptés, périodicité de facturation</ToComplete>.
+          Pour les particuliers, les rapports à l&apos;unité ou en pack sont payables en une fois par carte
+          bancaire via notre prestataire de paiement Stripe. Pour les professionnels, les abonnements sont
+          facturés selon la périodicité convenue lors de la souscription.
         </p>
       </LegalSection>
 
@@ -85,7 +87,7 @@ export default function CGVPage() {
 
       <LegalSection title="Contact">
         <p>
-          Pour toute question relative aux présentes CGV : <ToComplete>email de contact</ToComplete>.
+          Pour toute question relative aux présentes CGV : remy@rendementreelimmo.fr.
         </p>
       </LegalSection>
 

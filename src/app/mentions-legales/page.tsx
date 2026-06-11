@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { LegalPage, LegalSection, ToComplete } from '@/components/ui/LegalPage'
+import { LegalPage, LegalSection } from '@/components/ui/LegalPage'
 
 export const metadata: Metadata = {
   title: 'Mentions légales',
@@ -15,19 +15,17 @@ export default function MentionsLegalesPage() {
           Le site Rendement Réel Immo (https://rendementreelimmo.fr) est édité par :
         </p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Raison sociale / nom : <ToComplete>raison sociale ou nom et prénom</ToComplete></li>
-          <li>Forme juridique : <ToComplete>ex. auto-entreprise, SASU, SARL...</ToComplete></li>
-          <li>Adresse du siège : <ToComplete>adresse postale</ToComplete></li>
-          <li>SIRET / SIREN : <ToComplete>numéro d'immatriculation</ToComplete></li>
-          <li>TVA intracommunautaire : <ToComplete>numéro de TVA si applicable</ToComplete></li>
-          <li>Email de contact : <ToComplete>adresse email professionnelle</ToComplete></li>
-          <li>Téléphone : <ToComplete>numéro de téléphone (facultatif)</ToComplete></li>
+          <li>Raison sociale / nom : Rémy Ricaud</li>
+          <li>Forme juridique : Entreprise individuelle</li>
+          <li>Adresse du siège : Moulin de Carmenais, 56120 Saint-Servant</li>
+          <li>SIRET / SIREN : 883 055 857 RCS Vannes</li>
+          <li>Email de contact : remy@rendementreelimmo.fr</li>
         </ul>
       </LegalSection>
 
       <LegalSection title="Directeur de la publication">
         <p>
-          Le directeur de la publication est : <ToComplete>nom et prénom du responsable</ToComplete>.
+          Le directeur de la publication est : Rémy Ricaud.
         </p>
       </LegalSection>
 
@@ -36,9 +34,9 @@ export default function MentionsLegalesPage() {
           Le site est hébergé par :
         </p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Hébergeur : <ToComplete>ex. Vercel Inc.</ToComplete></li>
-          <li>Adresse : <ToComplete>adresse de l'hébergeur</ToComplete></li>
-          <li>Site web : <ToComplete>URL de l'hébergeur</ToComplete></li>
+          <li>Hébergeur : Vercel Inc.</li>
+          <li>Adresse : 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis</li>
+          <li>Site web : <a href="https://vercel.com" target="_blank" rel="noreferrer" className="text-[#0B1B2B] underline">vercel.com</a></li>
         </ul>
       </LegalSection>
 
@@ -74,7 +72,7 @@ export default function MentionsLegalesPage() {
 
       <LegalSection title="Contact">
         <p>
-          Pour toute question relative au site ou à son contenu : <ToComplete>email de contact</ToComplete>.
+          Pour toute question relative au site ou à son contenu : remy@rendementreelimmo.fr.
         </p>
       </LegalSection>
 

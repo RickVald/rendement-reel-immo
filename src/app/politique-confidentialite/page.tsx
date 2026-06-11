@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, LegalSection, ToComplete } from '@/components/ui/LegalPage'
+import { LegalPage, LegalSection } from '@/components/ui/LegalPage'
 
 export const metadata: Metadata = {
   title: 'Politique de confidentialité',
@@ -13,8 +13,8 @@ export default function PolitiqueConfidentialitePage() {
 
       <LegalSection title="Responsable du traitement">
         <p>
-          Le responsable du traitement des données est : <ToComplete>raison sociale / nom</ToComplete>,
-          contact : <ToComplete>email de contact</ToComplete>. Voir aussi les{' '}
+          Le responsable du traitement des données est : Rémy Ricaud (entreprise individuelle),
+          contact : remy@rendementreelimmo.fr. Voir aussi les{' '}
           <Link href="/mentions-legales" className="text-[#0B1B2B] underline">mentions légales</Link>.
         </p>
       </LegalSection>
@@ -95,7 +95,7 @@ export default function PolitiqueConfidentialitePage() {
           Conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi « Informatique
           et Libertés », vous disposez d&apos;un droit d&apos;accès, de rectification, de suppression, de
           limitation et d&apos;opposition concernant vos données personnelles. Pour exercer ces droits,
-          contactez : <ToComplete>email de contact dédié RGPD</ToComplete>.
+          contactez : remy@rendementreelimmo.fr.
         </p>
         <p>
           Vous disposez également du droit d&apos;introduire une réclamation auprès de la Commission Nationale
