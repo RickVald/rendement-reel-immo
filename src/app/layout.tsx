@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
+import { MobileNav } from '@/components/layout/MobileNav'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const playfair = Playfair_Display({ subsets: ['latin'], variable: '--font-playfair' })
@@ -74,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col bg-white text-slate-800 antialiased font-sans">
 
         {/* HEADER */}
-        <header className="sticky top-0 z-50 bg-white/98 backdrop-blur-sm border-b border-slate-100 shadow-[0_1px_0_0_rgba(0,0,0,0.04)]">
+        <header className="sticky top-0 z-50 bg-white/98 backdrop-blur-sm border-b border-slate-100 shadow-[0_1px_0_0_rgba(0,0,0,0.04)] relative">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3 sm:gap-6">
             <Link href="/" className="shrink-0"><LogoMark /></Link>
             <nav className="hidden md:flex items-center gap-0.5">
@@ -85,11 +86,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               ))}
             </nav>
-            <Link href="/professionnels#demo"
-              className="shrink-0 bg-[#C9A96E] hover:bg-[#b8966a] text-[#0B1B2B] text-xs sm:text-sm font-bold px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
-              <span className="sm:hidden">Démo pro →</span>
-              <span className="hidden sm:inline">Demander une démo pro →</span>
-            </Link>
+            <div className="flex items-center gap-1.5 sm:gap-3">
+              <Link href="/professionnels#demo"
+                className="shrink-0 bg-[#C9A96E] hover:bg-[#b8966a] text-[#0B1B2B] text-xs sm:text-sm font-bold px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+                <span className="sm:hidden">Démo pro →</span>
+                <span className="hidden sm:inline">Demander une démo pro →</span>
+              </Link>
+              <MobileNav links={NAV_LINKS} />
+            </div>
           </div>
         </header>
 

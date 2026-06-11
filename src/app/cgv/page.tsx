@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, LegalSection, ToComplete } from '@/components/ui/LegalPage'
+import { LegalPage, LegalSection } from '@/components/ui/LegalPage'
 
 export const metadata: Metadata = {
   title: 'Conditions générales de vente et d\'utilisation',
@@ -47,8 +47,10 @@ export default function CGVPage() {
       <LegalSection title="Durée, renouvellement et résiliation">
         <p>
           Sauf mention contraire au moment de la souscription, les abonnements sont conclus pour une durée
-          mensuelle, renouvelable tacitement. Les conditions de résiliation (préavis, modalités) sont
-          précisées : <ToComplete>conditions de résiliation et préavis applicables</ToComplete>.
+          mensuelle, renouvelable tacitement, sans engagement de durée. Ils sont résiliables à tout moment
+          depuis l&apos;espace client ou sur simple demande par email à remy@rendementreelimmo.fr. La
+          résiliation prend effet à la fin de la période mensuelle en cours. Aucun remboursement au prorata
+          temporis n&apos;est dû, sauf accord contraire.
         </p>
       </LegalSection>
 

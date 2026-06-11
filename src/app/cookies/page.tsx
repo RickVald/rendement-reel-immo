@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, LegalSection, ToComplete } from '@/components/ui/LegalPage'
+import { LegalPage, LegalSection } from '@/components/ui/LegalPage'
 
 export const metadata: Metadata = {
   title: 'Cookies',
@@ -30,7 +30,7 @@ export default function CookiesPage() {
 
       <LegalSection title="Mesure d'audience">
         <p>
-          Outil utilisé : <ToComplete>nom de l'outil de mesure d'audience, le cas échéant</ToComplete>.
+          Aucun outil de mesure d&apos;audience non strictement nécessaire n&apos;est utilisé à ce jour.
         </p>
         <p>
           Si une solution de mesure d&apos;audience est mise en place, elle sera privilégiée dans une

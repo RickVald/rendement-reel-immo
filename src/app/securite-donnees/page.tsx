@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage, LegalSection, ToComplete } from '@/components/ui/LegalPage'
+import { LegalPage, LegalSection } from '@/components/ui/LegalPage'
 
 export const metadata: Metadata = {
   title: 'Sécurité des données',
@@ -74,9 +74,8 @@ export default function SecuriteDonneesPage() {
 
       <LegalSection title="Accès en marque blanche et multi-utilisateurs">
         <p>
-          Pour les offres marque blanche et multi-utilisateurs, l&apos;accès aux espaces clients est protégé
-          par authentification. Les détails techniques (gestion des accès, séparation des données entre
-          cabinets) sont précisés lors de la mise en place : <ToComplete>détails sur l&apos;authentification et l&apos;isolation des données par cabinet, le cas échéant</ToComplete>.
+          Les espaces professionnels sont protégés par authentification. Les données sont cloisonnées par
+          compte utilisateur / cabinet dans la base applicative.
         </p>
       </LegalSection>
 
@@ -84,7 +83,7 @@ export default function SecuriteDonneesPage() {
         <p>
           Voir également notre <Link href="/politique-confidentialite" className="text-[#0B1B2B] underline">politique de confidentialité</Link>{' '}
           et nos <Link href="/mentions-legales" className="text-[#0B1B2B] underline">mentions légales</Link>.
-          Pour toute question de sécurité, contactez : <ToComplete>email de contact sécurité</ToComplete>.
+          Pour toute question de sécurité, contactez : remy@rendementreelimmo.fr.
         </p>
       </LegalSection>
 
