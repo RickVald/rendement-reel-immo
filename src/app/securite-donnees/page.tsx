@@ -23,8 +23,8 @@ export default function SecuriteDonneesPage() {
         <p>
           Les données saisies dans le simulateur (caractéristiques du bien, financement, fiscalité,
           hypothèses de revente, etc.) sont traitées de façon transitoire pour réaliser les calculs et
-          générer le rapport demandé. Elles ne sont pas écrites dans une base de données et ne sont pas
-          conservées au-delà de la session de calcul.
+          générer le rapport demandé. Tant qu&apos;aucune coordonnée n&apos;est renseignée, elles ne sont pas
+          écrites dans une base de données et ne sont pas conservées au-delà de la session de calcul.
         </p>
       </LegalSection>
 
@@ -46,8 +46,19 @@ export default function SecuriteDonneesPage() {
 
       <LegalSection title="Demandes de démo et formulaires">
         <p>
-          Le formulaire de demande de démo transmet les informations saisies directement par email, via
-          le client de messagerie de l&apos;utilisateur, sans passer par une base de données du site.
+          Le formulaire de demande de démo et le formulaire affiché avant les résultats détaillés du
+          simulateur enregistrent les informations saisies (nom, email, téléphone, résumé du projet) dans
+          notre CRM interne, hébergé sur une base de données Postgres (Neon, hébergement Union européenne).
+          Une notification est également envoyée à notre équipe par email via notre prestataire d&apos;envoi
+          transactionnel (Brevo). L&apos;accès à ce CRM est protégé par authentification et réservé à notre équipe.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Paiement (Stripe)">
+        <p>
+          Les paiements liés à l&apos;achat de rapports sont traités par Stripe, prestataire de paiement
+          certifié PCI-DSS. Les coordonnées bancaires sont saisies sur l&apos;interface sécurisée de Stripe et
+          ne transitent jamais par nos serveurs ni par notre base de données.
         </p>
       </LegalSection>
 
@@ -55,8 +66,9 @@ export default function SecuriteDonneesPage() {
         <p>
           Le site et l&apos;application sont hébergés chez Vercel Inc., infrastructure cloud reposant sur des
           datacenters certifiés, avec chiffrement systématique en transit (HTTPS/TLS) et surveillance continue.
-          Les données du simulateur transitent par cette infrastructure sans y être stockées de façon
-          permanente (voir ci-dessus).
+          La base de données du CRM (Neon Postgres) est hébergée dans l&apos;Union européenne. Les données du
+          simulateur transitent par cette infrastructure sans y être stockées de façon permanente lorsqu&apos;aucune
+          coordonnée n&apos;est renseignée (voir ci-dessus).
         </p>
       </LegalSection>
 
@@ -64,7 +76,7 @@ export default function SecuriteDonneesPage() {
         <p>
           Pour les offres marque blanche et multi-utilisateurs, l&apos;accès aux espaces clients est protégé
           par authentification. Les détails techniques (gestion des accès, séparation des données entre
-          cabinets) sont précisés lors de la mise en place : <ToComplete>détails sur l'authentification et l'isolation des données par cabinet, le cas échéant</ToComplete>.
+          cabinets) sont précisés lors de la mise en place : <ToComplete>détails sur l&apos;authentification et l&apos;isolation des données par cabinet, le cas échéant</ToComplete>.
         </p>
       </LegalSection>
 

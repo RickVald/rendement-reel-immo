@@ -23,8 +23,8 @@ export default function PolitiqueConfidentialitePage() {
         <p>
           Les informations saisies dans le simulateur (caractéristiques du bien, financement, fiscalité,
           hypothèses de revente, etc.) sont transmises de façon sécurisée (HTTPS) à nos serveurs uniquement
-          pour effectuer les calculs et générer le rapport demandé. Ces données ne sont pas stockées de
-          façon permanente ni revendues.
+          pour effectuer les calculs et générer le rapport demandé. Tant qu&apos;aucune coordonnée n&apos;est
+          renseignée, ces données ne sont pas stockées de façon permanente ni revendues.
         </p>
         <p>
           Lorsque la synthèse automatique du dossier est activée, un résumé anonymisé des résultats peut être
@@ -34,16 +34,33 @@ export default function PolitiqueConfidentialitePage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Données collectées via le formulaire de demande de démo">
+      <LegalSection title="Données collectées via les formulaires (résultats, démo)">
         <p>
-          Le formulaire de demande de démo (page « Professionnels ») collecte : nom, société, métier, email
-          professionnel, volume de dossiers et besoin exprimé. Ces informations sont transmises directement
-          par email à l&apos;équipe Rendement Réel Immo (via le client de messagerie de l&apos;utilisateur) et
-          ne transitent pas par une base de données du site.
+          Avant l&apos;affichage du résultat détaillé du simulateur, ou via le formulaire de demande de démo
+          (page « Professionnels »), nous collectons : nom, email, téléphone, société le cas échéant, ainsi
+          qu&apos;un résumé du projet immobilier saisi (ville, budget, type de bien).
         </p>
         <p>
-          Ces données sont utilisées uniquement pour répondre à la demande de démonstration et ne sont
-          conservées que le temps nécessaire au traitement de la demande commerciale.
+          Ces informations sont enregistrées dans notre outil de gestion de la relation client (CRM interne),
+          hébergé sur une base de données Postgres (Neon, hébergement Union européenne), et une notification
+          est envoyée à notre équipe par email via notre prestataire d&apos;envoi transactionnel (Brevo).
+        </p>
+        <p>
+          Ces données sont utilisées pour répondre à votre demande, vous transmettre le rapport ou l&apos;accès
+          demandé, assurer le suivi commercial, et le cas échéant vous proposer (avec votre consentement) la
+          mise en relation avec un partenaire professionnel pertinent pour votre projet (chasseur, courtier,
+          CGP...). Cette mise en relation n&apos;a lieu qu&apos;en cas de consentement explicite (« opt-in »)
+          de votre part.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Paiement des rapports (Stripe)">
+        <p>
+          L&apos;achat d&apos;un rapport ou d&apos;un pack de rapports est traité par notre prestataire de
+          paiement Stripe. Les coordonnées bancaires sont saisies directement sur la page de paiement sécurisée
+          de Stripe et ne transitent jamais par nos serveurs. Nous recevons uniquement la confirmation du
+          paiement, l&apos;email associé à la commande et l&apos;offre achetée, conservés dans notre CRM pour
+          le suivi de votre commande et l&apos;émission de vos rapports.
         </p>
       </LegalSection>
 
@@ -66,9 +83,10 @@ export default function PolitiqueConfidentialitePage() {
 
       <LegalSection title="Durée de conservation">
         <p>
-          Les données saisies dans le simulateur ne sont pas conservées au-delà de la session nécessaire au
-          calcul et à la génération du rapport. Les demandes de démo transmises par email sont conservées le
-          temps de la relation commerciale, puis supprimées ou archivées conformément aux obligations légales.
+          Les données saisies dans le simulateur (sans coordonnées) ne sont pas conservées au-delà de la
+          session nécessaire au calcul et à la génération du rapport. Les données issues des formulaires
+          (résultats, démo) et enregistrées dans le CRM sont conservées le temps de la relation commerciale,
+          dans la limite de 3 ans à compter du dernier contact, puis supprimées ou anonymisées.
         </p>
       </LegalSection>
 

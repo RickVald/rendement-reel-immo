@@ -16,7 +16,7 @@ export function SourceBox({ sources, dateMaj }: { sources: SourceItem[]; dateMaj
           </li>
         ))}
       </ul>
-      <p className="text-[11px] text-slate-400 mt-3">Informations vérifiées et à jour au {dateMaj}. La réglementation fiscale évolue : vérifiez les conditions actuelles auprès des sources ci-dessus ou d&apos;un professionnel.</p>
+      <p className="text-[11px] text-slate-400 mt-3">Informations vérifiées et à jour en {dateMaj}. La réglementation fiscale évolue : vérifiez les conditions actuelles auprès des sources ci-dessus ou d&apos;un professionnel.</p>
     </div>
   )
 }
