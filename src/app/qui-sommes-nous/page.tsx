@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { ToComplete } from '@/components/ui/LegalPage'
 
 export const metadata: Metadata = {
   title: 'Qui sommes-nous',
@@ -44,41 +43,45 @@ export default function QuiSommesNousPage() {
       <section className="py-16 md:py-24">
         <div className="max-w-4xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-12">
-            {/* Photo */}
+            {/* Monogramme */}
             <div className="shrink-0">
-              <div className="w-40 h-40 rounded-2xl bg-[#F8F7F4] border border-slate-200 flex items-center justify-center text-center text-xs text-slate-400 font-mono p-4">
-                <ToComplete>photo sobre du fondateur</ToComplete>
+              <div className="w-40 h-40 rounded-2xl bg-[#0B1B2B] border border-slate-200 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.05]"
+                  style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '20px 20px' }} />
+                <span className="font-playfair text-6xl font-bold text-[#C9A96E] relative">R</span>
               </div>
             </div>
             {/* Bio */}
             <div className="flex-1 text-center md:text-left">
               <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Fondateur</p>
               <h2 className="font-playfair text-2xl md:text-3xl font-bold text-[#0B1B2B] mb-4">
-                <ToComplete>Prénom Nom du fondateur</ToComplete>
+                Rémy Ricaud
               </h2>
               <div className="text-sm text-slate-600 leading-relaxed space-y-3 mb-6">
                 <p>
-                  <ToComplete>
-                    Quelques phrases de présentation : parcours professionnel, expérience en immobilier
-                    et/ou en gestion de patrimoine, et ce qui a motivé la création de Rendement Réel Immo.
-                  </ToComplete>
+                  Avant de créer Rendement Réel Immo, j&apos;ai passé plus de dix ans entre l&apos;immobilier
+                  et la gestion de patrimoine : agent immobilier puis fondateur d&apos;une agence
+                  indépendante (+588 % de croissance en 3 ans), avant de rejoindre un cabinet de gestion de
+                  patrimoine où j&apos;accompagne des investisseurs sur des produits complexes — SCPI,
+                  assurance-vie, structuration SCI/holding, effet de levier.
                 </p>
                 <p>
-                  <ToComplete>
-                    Pourquoi ce produit existe : le constat de départ (ex. écart entre rendement brut affiché
-                    et rendement net-net réel, manque d&apos;outils fiables pour objectiver une décision
-                    d&apos;investissement locatif face à un client).
-                  </ToComplete>
+                  Au fil de centaines de rendez-vous clients, j&apos;ai constaté le même problème : le
+                  rendement affiché — souvent « brut » — ne reflète presque jamais la réalité une fois les
+                  charges, la fiscalité, la vacance et les travaux pris en compte. Trop de décisions
+                  d&apos;investissement locatif se prennent encore sur des hypothèses approximatives, au
+                  détriment de l&apos;investisseur comme du professionnel qui le conseille.
+                </p>
+                <p>
+                  Rendement Réel Immo est né de ce constat : un outil au service de la vérité des chiffres,
+                  pour supprimer les zones d&apos;ombre, clarifier le rendement réel — net, net-net, après
+                  impôts — et faciliter des décisions d&apos;investissement locatif solides et défendables.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm">
-                <ToComplete>
-                  lien LinkedIn
-                </ToComplete>
-                <span className="text-slate-300">·</span>
-                <ToComplete>
-                  email professionnel de contact
-                </ToComplete>
+                <a href="mailto:remy@rendementreelimmo.fr" className="text-[#0B1B2B] underline">
+                  remy@rendementreelimmo.fr
+                </a>
               </div>
             </div>
           </div>
@@ -116,10 +119,9 @@ export default function QuiSommesNousPage() {
             tarif préférentiel, en échange de retours directs qui font évoluer le produit.
           </p>
           <p className="text-slate-600 leading-relaxed mb-10">
-            <ToComplete>
-              Précisions sur le programme pilote : nombre de places, durée, conditions de sortie,
-              accompagnement proposé pendant la phase pilote.
-            </ToComplete>
+            Les premiers cabinets accompagnés bénéficient d&apos;un tarif préférentiel maintenu et d&apos;un
+            accompagnement direct pour adapter l&apos;outil à leurs besoins (modèles de rapports,
+            dispositifs spécifiques, retours intégrés rapidement).
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/professionnels#demo"
