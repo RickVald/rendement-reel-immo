@@ -68,7 +68,7 @@ const FAQ = [
   { q: 'Les chiffres et règles fiscales sont-ils à jour ?', r: 'Le référentiel fiscal 2025-2026 est intégré et documenté. Chaque rapport inclut un audit de cohérence des hypothèses et des résultats.' },
   { q: 'Est-ce que ça remplace mon rôle de conseil ?', r: 'Non. L\'outil produit une simulation et un document de travail. L\'analyse, la connaissance client et la recommandation finale restent de votre responsabilité.' },
   { q: 'Mes clients vont-ils comprendre le rapport ?', r: 'Oui : en plus des tableaux détaillés, chaque rapport inclut une synthèse automatique en langage clair (points forts, risques, leviers de négociation).' },
-  { q: 'Que deviennent les données saisies ?', r: 'Les données ne sont pas stockées de façon permanente. Voir notre page Sécurité des données pour le détail.' },
+  { q: 'Que deviennent les données saisies ?', r: 'Les données purement techniques de simulation ne sont pas conservées durablement lorsqu\'aucune coordonnée n\'est renseignée. Les demandes de démo, formulaires et coordonnées sont enregistrés dans notre CRM pour assurer le suivi commercial, conformément à notre politique de confidentialité.' },
   { q: 'Combien de temps pour générer un rapport ?', r: 'Quelques minutes, une fois les données du bien et du financement saisies.' },
   { q: 'Puis-je tester avant de m\'engager ?', r: 'Oui, via l\'offre pilote : 99 €/mois pendant 2 mois, sans engagement.' },
 ]

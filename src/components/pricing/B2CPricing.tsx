@@ -32,7 +32,7 @@ const PAID_PLANS: PaidPlan[] = [
     pack: 'rapport_unique',
     name: 'Rapport unique',
     price: '69 €',
-    desc: 'Pour analyser un bien en profondeur avant de se décider.',
+    desc: 'Pour analyser un projet d\'achat ou un bien déjà détenu.',
     features: [
       '1 rapport PDF complet',
       'Cash-flow, TRI, VAN',
@@ -46,7 +46,7 @@ const PAID_PLANS: PaidPlan[] = [
     pack: 'pack3',
     name: 'Pack 3 rapports',
     price: '99 €',
-    desc: 'Notre offre phare : comparez plusieurs biens avant vos visites.',
+    desc: 'Pour comparer plusieurs opportunités ou auditer jusqu\'à 3 biens de votre parc.',
     features: [
       '3 biens à analyser',
       'Rapport PDF complet pour chaque bien',
@@ -60,7 +60,7 @@ const PAID_PLANS: PaidPlan[] = [
     pack: 'pack5',
     name: 'Pack 5 rapports',
     price: '149 €',
-    desc: 'Pour un investisseur actif en recherche sur plusieurs zones.',
+    desc: 'Pour investisseur actif ou propriétaire multi-biens.',
     features: [
       '5 rapports complets',
       'Pour une recherche en cours',

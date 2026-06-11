@@ -18,7 +18,8 @@ export default function MentionsLegalesPage() {
           <li>Raison sociale / nom : Rémy Ricaud</li>
           <li>Forme juridique : Entreprise individuelle</li>
           <li>Adresse du siège : Moulin de Carmenais, 56120 Saint-Servant</li>
-          <li>SIRET / SIREN : 883 055 857 RCS Vannes</li>
+          <li>SIREN : 883 055 857</li>
+          <li>Immatriculation : RCS Vannes</li>
           <li>Email de contact : remy@rendementreelimmo.fr</li>
         </ul>
       </LegalSection>
