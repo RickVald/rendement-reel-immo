@@ -195,6 +195,123 @@ export async function markLostAction(_prevState: ActionState, formData: FormData
   return { success: 'Opportunité marquée comme perdue.' }
 }
 
+/** Démarre un pilote pour l'organisation, lié à une opportunité. */
+export async function createPiloteAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requireEditor()
+  if ('error' in auth) return { error: auth.error }
+
+  const organisationId = String(formData.get('organisationId') ?? '')
+  const opportuniteId = String(formData.get('opportuniteId') ?? '')
+  const dateDebutStr = String(formData.get('dateDebut') ?? '')
+  const dateFinStr = String(formData.get('dateFin') ?? '')
+  const quotaStr = String(formData.get('quotaRapports') ?? '').trim()
+
+  if (!opportuniteId) return { error: 'Sélectionne une opportunité.' }
+  if (!dateDebutStr || !dateFinStr) return { error: 'Indique la période du pilote.' }
+
+  const quotaRapports = quotaStr ? Number(quotaStr) : 10
+  if (Number.isNaN(quotaRapports) || quotaRapports < 0) return { error: 'Quota de rapports invalide.' }
+
+  await prisma.pilote.create({
+    data: {
+      organisationId,
+      opportuniteId,
+      dateDebut: new Date(dateDebutStr),
+      dateFin: new Date(dateFinStr),
+      quotaRapports,
+      statut: 'ACTIF',
+    },
+  })
+
+  revalidateAll(organisationId)
+  return { success: 'Pilote créé.' }
+}
+
+/** Convertit l'organisation en abonnement payant. */
+export async function createAbonnementAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requireEditor()
+  if ('error' in auth) return { error: auth.error }
+
+  const organisationId = String(formData.get('organisationId') ?? '')
+  const opportuniteId = String(formData.get('opportuniteId') ?? '') || undefined
+  const plan = String(formData.get('plan') ?? '').trim()
+  const mrrStr = String(formData.get('mrr') ?? '').trim()
+  const dateDebutStr = String(formData.get('dateDebut') ?? '')
+  const niveauAbonnement = String(formData.get('niveauAbonnement') ?? '')
+
+  if (!plan) return { error: 'Indique le plan souscrit.' }
+  if (!dateDebutStr) return { error: 'Indique la date de début.' }
+
+  const mrr = Number(mrrStr)
+  if (!mrrStr || Number.isNaN(mrr) || mrr < 0) return { error: 'MRR invalide.' }
+
+  if (!['PRO', 'CABINET'].includes(niveauAbonnement)) return { error: 'Sélectionne un niveau d\'abonnement.' }
+
+  await prisma.abonnement.create({
+    data: {
+      organisationId,
+      opportuniteId,
+      plan,
+      mrr,
+      statut: 'ACTIF',
+      dateDebut: new Date(dateDebutStr),
+    },
+  })
+
+  await prisma.organisation.update({
+    where: { id: organisationId },
+    data: { niveauAbonnement: niveauAbonnement as 'PRO' | 'CABINET' },
+  })
+
+  if (opportuniteId) {
+    await prisma.opportunite.update({ where: { id: opportuniteId }, data: { etape: 'ABONNEMENT' } })
+  }
+
+  revalidateAll(organisationId)
+  return { success: 'Abonnement créé.' }
+}
+
+/** Associe (transmet) un lead B2C à cette organisation partenaire. */
+export async function assignLeadB2CAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  const auth = await requireEditor()
+  if ('error' in auth) return { error: auth.error }
+
+  const organisationId = String(formData.get('organisationId') ?? '')
+  const leadId = String(formData.get('leadId') ?? '')
+  const prixLeadStr = String(formData.get('prixLead') ?? '').trim()
+  const note = String(formData.get('note') ?? '').trim() || undefined
+  const exclusive = formData.get('exclusive') === 'on'
+
+  if (!leadId) return { error: 'Sélectionne un lead.' }
+
+  const lead = await prisma.leadB2C.findUnique({ where: { id: leadId } })
+  if (!lead) return { error: 'Lead introuvable.' }
+  if (lead.consentementPartenaire !== 'OPT_IN') return { error: 'Ce lead n\'a pas donné son consentement pour être transmis.' }
+
+  const prixLead = prixLeadStr ? Number(prixLeadStr) : undefined
+  if (prixLeadStr && (Number.isNaN(prixLead) || prixLead! < 0)) return { error: 'Prix du lead invalide.' }
+
+  await prisma.leadB2CTransmission.create({
+    data: {
+      leadId,
+      organisationId,
+      statut: 'ENVOYE',
+      prixLead,
+      exclusive,
+      note,
+    },
+  })
+
+  if (lead.statut === 'NOUVEAU' || lead.statut === 'QUALIFIE' || lead.statut === 'RAPPELE') {
+    await prisma.leadB2C.update({ where: { id: leadId }, data: { statut: 'TRANSMIS' } })
+  }
+
+  revalidateAll(organisationId)
+  revalidatePath('/admin/crm/leads-b2c')
+  revalidatePath(`/admin/crm/leads-b2c/${leadId}`)
+  return { success: 'Lead associé et transmis.' }
+}
+
 /** Enregistre une objection rencontrée. */
 export async function addObjectionAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireEditor()

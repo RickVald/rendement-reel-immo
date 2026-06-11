@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { B2CPricing } from '@/components/pricing/B2CPricing'
 
 export const metadata: Metadata = {
   title: 'Tarifs',
@@ -96,8 +97,17 @@ export default function TarifsPage() {
         </div>
       </section>
 
+      {/* ── B2C ──────────────────────────────────────────────────────── */}
+      <B2CPricing />
+
       {/* ── PLANS ────────────────────────────────────────────────────── */}
       <section className="py-20 md:py-28">
+        <div className="max-w-3xl mx-auto px-6 text-center mb-12">
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-3">Pour les professionnels</h2>
+          <p className="text-slate-500">
+            Des formules pensées pour un usage régulier par les CGP, chasseurs immobiliers, courtiers et cabinets patrimoniaux.
+          </p>
+        </div>
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-6">
           {PLANS.map((plan) => (
             <div key={plan.name}

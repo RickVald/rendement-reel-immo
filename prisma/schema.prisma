@@ -436,6 +436,26 @@ model Transaction {
   createdAt           DateTime @default(now())
 }
 
+enum AchatRapportStatut {
+  EN_ATTENTE
+  PAYE
+  EXPIRE
+}
+
+model AchatRapport {
+  id               String   @id @default(cuid())
+  email            String
+  pack             String
+  quotaRapports    Int
+  rapportsUtilises Int      @default(0)
+  montant          Int
+  statut           AchatRapportStatut @default(EN_ATTENTE)
+  stripeSessionId  String?  @unique
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 model ScanRun {
   id          String   @id @default(cuid())
   date        DateTime

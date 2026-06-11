@@ -83,18 +83,11 @@ export function SimplifiedResultsView({ analysis, onEdit }: SimplifiedResultsVie
             Projection sur 10-30 ans, fiscalité détaillée, comparaison de régimes, stress tests, synthèse IA personnalisée et export PDF professionnel.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
-            <button
-              type="button"
-              disabled
-              className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-slate-600 text-slate-300 cursor-not-allowed"
-            >
-              Accès complet — bientôt disponible
-            </button>
             <a
-              href="/tarifs"
+              href="/tarifs#particuliers"
               className="text-sm font-semibold px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white transition-colors"
             >
-              Voir nos offres
+              Accès complet — à partir de 69 €
             </a>
           </div>
           <p className="text-xs text-slate-400">

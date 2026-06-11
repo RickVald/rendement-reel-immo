@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { SegmentBadge, StageBadge, PrioriteBadge, ScoreTriple } from '@/components/crm/Badges'
 import {
-  getOrganisationById, getContacts, getOpportunites, getActivites, getPilotes,
+  getOrganisationById, getContacts, getOpportunites, getActivites, getPilotes, getLeadsB2C,
 } from '@/lib/crm/data'
 import { ACTIVITE_TYPE_LABELS, CONTACT_TYPE_LABELS, PILOTE_STATUT_LABELS, BESOIN_LABELS } from '@/lib/crm/types'
 import { QuickActions } from './QuickActions'
@@ -11,8 +11,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function OrganisationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const [org, allContacts, allOpportunites, allActivites, allPilotes] = await Promise.all([
-    getOrganisationById(id), getContacts(), getOpportunites(), getActivites(), getPilotes(),
+  const [org, allContacts, allOpportunites, allActivites, allPilotes, leadsB2C] = await Promise.all([
+    getOrganisationById(id), getContacts(), getOpportunites(), getActivites(), getPilotes(), getLeadsB2C(),
   ])
   if (!org) notFound()
 
@@ -82,10 +82,11 @@ export default async function OrganisationDetailPage({ params }: { params: Promi
               <h2 className="font-bold text-sm text-[#0B1B2B]">Actions rapides</h2>
             </div>
             <div className="px-5 py-4">
-              <QuickActions organisationId={org.id} opportunites={opportunites.map(o => ({ id: o.id, offre: o.offre, etape: o.etape }))} />
-              <p className="text-xs text-slate-400 mt-3">
-                Bientôt : créer un pilote, convertir en abonnement, associer un lead B2C.
-              </p>
+              <QuickActions
+                organisationId={org.id}
+                opportunites={opportunites.map(o => ({ id: o.id, offre: o.offre, etape: o.etape }))}
+                leadsB2C={leadsB2C.map(l => ({ id: l.id, nom: l.nom, ville: l.ville, statut: l.statut, consentementPartenaire: l.consentementPartenaire }))}
+              />
             </div>
           </div>
 

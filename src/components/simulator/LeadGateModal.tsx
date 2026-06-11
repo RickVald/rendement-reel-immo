@@ -83,18 +83,19 @@ export function LeadGateModal({ open, onClose, onUnlockParticulier, input }: Lea
 
             <div className="p-6 space-y-5">
               {/* Option payante */}
-              <div className="border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-4 opacity-60">
+              <div className="border border-slate-200 rounded-xl p-4 flex items-center justify-between gap-4">
                 <div>
                   <p className="font-semibold text-slate-800 text-sm">Accès complet immédiat</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Rapport détaillé + PDF + synthèse IA, sans laisser de coordonnées.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Rapport détaillé + PDF + synthèse IA, à partir de 69 €.</p>
                 </div>
-                <button
-                  type="button"
-                  disabled
-                  className="text-xs font-semibold px-4 py-2 rounded-lg bg-slate-200 text-slate-500 cursor-not-allowed whitespace-nowrap"
+                <a
+                  href="/tarifs#particuliers"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold px-4 py-2 rounded-lg bg-[#0B1B2B] hover:bg-[#162840] text-white transition-colors whitespace-nowrap"
                 >
-                  Bientôt disponible
-                </button>
+                  Voir les offres
+                </a>
               </div>
 
               <div className="flex items-center gap-3">

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { LeadStatusBadge, LeadPrioriteBadge } from '@/components/crm/Badges'
 import { getLeadB2C, getOrganisations } from '@/lib/crm/data'
 import { BESOIN_LABELS, LEAD_B2C_SOURCE_LABELS, computeMatches } from '@/lib/crm/types'
+import { LeadStatusActions, TransmitForm } from './LeadActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,7 @@ export default async function LeadB2CDetailPage({ params }: { params: Promise<{ 
               <LeadStatusBadge statut={lead.statut} />
               <LeadPrioriteBadge score={lead.scoreLead} />
             </div>
+            <LeadStatusActions leadId={lead.id} statut={lead.statut} consentementPartenaire={lead.consentementPartenaire} />
           </div>
         </div>
       </div>
@@ -128,6 +130,7 @@ export default async function LeadB2CDetailPage({ params }: { params: Promise<{ 
                   {m.organisation.prixLead && (
                     <p className="text-xs text-slate-400 mt-1">Prix lead estimé : {m.organisation.prixLead} €{m.organisation.delaiReponseHeures ? ` · réponse sous ~${m.organisation.delaiReponseHeures}h` : ''}</p>
                   )}
+                  <TransmitForm leadId={lead.id} organisationId={m.organisation.id} organisationNom={m.organisation.nom} prixLead={m.organisation.prixLead} />
                 </li>
               ))}
               {lead.consentementPartenaire === 'OPT_IN' && matches.length === 0 && (
