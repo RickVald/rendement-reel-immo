@@ -46,6 +46,7 @@ const CAS_USAGE = [
   { title: 'Comparer plusieurs scénarios', desc: 'LMNP réel vs micro-BIC vs SCI à l\'IS, avec ou sans dispositif fiscal : le client visualise l\'impact réel sur son rendement net-net.' },
   { title: 'Justifier un prix cible', desc: 'Le rapport calcule le prix d\'achat qui rendrait l\'opération viable — un argument de négociation factuel face au vendeur.' },
   { title: 'Support de comité ou de suivi', desc: 'Le PDF sert de document de référence pour un comité d\'investissement ou pour le suivi du dossier dans le temps.' },
+  { title: 'Audit de parc immobilier client', desc: 'Pour les clients déjà propriétaires, le rapport permet d\'analyser la rentabilité réelle des biens détenus, de comparer conservation et cession, et de documenter un arbitrage patrimonial.', wide: true },
 ]
 
 const NE_REMPLACE_PAS = [
@@ -238,7 +239,7 @@ export default function ProfessionnelsPage() {
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
             {CAS_USAGE.map((c) => (
-              <div key={c.title} className="bg-white rounded-2xl p-6 border border-slate-200">
+              <div key={c.title} className={`bg-white rounded-2xl p-6 border border-slate-200 ${c.wide ? 'md:col-span-2' : ''}`}>
                 <h3 className="font-playfair text-lg font-bold text-[#0B1B2B] mb-2">{c.title}</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">{c.desc}</p>
               </div>

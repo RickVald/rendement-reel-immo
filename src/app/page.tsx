@@ -63,7 +63,7 @@ function MiniReport() {
       <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden w-[300px]">
         {/* Header carte */}
         <div className="bg-[#0B1B2B] px-5 py-4">
-          <div className="text-[10px] tracking-[0.15em] uppercase text-slate-400 mb-1">Rapport d'analyse</div>
+          <div className="text-[10px] tracking-[0.15em] uppercase text-slate-400 mb-1">Rapport d&apos;analyse</div>
           <div className="text-white text-sm font-semibold">Appartement · Lyon 6e</div>
           <div className="text-slate-400 text-xs mt-0.5">Simulation sur 15 ans · LMNP réel</div>
         </div>
@@ -353,6 +353,59 @@ export default function Home() {
                   <li key={i} className="flex items-start gap-3 text-sm">
                     <span className="text-[#C9A96E] shrink-0 mt-0.5"><IconCheck /></span>
                     <span className="text-slate-600">{page}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── AUDIT DE PARC IMMOBILIER EXISTANT ────────────────────────── */}
+      <section className="py-20 md:py-28 border-t border-slate-200">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Déjà propriétaire ?</p>
+              <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-6 leading-tight">
+                Auditez aussi votre<br />parc immobilier existant
+              </h2>
+              <p className="text-slate-500 leading-relaxed mb-7">
+                Rendement Réel Immo ne sert pas uniquement à analyser un projet d&apos;achat. Le moteur permet
+                aussi d&apos;auditer un bien déjà détenu ou un parc immobilier existant : rentabilité réelle,
+                cash-flow, fiscalité, revente nette, TRI, VAN, stress tests et scénario de conservation
+                ou d&apos;arbitrage.
+              </p>
+              <p className="text-slate-500 leading-relaxed mb-8">
+                Le rapport documente les scénarios de conservation, d&apos;optimisation ou d&apos;arbitrage —
+                à vous, ou à votre conseiller, de décider.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/simulateur"
+                  className="inline-flex items-center justify-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                  Auditer un bien détenu <IconArrow />
+                </Link>
+                <Link href="/professionnels#demo"
+                  className="inline-flex items-center justify-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                  Demander une démo pro
+                </Link>
+              </div>
+            </div>
+            <div className="bg-[#F8F7F4] rounded-2xl p-8 border border-slate-200">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Identifiez les biens à...</p>
+              <ul className="space-y-4">
+                {[
+                  { label: 'Conserver', desc: 'Le bien reste un actif performant — aucun arbitrage nécessaire.' },
+                  { label: 'Optimiser', desc: 'Renégociation de crédit, fiscalité plus favorable, travaux ciblés.' },
+                  { label: 'Refinancer ou réallouer', desc: "Le capital immobilisé pourrait produire un meilleur rendement ailleurs." },
+                  { label: 'Arbitrer (revente)', desc: 'La rentabilité réelle ne justifie plus la détention — un scénario de cession est documenté.' },
+                ].map((item) => (
+                  <li key={item.label} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-slate-200">
+                    <span className="text-[#C9A96E] shrink-0 mt-0.5"><IconCheck /></span>
+                    <div>
+                      <p className="font-semibold text-[#0B1B2B] text-sm mb-1">{item.label}</p>
+                      <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                    </div>
                   </li>
                 ))}
               </ul>

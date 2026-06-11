@@ -97,6 +97,28 @@ export default function TarifsPage() {
         </div>
       </section>
 
+      {/* ── USAGES DU RAPPORT ────────────────────────────────────────── */}
+      <section className="py-10">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row md:items-center gap-5">
+            <p className="text-slate-400 text-xs uppercase tracking-widest font-mono shrink-0">Usages du rapport</p>
+            <div className="hidden md:block w-px h-5 bg-slate-200"/>
+            <div className="flex flex-wrap gap-2">
+              {[
+                'Audit d\'un bien à l\'achat',
+                'Comparaison de plusieurs biens',
+                'Audit d\'un bien déjà détenu',
+                'Audit d\'un parc immobilier existant',
+              ].map((u) => (
+                <span key={u} className="bg-[#F8F7F4] border border-slate-200 rounded-lg px-4 py-2 text-sm font-medium text-slate-600">
+                  {u}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── B2C ──────────────────────────────────────────────────────── */}
       <B2CPricing />
 
