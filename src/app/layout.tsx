@@ -34,33 +34,35 @@ const NAV_LINKS = [
 ]
 
 /* ── Logo mark ──────────────────────────────────────────────────────── */
-function LogoMark({ light = false }: { light?: boolean }) {
+function LogoMark({ light = false, tagline = true }: { light?: boolean; tagline?: boolean }) {
   const gold = '#C9A96E'
-  const text = light ? '#ffffff' : '#0B1B2B'
-  const sub = light ? 'rgba(255,255,255,0.45)' : '#64748b'
+  const navy = '#0B1B2B'
+  const ring = light ? 'rgba(255,255,255,0.4)' : gold
+  const sub = light ? 'rgba(255,255,255,0.65)' : '#5f6b7d'
   return (
     <div className="flex items-center gap-3 select-none">
-      {/* Monogram SVG */}
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="32" height="32" rx="6" fill={light ? 'rgba(255,255,255,0.08)' : '#0B1B2B'}/>
-        {/* Gold accent bar top */}
-        <rect x="8" y="8" width="16" height="1.5" rx="0.75" fill={gold}/>
-        {/* Stylised "R" built from lines */}
-        <path d="M10 12h5.5a3 3 0 0 1 0 6H10V12Z" stroke={light ? 'rgba(255,255,255,0.9)' : '#ffffff'} strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M15.5 18L19 24" stroke={gold} strokeWidth="1.4" strokeLinecap="round"/>
-        {/* Right side chart bars */}
-        <rect x="21" y="20" width="2" height="4" rx="1" fill={gold} opacity="0.6"/>
-        <rect x="21" y="16" width="2" height="3" rx="1" fill={gold} opacity="0.8"/>
-        <rect x="21" y="12" width="2" height="2" rx="1" fill={gold}/>
+      {/* Seal / monogram */}
+      <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="19" cy="19" r="18" fill={light ? 'rgba(255,255,255,0.06)' : navy} stroke={ring} strokeWidth="1"/>
+        <circle cx="19" cy="19" r="14.5" fill="none" stroke={ring} strokeWidth="0.6" opacity="0.7"/>
+        {/* Cardinal ticks */}
+        <rect x="18.5" y="3" width="1" height="2" fill={ring} opacity="0.8"/>
+        <rect x="18.5" y="33" width="1" height="2" fill={ring} opacity="0.8"/>
+        <rect x="3" y="18.5" width="2" height="1" fill={ring} opacity="0.8"/>
+        <rect x="33" y="18.5" width="2" height="1" fill={ring} opacity="0.8"/>
+        {/* Monogram */}
+        <text x="19" y="25" textAnchor="middle" fontFamily="var(--font-playfair), Georgia, serif" fontSize="16" fontWeight="700" fill={gold}>R</text>
       </svg>
       {/* Wordmark */}
       <div className="leading-none">
-        <div className={`text-sm font-bold tracking-tight whitespace-nowrap ${light ? 'text-white' : 'text-[#0B1B2B]'}`}>
-          Rendement Réel<span style={{ color: gold }}> Immo</span>
+        <div className={`font-playfair text-[15px] font-semibold tracking-[0.08em] uppercase whitespace-nowrap ${light ? 'text-white' : 'text-[#0B1B2B]'}`}>
+          Rendement Réel <span style={{ color: gold }}>Immo</span>
         </div>
-        <div className="hidden sm:block text-[9px] tracking-[0.18em] uppercase mt-0.5 font-medium whitespace-nowrap" style={{ color: sub }}>
-          Outil de simulation pro
-        </div>
+        {tagline && (
+          <div className="hidden sm:block text-[9px] tracking-[0.25em] uppercase mt-1 font-medium whitespace-nowrap" style={{ color: sub }}>
+            Arbitrage &amp; rapports immobiliers
+          </div>
+        )}
       </div>
     </div>
   )
