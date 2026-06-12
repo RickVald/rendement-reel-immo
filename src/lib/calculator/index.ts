@@ -8,7 +8,7 @@ import { calculerCoutTotal } from './cashflow'
 import { genererTableauAnnuel } from './cashflow'
 import { calculerTRI, calculerVAN, calculerRendements, calculerTRIParAnnee, calculerPrixMaximum } from './tri-van'
 import { calculerImpotAnnee } from './fiscalite'
-import { genererVerdict, genererScenarios, scorerRisqueDpe } from './verdict'
+import { genererVerdict, genererScenarios, scorerRisqueDpe, calculerScoreFiabilite, finaliserVerdict } from './verdict'
 import { calculerFiscalitePlusValue } from './fiscalite'
 import { DISPOSITIF_REGIMES_COMPATIBLES } from './dispositifs'
 import { calculerEligibilite } from './eligibilite'
@@ -366,17 +366,11 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
   // détectent une erreur bloquante (P0) ne peut pas afficher un verdict
   // positif : le résultat n'est pas exploitable pour une décision d'arbitrage.
   const coherence = validerAnalyse(analysis)
-  if (!coherence.passed) {
-    analysis.verdict = {
-      ...verdict,
-      label: "Non arbitrable en l'état",
-      couleur: 'gray',
-      alertes: [
-        `Incohérences de calcul détectées — ce rapport ne peut pas être utilisé en l'état pour une décision d'arbitrage : ${coherence.errors.join(' / ')}`,
-        ...verdict.alertes,
-      ],
-    }
-  }
+  const erreursBloquantes = coherence.passed
+    ? []
+    : [`Incohérences de calcul détectées : ${coherence.errors.join(' / ')}`]
+  const scoreFiabilite = calculerScoreFiabilite(niveauxConfiance)
+  analysis.verdict = finaliserVerdict(verdict, scoreRobustesse.total, scoreFiabilite, erreursBloquantes)
 
   return analysis
 }
@@ -952,7 +946,7 @@ export interface ValidationResult {
 export function validerAnalyse(a: import('./types').ProjectAnalysis): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
-  const { input, summary, yearlyTable, creditSchedule } = a
+  const { input, summary, yearlyTable, creditSchedule, sensibilite } = a
 
   // ── Tests bloquants : cohérence arithmétique fondamentale ─────────────────
 
@@ -986,6 +980,41 @@ export function validerAnalyse(a: import('./types').ProjectAnalysis): Validation
   const cfTol = Math.max(Math.abs(cfCumuleFinal) * 0.01, 100)
   if (Math.abs(sommeCf - cfCumuleFinal) > cfTol) {
     errors.push(`Cashflow cumulé incohérent : somme=${Math.round(sommeCf)} vs dernière ligne=${cfCumuleFinal} (écart > 1%)`)
+  }
+
+  // Test 5 — Sensibilité : une variable censée impacter le TRI doit le faire (CDC §6.5)
+  for (const row of sensibilite ?? []) {
+    if (row.moins10 === row.central && row.plus10 === row.central) {
+      errors.push(`Sensibilité non valide : la variation de "${row.variable}" ne modifie pas le TRI`)
+    }
+  }
+
+  // ── Validation métier : incohérences de saisie (CDC §P1.1) ──────────────────
+
+  // Règle 1 — Studio de grande surface : alerte forte, confirmation requise
+  if (input.bien.type === 'studio' && input.bien.surface > 60) {
+    warnings.push(`Surface de ${input.bien.surface} m² inhabituelle pour un studio — vérifiez le type de bien ou la surface saisie.`)
+  }
+
+  // Règle 2 — Copropriété non renseignée mais charges de copropriété saisies
+  if (!input.bien.copropriete && input.charges.chargesCoproAnnuelles > 0) {
+    errors.push(`Copropriété déclarée "non" mais charges de copropriété de ${Math.round(input.charges.chargesCoproAnnuelles)} €/an saisies — incohérence à corriger ou justifier.`)
+  }
+
+  // Règle 3 — Location nue avec régime LMNP : régime non applicable au projet tel que saisi
+  if (input.location.type === 'nue' && input.fiscalite.regime.startsWith('lmnp')) {
+    errors.push(`Régime ${input.fiscalite.regime} sélectionné avec une location nue — le LMNP suppose une location meublée et n'est pas applicable au projet tel que saisi.`)
+  }
+
+  // Règle 4 — SCI à l'IS sans paramètres d'amortissement renseignés
+  const estSciIs = input.fiscalite.holdingStructure === 'sci_is' || input.fiscalite.regime === 'sci_is'
+  if (estSciIs && (!input.fiscalite.dureeAmortissementImmo || input.fiscalite.dureeAmortissementImmo <= 0)) {
+    errors.push(`SCI à l'IS sans durée d'amortissement de l'immeuble renseignée — paramètre indispensable au calcul de la VNC et de la plus-value de cession.`)
+  }
+
+  // Règle 5 — Travaux importants sans valeur de revente réconciliée
+  if (input.acquisition.travauxInitiaux > 0.2 * input.acquisition.prixAchat && !input.revente.prixReventeManuel) {
+    errors.push(`Travaux initiaux (${Math.round(input.acquisition.travauxInitiaux)} €) supérieurs à 20 % du prix d'achat sans valeur de revente post-travaux renseignée — la formule par défaut (prix d'achat × revalorisation) ne reflète pas la plus-value des travaux.`)
   }
 
   // ── Avertissements : qualité des données ────────────────────────────────────

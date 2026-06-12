@@ -1,4 +1,4 @@
-import type { ProjectInput, SummaryKPIs, Verdict, ScenarioResult, YearlyRow } from './types'
+import type { ProjectInput, SummaryKPIs, Verdict, ScenarioResult, YearlyRow, NiveauConfiance } from './types'
 
 /** Score /100 selon CDC §10 */
 export function calculerScore(kpis: SummaryKPIs): Verdict['scoreDetail'] {
@@ -116,7 +116,57 @@ export function genererVerdict(kpis: SummaryKPIs, input: ProjectInput): Verdict 
     couleur = 'red'
   }
 
-  return { label, score, scoreDetail, couleur, alertes, recommandations }
+  return {
+    label, score, scoreDetail, couleur, alertes, recommandations,
+    // Valeurs provisoires : finalisées dans index.ts une fois scoreRobustesse,
+    // niveauxConfiance et les erreurs bloquantes (validation métier) connus.
+    scoreRentabilite: score,
+    scoreRobustesseGlobal: score,
+    scoreFiabilite: 100,
+    erreursBloquantes: [],
+  }
+}
+
+/** Score de fiabilité des données /100, basé sur le niveau de confiance de chaque donnée clé */
+export function calculerScoreFiabilite(niveaux: NiveauConfiance[]): number {
+  if (niveaux.length === 0) return 100
+  const points: Record<NiveauConfiance['fiabilite'], number> = {
+    'élevée': 100,
+    'moyenne': 75,
+    'estimation': 50,
+    'à vérifier': 35,
+  }
+  const total = niveaux.reduce((s, n) => s + (points[n.fiabilite] ?? 50), 0)
+  return Math.round(total / niveaux.length)
+}
+
+/**
+ * Finalise le verdict une fois connus le score de robustesse, le score de
+ * fiabilité des données et les erreurs bloquantes (validation métier + tests
+ * de cohérence moteur). Règle CDC §8 : erreurs bloquantes > 0 => verdict
+ * "Non arbitrable en l'état", quel que soit le score de rentabilité.
+ */
+export function finaliserVerdict(
+  verdict: Verdict,
+  scoreRobustesseGlobal: number,
+  scoreFiabilite: number,
+  erreursBloquantes: string[]
+): Verdict {
+  const base: Verdict = {
+    ...verdict,
+    scoreRobustesseGlobal,
+    scoreFiabilite,
+    erreursBloquantes,
+    alertes: [...erreursBloquantes.map(e => `Erreur bloquante : ${e}`), ...verdict.alertes],
+  }
+
+  if (erreursBloquantes.length === 0) return base
+
+  return {
+    ...base,
+    label: "Non arbitrable en l'état",
+    couleur: 'gray',
+  }
 }
 
 /** Génère les 3 scénarios (pessimiste, central, optimiste) */

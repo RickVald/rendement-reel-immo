@@ -418,7 +418,7 @@ export type VerdictLabel =
 
 export interface Verdict {
   label: VerdictLabel
-  score: number                 // /100
+  score: number                 // /100 — alias de scoreRentabilite (compat)
   scoreDetail: {
     tri: number                 // /25
     cashflow: number            // /20
@@ -428,6 +428,11 @@ export interface Verdict {
     risqueDpe: number           // /10
     dependanceRevente: number   // /5
   }
+  // Triple scoring (rapport corrections §8) : le verdict final dépend des 3 scores + erreurs bloquantes
+  scoreRentabilite: number       // /100 — performance financière (= score historique)
+  scoreRobustesseGlobal: number  // /100 — résistance aux aléas (= scoreRobustesse.total)
+  scoreFiabilite: number         // /100 — qualité/fiabilité des données saisies
+  erreursBloquantes: string[]    // erreurs P0/P1 qui interdisent un verdict positif
   couleur: 'emerald' | 'green' | 'yellow' | 'orange' | 'red' | 'gray'
   alertes: string[]
   recommandations: string[]

@@ -155,10 +155,18 @@ export function RapportPDF({
               <Text style={{ fontSize: 9, color: vc.text, opacity: 0.8 }}>
                 TRI : {pct(summary.tri)} · Rdt net-net : {pct(summary.rendementNetNet)} · Cash-flow : {sign(summary.cashflowMensuelMoyen)}/mois
               </Text>
+              {verdict.erreursBloquantes.length > 0 && (
+                <Text style={{ fontSize: 8, color: vc.text, opacity: 0.9, marginTop: 4 }}>
+                  Erreurs bloquantes : {verdict.erreursBloquantes.length} — Conclusion : corriger les hypothèses avant décision.
+                </Text>
+              )}
             </View>
             <View style={{ alignItems: 'center' }}>
-              <Text style={[S.coverScore, { color: vc.text }]}>{verdict.score}</Text>
-              <Text style={[S.coverScoreLabel, { color: vc.text }]}>/ 100</Text>
+              <Text style={[S.coverScore, { color: vc.text }]}>{verdict.scoreRentabilite}</Text>
+              <Text style={[S.coverScoreLabel, { color: vc.text }]}>Rentabilité / 100</Text>
+              <Text style={{ fontSize: 8, color: vc.text, opacity: 0.8, marginTop: 2 }}>
+                Robustesse {verdict.scoreRobustesseGlobal}/100 · Fiabilité données {verdict.scoreFiabilite}/100
+              </Text>
             </View>
           </View>
         </View>
@@ -195,6 +203,21 @@ export function RapportPDF({
               <Text style={[S.verdictScore, { color: vc.text }]}>{verdict.score}<Text style={{ fontSize: 12 }}> / 100</Text></Text>
             </View>
           </View>
+
+          {/* Bloc "Ce qui invalide ou fragilise le rapport" (CDC §6.2) */}
+          {verdict.alertes.length > 0 && (
+            <View style={{ marginBottom: 16, padding: 8, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red }}>
+              <Text style={{ fontSize: 9, fontFamily: 'Arial', fontWeight: 'bold', color: '#7f1d1d', marginBottom: 4 }}>
+                Ce qui invalide ou fragilise ce rapport
+              </Text>
+              {verdict.alertes.map((a, i) => (
+                <View key={i} style={S.listItem}>
+                  <Text style={[S.listBullet, { color: COLORS.red }]}>-</Text>
+                  <Text style={[S.listText, { color: '#7f1d1d' }]}>{a}</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Tableau Q/R décisionnel */}
           <Text style={S.sectionTitle}>Checklist de viabilité</Text>
@@ -600,8 +623,13 @@ export function RapportPDF({
                   duree={input.revente.dureeDetentionAns}
                 />
                 <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
-                  Convention : tous les montants représentent le capital final disponible, selon la même hypothèse d'apport initial ({eur(summary.cashTotalNecessaire)}) et d'effort mensuel ({eur(summary.effortEpargne)}/mois). Immo : produit net de cession (valeur estimée - frais vente - fiscalité plus-value - capital restant dû). Placement sécurisé : hypothèse taux Livret A 1,5 %/an (Banque de France fév. 2026). Alternatifs (assurance-vie, PEA, compte-titres, SCPI) : capital + effort réinvestis, affichés bruts de fiscalité propre à chaque enveloppe — la comparaison est indicative. Ces projections ne constituent pas un conseil en investissement.
+                  Convention : tous les montants représentent le capital final disponible, selon la même hypothèse d'apport initial ({eur(summary.cashTotalNecessaire)}) et d'effort mensuel ({eur(summary.effortEpargne)}/mois). Immo : produit net de cession (valeur estimée - frais vente - fiscalité plus-value - capital restant dû). Placement sécurisé : hypothèse taux Livret A 1,5 %/an (Banque de France fév. 2026).
                 </Text>
+                <View style={{ marginTop: 4, padding: 5, backgroundColor: '#fff7ed', borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.amber }}>
+                  <Text style={{ fontSize: 6.5, color: '#7c2d12', lineHeight: 1.5 }}>
+                    Attention — comparaison non homogène fiscalement : le montant Immo est net de fiscalité de cession, tandis que les alternatifs (assurance-vie, PEA, compte-titres, SCPI) sont affichés bruts de la fiscalité propre à chaque enveloppe (PFU, abattements pour durée de détention, etc.). À montant affiché égal, l'alternatif générerait un capital net inférieur une fois sa propre fiscalité appliquée. Comparaison indicative, ne constitue pas un conseil en investissement.
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -749,74 +777,14 @@ export function RapportPDF({
               Chaque régime est simulé avec les mêmes hypothèses de revenus, charges, crédit et revente.
               Les résultats dépendent de votre éligibilité réelle. Validation par un expert-comptable recommandée.
             </Text>
-            {/* Avertissement LMNP — mode d'exploitation différent */}
-            {input.location.type === 'nue' && (
-              <View style={[S.alertBox, { marginBottom: 10, backgroundColor: '#fffbeb', borderColor: COLORS.amber }]}>
-                <Text style={[S.alertText, { color: '#92400e' }]}>
-                  Attention : Les régimes LMNP (micro-BIC et réel) supposent une location MEUBLÉE — bail, mobilier réglementaire,
-                  comptabilité LMNP. Ils ne sont pas applicables au projet tel que saisi (location nue).
-                  Ces colonnes sont affichées à titre d'information sur le gain potentiel d'un changement d'exploitation,
-                  pas comme régimes directement accessibles. La réintégration des amortissements LMNP réel est calculée pour le régime retenu (page "Fiscalité de la Revente") mais pas dans cette comparaison indicative.
-                </Text>
-              </View>
-            )}
-
-            <View style={S.table}>
-              <View style={S.tableHeader}>
-                <Text style={[S.tableHeaderCell, { flex: 2.5 }]}>Régime</Text>
-                <Text style={[S.tableHeaderCell]}>Impôts cumulés</Text>
-                <Text style={[S.tableHeaderCell]}>CF mensuel</Text>
-                <Text style={[S.tableHeaderCell]}>TRI</Text>
-                <Text style={[S.tableHeaderCell]}>VAN</Text>
-                <Text style={[S.tableHeaderCell]}>Rdt net-net</Text>
-                <Text style={[S.tableHeaderCell]}>Verdict</Text>
-              </View>
-              {(() => {
-                const selectedRegime = input.fiscalite.regime
-                const selectedR = comparaisonsRegimes.find(x => x.regime === selectedRegime)
-                const bestVanR = comparaisonsRegimes.reduce((best, r) => r.van > best.van ? r : best, comparaisonsRegimes[0])
-                return comparaisonsRegimes.map((r, i) => {
-                  const isSelected = r.regime === selectedRegime
-                  const isBestVan = r.regime === bestVanR.regime
-                  const sciTriSup = r.regime === 'sci_is' && !isSelected && (selectedR ? r.tri > selectedR.tri : false)
-                  const verdictLabel = isSelected
-                    ? (isBestVan ? 'Régime retenu — meilleure VAN simulée' : 'Régime retenu')
-                    : sciTriSup
-                      ? 'TRI légèrement sup., comparaison partielle'
-                      : r.regime === 'sci_is' && !isSelected
-                        ? 'Comparaison partielle (cession non intégrée)'
-                        : r.verdict === 'optimal' ? 'Moins défavorable hors régime retenu'
-                        : r.verdict === 'bon' ? 'Proche du régime retenu'
-                        : r.verdict === 'correct' && r.regime === 'reel_foncier' ? 'Moins défavorable — projet non rentable'
-                        : r.verdict === 'correct' && r.regime === 'lmnp_micro_bic' ? 'Neutre / défavorable selon critère'
-                        : r.verdict === 'correct' ? 'Neutre'
-                        : 'Défavorable'
-                  const verdictColor = isSelected ? COLORS.indigo : r.verdict === 'défavorable' ? COLORS.red : r.verdict === 'optimal' || r.verdict === 'bon' ? COLORS.emeraldDark : COLORS.slate600
-                  return (
-                    <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isSelected ? { borderLeftWidth: 3, borderLeftColor: COLORS.indigo } : {}]}>
-                      <View style={[S.tableCell, { flex: 2.5, flexDirection: 'column' }]}>
-                        <Text style={[{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: isSelected ? COLORS.indigo : COLORS.slate700 }]}>{REGIME_SHORT[r.regime]}</Text>
-                        {isSelected && <Text style={{ fontSize: 5.5, color: COLORS.indigo }}>Régime retenu</Text>}
-                        {r.regime === 'sci_is' && !isSelected && <Text style={{ fontSize: 5.5, color: COLORS.slate500 }}>hors fiscalité de sortie</Text>}
-                      </View>
-                      <Text style={[S.tableCell, { color: COLORS.red, fontFamily: 'Arial', fontWeight: 'bold' }]}>{eur(r.impotsCumules20ans)}</Text>
-                      <Text style={[S.tableCell, r.cashflowMensuelMoyen >= 0 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{sign(r.cashflowMensuelMoyen)}</Text>
-                      <Text style={[S.tableCell, r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(r.tri)}</Text>
-                      <Text style={[S.tableCell, r.van > 0 ? S.tableCellGood : S.tableCellBad]}>{eur(r.van)}</Text>
-                      <Text style={[S.tableCell, r.rendementNetNet >= 0.03 ? S.tableCellGood : S.tableCellBad]}>{pct(r.rendementNetNet)}</Text>
-                      <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6, color: verdictColor }]}>
-                        {verdictLabel}
-                      </Text>
-                    </View>
-                  )
-                })
-              })()}
-            </View>
-
-            {/* Tableau qualification : applicable, changement, fiscalité cession */}
+            {/* Répartition Bloc A (applicables tel quel) / Bloc B (scénarios alternatifs) — CDC §P1.2 */}
             {(() => {
-              const isMeuble = input.location.type === 'meublee'
+              const selectedRegime = input.fiscalite.regime
+              const selectedR = comparaisonsRegimes.find(x => x.regime === selectedRegime)
+              const bestVanR = comparaisonsRegimes.reduce((best, r) => r.van > best.van ? r : best, comparaisonsRegimes[0])
+              const isMeuble = ['meublee', 'colocation', 'courte_duree', 'bail_mobilite'].includes(input.location.type)
               const regimeRetenu = input.fiscalite.regime
+
               type QualifEntry = { applicable: string; changement: string; cessionIntegree: string }
               const buildQualif = (reg: string): QualifEntry => {
                 const isRetenu = reg === regimeRetenu
@@ -857,27 +825,111 @@ export function RapportPDF({
                     return { applicable: '-', changement: '-', cessionIntegree: '-' }
                 }
               }
-              return (
-                <View style={[S.table, { marginTop: 8 }]}>
-                  <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
-                    {['Régime', 'Applicable tel quel ?', 'Changement nécessaire', 'Fiscalité cession intégrée ?'].map((h, i) => (
-                      <Text key={i} style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', flex: i === 2 ? 3 : i === 0 ? 1.5 : 1.5 }]}>{h}</Text>
-                    ))}
+              const qualifs: Record<string, QualifEntry> = {}
+              comparaisonsRegimes.forEach(r => { qualifs[r.regime] = buildQualif(r.regime) })
+
+              const blocA = comparaisonsRegimes.filter(r => qualifs[r.regime].applicable.startsWith('Oui'))
+              const blocB = comparaisonsRegimes.filter(r => !qualifs[r.regime].applicable.startsWith('Oui'))
+
+              const renderRow = (r: typeof comparaisonsRegimes[number], i: number) => {
+                const isSelected = r.regime === selectedRegime
+                const isBestVan = r.regime === bestVanR.regime
+                const sciTriSup = r.regime === 'sci_is' && !isSelected && (selectedR ? r.tri > selectedR.tri : false)
+                const verdictLabel = isSelected
+                  ? (isBestVan ? 'Régime retenu — meilleure VAN simulée' : 'Régime retenu')
+                  : sciTriSup
+                    ? 'TRI légèrement sup., comparaison partielle'
+                    : r.regime === 'sci_is' && !isSelected
+                      ? 'Comparaison partielle (cession non intégrée)'
+                      : r.verdict === 'optimal' ? 'Moins défavorable hors régime retenu'
+                      : r.verdict === 'bon' ? 'Proche du régime retenu'
+                      : r.verdict === 'correct' && r.regime === 'reel_foncier' ? 'Moins défavorable — projet non rentable'
+                      : r.verdict === 'correct' && r.regime === 'lmnp_micro_bic' ? 'Neutre / défavorable selon critère'
+                      : r.verdict === 'correct' ? 'Neutre'
+                      : 'Défavorable'
+                const verdictColor = isSelected ? COLORS.indigo : r.verdict === 'défavorable' ? COLORS.red : r.verdict === 'optimal' || r.verdict === 'bon' ? COLORS.emeraldDark : COLORS.slate600
+                return (
+                  <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isSelected ? { borderLeftWidth: 3, borderLeftColor: COLORS.indigo } : {}]}>
+                    <View style={[S.tableCell, { flex: 2.5, flexDirection: 'column' }]}>
+                      <Text style={[{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: isSelected ? COLORS.indigo : COLORS.slate700 }]}>{REGIME_SHORT[r.regime]}</Text>
+                      {isSelected && <Text style={{ fontSize: 5.5, color: COLORS.indigo }}>Régime retenu</Text>}
+                      {r.regime === 'sci_is' && !isSelected && <Text style={{ fontSize: 5.5, color: COLORS.slate500 }}>hors fiscalité de sortie</Text>}
+                    </View>
+                    <Text style={[S.tableCell, { color: COLORS.red, fontFamily: 'Arial', fontWeight: 'bold' }]}>{eur(r.impotsCumules20ans)}</Text>
+                    <Text style={[S.tableCell, r.cashflowMensuelMoyen >= 0 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{sign(r.cashflowMensuelMoyen)}</Text>
+                    <Text style={[S.tableCell, r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(r.tri)}</Text>
+                    <Text style={[S.tableCell, r.van > 0 ? S.tableCellGood : S.tableCellBad]}>{eur(r.van)}</Text>
+                    <Text style={[S.tableCell, r.rendementNetNet >= 0.03 ? S.tableCellGood : S.tableCellBad]}>{pct(r.rendementNetNet)}</Text>
+                    <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6, color: verdictColor }]}>
+                      {verdictLabel}
+                    </Text>
                   </View>
-                  {comparaisonsRegimes.map((r, i) => {
-                    const q = buildQualif(r.regime)
-                    const isRetenu = r.regime === regimeRetenu
-                    const isOui = q.applicable.startsWith('Oui')
-                    return (
-                      <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isRetenu ? { backgroundColor: '#EFF6FF' } : {}]}>
-                        <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6.5 }]}>{REGIME_SHORT[r.regime]}</Text>
-                        <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold', color: isOui ? COLORS.emeraldDark : COLORS.red, fontSize: 6 }]}>{q.applicable}</Text>
-                        <Text style={[S.tableCell, { flex: 3, fontSize: 6 }]}>{q.changement}</Text>
-                        <Text style={[S.tableCell, { flex: 1.5, fontSize: 6, color: q.cessionIntegree.startsWith('Oui') ? COLORS.emeraldDark : COLORS.slate500 }]}>{q.cessionIntegree}</Text>
-                      </View>
-                    )
-                  })}
+                )
+              }
+
+              const tableHeader = (
+                <View style={S.tableHeader}>
+                  <Text style={[S.tableHeaderCell, { flex: 2.5 }]}>Régime</Text>
+                  <Text style={[S.tableHeaderCell]}>Impôts cumulés</Text>
+                  <Text style={[S.tableHeaderCell]}>CF mensuel</Text>
+                  <Text style={[S.tableHeaderCell]}>TRI</Text>
+                  <Text style={[S.tableHeaderCell]}>VAN</Text>
+                  <Text style={[S.tableHeaderCell]}>Rdt net-net</Text>
+                  <Text style={[S.tableHeaderCell]}>Verdict</Text>
                 </View>
+              )
+
+              return (
+                <>
+                  <Text style={S.subTitle}>Bloc A — Régimes applicables au projet tel que saisi</Text>
+                  {blocA.length > 0 ? (
+                    <View style={S.table}>
+                      {tableHeader}
+                      {blocA.map(renderRow)}
+                    </View>
+                  ) : (
+                    <Text style={{ fontSize: 7, color: COLORS.slate500, marginBottom: 6 }}>
+                      Aucun régime simulé n&apos;est directement applicable au projet tel que saisi.
+                    </Text>
+                  )}
+
+                  {blocB.length > 0 && (
+                    <>
+                      <Text style={[S.subTitle, { marginTop: 10 }]}>Bloc B — Scénarios alternatifs nécessitant modification du projet</Text>
+                      <View style={[S.alertBox, { marginBottom: 6, backgroundColor: '#fffbeb', borderColor: COLORS.amber }]}>
+                        <Text style={[S.alertText, { color: '#92400e' }]}>
+                          Les régimes ci-dessous ne sont pas accessibles avec le projet tel que saisi (mode d&apos;exploitation ou structure juridique différents — voir colonne &quot;Changement nécessaire&quot; du tableau de qualification). Ils sont affichés à titre indicatif sur le gain potentiel d&apos;un changement de montage, pas comme régimes directement accessibles. La réintégration des amortissements LMNP réel à la revente n&apos;est calculée que pour le régime retenu (page &quot;Fiscalité de la Revente&quot;).
+                        </Text>
+                      </View>
+                      <View style={S.table}>
+                        {tableHeader}
+                        {blocB.map(renderRow)}
+                      </View>
+                    </>
+                  )}
+
+                  {/* Tableau qualification : applicable, changement, fiscalité cession */}
+                  <View style={[S.table, { marginTop: 8 }]}>
+                    <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
+                      {['Régime', 'Applicable tel quel ?', 'Changement nécessaire', 'Fiscalité cession intégrée ?'].map((h, i) => (
+                        <Text key={i} style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', flex: i === 2 ? 3 : i === 0 ? 1.5 : 1.5 }]}>{h}</Text>
+                      ))}
+                    </View>
+                    {comparaisonsRegimes.map((r, i) => {
+                      const q = qualifs[r.regime]
+                      const isRetenu = r.regime === regimeRetenu
+                      const isOui = q.applicable.startsWith('Oui')
+                      return (
+                        <View key={r.regime} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}, isRetenu ? { backgroundColor: '#EFF6FF' } : {}]}>
+                          <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6.5 }]}>{REGIME_SHORT[r.regime]}</Text>
+                          <Text style={[S.tableCell, { flex: 1.5, fontFamily: 'Arial', fontWeight: 'bold', color: isOui ? COLORS.emeraldDark : COLORS.red, fontSize: 6 }]}>{q.applicable}</Text>
+                          <Text style={[S.tableCell, { flex: 3, fontSize: 6 }]}>{q.changement}</Text>
+                          <Text style={[S.tableCell, { flex: 1.5, fontSize: 6, color: q.cessionIntegree.startsWith('Oui') ? COLORS.emeraldDark : COLORS.slate500 }]}>{q.cessionIntegree}</Text>
+                        </View>
+                      )
+                    })}
+                  </View>
+                </>
               )
             })()}
 
@@ -1884,7 +1936,9 @@ export function RapportPDF({
               { label: `Montant total remboursé sur ${Math.round(input.financement.dureeCredit/12)} ans`, val: eur(creditSchedule.coutTotalCredit) },
               { label: `Intérêts payés sur ${Math.round(input.financement.dureeCredit/12)} ans`, val: eur(creditSchedule.coutTotalInterets) },
               { label: 'Coût réel du crédit (intérêts + assurance)', val: eur(creditSchedule.coutReel) },
-              { label: 'LTV / Loan-to-cost', val: `${((input.financement.montantEmprunte / input.acquisition.prixAchat) * 100).toFixed(1)} % / ${((input.financement.montantEmprunte / summary.coutTotalAcquisition) * 100).toFixed(1)} %`, sub: 'emprunt/prix achat · emprunt/coût total', ok: (input.financement.montantEmprunte / summary.coutTotalAcquisition) <= 0.9 },
+              { label: 'LTV (prix d\'achat)', val: `${((input.financement.montantEmprunte / input.acquisition.prixAchat) * 100).toFixed(1)} %`, sub: 'emprunt / prix d\'achat', ok: input.financement.montantEmprunte <= input.acquisition.prixAchat },
+              { label: 'Loan-to-cost', val: `${((input.financement.montantEmprunte / summary.coutTotalAcquisition) * 100).toFixed(1)} %`, sub: 'emprunt / coût total projet', ok: (input.financement.montantEmprunte / summary.coutTotalAcquisition) <= 0.9 },
+              { label: 'LTV post-travaux', val: `${((input.financement.montantEmprunte / (input.acquisition.prixAchat + input.acquisition.travauxInitiaux)) * 100).toFixed(1)} %`, sub: 'emprunt / (prix achat + travaux)', ok: input.financement.montantEmprunte <= (input.acquisition.prixAchat + input.acquisition.travauxInitiaux) },
               { label: 'Couverture loyer/mensualité', val: `${((input.location.loyerMensuelHC / creditSchedule.mensualiteTotale) * 100).toFixed(1)} %` },
             ].map(k => (
               <View key={k.label} style={[S.kpiCard, { width: '23%' }]}>
@@ -1994,6 +2048,15 @@ export function RapportPDF({
                 )
               })}
             </View>
+
+            {/* Test de cohérence moteur (CDC §6.5) : une variable censée impacter le TRI doit le faire */}
+            {sensibilite.filter(row => row.moins10 === row.central && row.plus10 === row.central).map((row, i) => (
+              <View key={i} style={{ marginTop: 6, padding: 6, backgroundColor: '#fef2f2', borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.red }}>
+                <Text style={{ fontSize: 7, color: '#7f1d1d' }}>
+                  Erreur moteur : la variation de « {row.variable} » ne modifie pas le TRI. Sensibilité non valide pour cette variable.
+                </Text>
+              </View>
+            ))}
 
             <Text style={S.sectionTitle}>Stress tests — Le projet résiste-t-il à un choc ?</Text>
             <Text style={{ fontSize: 7.5, color: COLORS.slate500, marginBottom: 8 }}>
@@ -2366,10 +2429,18 @@ export function RapportPDF({
                 note: input.bien.dpe !== 'inconnu' ? 'DPE connu' : 'DPE inconnu — le risque réglementaire ne peut pas être évalué',
               },
               {
-                label: 'Emprunt ne dépasse pas 110 % du prix d\'achat',
-                valeur: `Emprunt ${eur(input.financement.montantEmprunte)} / Prix ${eur(input.acquisition.prixAchat)}`,
-                statut: input.financement.montantEmprunte <= input.acquisition.prixAchat * 1.1 ? 'OK' : 'Alerte',
-                note: input.financement.montantEmprunte <= input.acquisition.prixAchat * 1.1 ? 'Emprunt proportionné' : 'Emprunt supérieur à 110 % du prix — vérifiez la cohérence',
+                label: 'Cohérence emprunt / coût du projet',
+                valeur: `Emprunt ${eur(input.financement.montantEmprunte)} / Prix ${eur(input.acquisition.prixAchat)} / Coût total ${eur(summary.coutTotalAcquisition)}`,
+                statut: input.financement.montantEmprunte <= input.acquisition.prixAchat
+                  ? 'OK'
+                  : input.financement.montantEmprunte <= summary.coutTotalAcquisition
+                  ? 'Attention'
+                  : 'Alerte',
+                note: input.financement.montantEmprunte <= input.acquisition.prixAchat
+                  ? 'Emprunt proportionné au prix d\'achat'
+                  : input.financement.montantEmprunte <= summary.coutTotalAcquisition
+                  ? 'Emprunt supérieur au prix d\'achat car financement des travaux. Vérifier accord bancaire et valeur de garantie.'
+                  : 'Financement incohérent : l\'emprunt dépasse le coût total du projet (prix + travaux + frais).',
               },
             ]
 
