@@ -254,7 +254,7 @@ function checkDenormandie(input: ProjectInput): EligibilityResult {
 
   // 5. Date d'acquisition ≤ 31/12/2026
   conditions.push(ANNEE_COURANTE <= 2026
-    ? ok('date_acquisition', `Acquisition en ${ANNEE_COURANTE} — dans la période éligible`)
+    ? ok('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie) — dans la période éligible`)
     : bloquant('date_acquisition', 'Période Denormandie expirée',
         'Les acquisitions Denormandie sont éligibles jusqu\'au 31 décembre 2026.'))
 
@@ -318,7 +318,7 @@ function checkJeanbrun(input: ProjectInput): EligibilityResult {
     conditions.push(bloquant('date_acquisition', 'Dispositif pas encore en vigueur',
       'Le dispositif Relance logement (LF 2026) s\'applique aux acquisitions à compter du 21 février 2026.'))
   } else if (ANNEE_COURANTE <= 2028) {
-    conditions.push(ok('date_acquisition', `Acquisition ${ANNEE_COURANTE} dans la période éligible (21/02/2026–31/12/2028)`))
+    conditions.push(ok('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie) — dans la période éligible (21/02/2026–31/12/2028)`))
   } else {
     conditions.push(bloquant('date_acquisition', 'Période éligible expirée (après 31/12/2028)'))
   }

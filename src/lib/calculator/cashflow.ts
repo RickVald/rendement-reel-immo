@@ -133,20 +133,31 @@ export function genererTableauAnnuel(
       gestionLocativeEuros + assurances + taxeFonciere + chargesCopro + entretien + autresCharges
 
     // ── Amortissement Jeanbrun (art. 31 CGI, LF 2026) ──
-    // Base amortissable = 80% du coût total (prix + travaux pour l'ancien)
-    // Durée = engagement (9 ans minimum) → amort. linéaire sur la durée
+    // Base amortissable = 80% du coût total (prix + travaux pour l'ancien), taux annuel et
+    // plafond selon le type de bien / niveau de loyer (mêmes barèmes que l'éligibilité,
+    // voir TAUX_AMORT / PLAFONDS_AMORT dans eligibilite.ts — à garder synchronisés).
+    // Durée = engagement (9 ans minimum).
     let jeanbrunAmortAnnee = 0
+    let jeanbrunAmortTheorique = 0
     const dispositif = fiscalite.dispositif ?? 'aucun'
     if (dispositif === 'jeanbrun' && fiscalite.dispositifParams) {
       const dp = fiscalite.dispositifParams
-      const baseJeanbrun = dispositif === 'jeanbrun'
-        ? (dp.jeanbrun_typeBien === 'ancien'
-          ? (input.acquisition.prixAchat + (dp.jeanbrun_montantTravauxAncien ?? 0)) * 0.80
-          : input.acquisition.prixAchat * 0.80)
-        : 0
+      const typeBien = dp.jeanbrun_typeBien ?? 'neuf'
+      const niveauLoyer = dp.jeanbrun_niveauLoyer ?? 'intermediaire'
+      const baseJeanbrun = 0.80 * (input.acquisition.prixAchat + (typeBien === 'ancien' ? (dp.jeanbrun_montantTravauxAncien ?? 0) : 0))
+      const TAUX_AMORT_JEANBRUN: Record<string, Record<string, number>> = {
+        neuf:   { intermediaire: 0.035, social: 0.045, tres_social: 0.055 },
+        ancien: { intermediaire: 0.030, social: 0.035, tres_social: 0.040 },
+      }
+      const PLAFONDS_AMORT_JEANBRUN: Record<string, number> = { intermediaire: 8_000, social: 10_000, tres_social: 12_000 }
       const dureeJeanbrun = Math.max(9, dp.jeanbrun_engagementAns ?? 9)
       if (annee <= dureeJeanbrun && baseJeanbrun > 0) {
-        jeanbrunAmortAnnee = baseJeanbrun / dureeJeanbrun
+        jeanbrunAmortTheorique = Math.min(
+          baseJeanbrun * (TAUX_AMORT_JEANBRUN[typeBien]?.[niveauLoyer] ?? 0.035),
+          PLAFONDS_AMORT_JEANBRUN[niveauLoyer] ?? 8_000,
+        )
+        // Mode prudent (éligibilité non confirmée) : l'amortissement n'est pas déduit.
+        jeanbrunAmortAnnee = integrerAvantage ? jeanbrunAmortTheorique : 0
       }
     }
 
@@ -211,24 +222,35 @@ export function genererTableauAnnuel(
           fiscalite.tmi,
         )
     // ── Avantage théorique / utilisable / perdu (Phase 3 — rules engine) ──
-    // Pour les dispositifs déduction (Jeanbrun, déficit), l'économie fiscale est
-    // déjà dans impot.total ; on expose 0 ici pour ne pas double-compter.
+    // Pour les dispositifs déduction (Jeanbrun), l'avantage théorique est l'économie
+    // d'impôt que représenterait l'amortissement Jeanbrun (qu'il soit ou non intégré
+    // dans impot.total ci-dessus selon `integrerAvantage`).
     const isDeductionDispositif = dispositif === 'jeanbrun'
-    const avantageTheorique = isDeductionDispositif ? 0 : reductionDispositif
+    const avantageTheorique = isDeductionDispositif ? jeanbrunAmortTheorique * fiscalite.tmi : reductionDispositif
     const irDisponible = fiscalite.irBrutAnnuel !== undefined
       ? Math.max(0, fiscalite.irBrutAnnuel - (fiscalite.nichesDejaConsommees ?? 0))
       : Infinity
-    // Si l'éligibilité n'est pas confirmée, on n'intègre pas l'avantage dans le cashflow.
-    // L'avantageTheorique reste affiché à titre indicatif, mais n'impacte pas IR/TRI/VAN.
-    const avantageUtilise = !integrerAvantage ? 0 : (
-      isFinite(irDisponible)
-        ? Math.min(avantageTheorique, Math.max(0, irDisponible))
-        : avantageTheorique
-    )
+    // avantageUtilise : portion de l'avantage réellement absorbable par l'IR disponible.
+    // Calculé à titre indicatif même si l'avantage n'est pas (encore) intégré au TRI/VAN
+    // (integrerAvantage=false), pour rester cohérent avec le tableau d'éligibilité.
+    // Jeanbrun : déduction non plafonnée par l'IR/niches (cf. checkJeanbrun, eligibilite.ts).
+    const avantageUtilise = isDeductionDispositif
+      ? avantageTheorique
+      : (isFinite(irDisponible) ? Math.min(avantageTheorique, Math.max(0, irDisponible)) : avantageTheorique)
     const avantagePerdou = Math.max(0, avantageTheorique - avantageUtilise)
 
-    // L'impôt net ne peut pas être négatif (la réduction n'est pas remboursable)
-    const impotsNets = Math.max(0, impot.total - avantageUtilise)
+    // L'avantage n'impacte le cash-flow/impôt que si integrerAvantage est vrai
+    // (éligibilité confirmée, ou mode indicatif explicite).
+    const avantageApplique = integrerAvantage ? avantageUtilise : 0
+
+    // Jeanbrun : l'avantage est une déduction déjà intégrée dans impot.total via
+    // jeanbrunAmortissement — ne pas la soustraire une 2e fois.
+    // Autres dispositifs (réduction d'impôt) : la réduction porte sur l'IR global du foyer,
+    // pas seulement sur l'impôt généré par ce bien — impotsNets peut donc devenir négatif
+    // (= crédit d'impôt net qui abonde le cash-flow).
+    const impotsNets = isDeductionDispositif
+      ? impot.total
+      : impot.total - avantageApplique
 
     // ── Cash-flow annuel ──
     const cashflowAnnuel =

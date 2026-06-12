@@ -30,6 +30,7 @@ import {
 import { calculerDetailPlusValue } from '@/lib/calculator/fiscalite'
 import { getSynthèseDispositif, DISPOSITIF_LABELS } from '@/lib/calculator/dispositifs'
 import { calculerEligibilite, ELIGIBILITY_STATUS_LABELS } from '@/lib/calculator/eligibilite'
+import { validerAnalyse } from '@/lib/calculator'
 
 // ─── Labels ──────────────────────────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ export function RapportPDF({
     input, summary, verdict, yearlyTable, scenarios, prixMax,
     creditSchedule, comparaisonsRegimes, sensibilite, stressTests, pointMort,
     scoreRobustesse, niveauxConfiance, regimeAutoSelectionne, scerariosAvantage,
+    avantageIntegreDansTRI,
   } = analysis
   const vc = verdictColors(verdict.couleur)
   // Met une majuscule à chaque mot de la ville (ex: "saint-malo" -> "Saint-Malo")
@@ -104,6 +106,12 @@ export function RapportPDF({
 
   // Financement reconciliation
   const gapFinancement = summary.cashTotalNecessaire - input.financement.apport
+
+  // Surfinancement (emprunt >= coût total => cash nécessaire <= 0) : le TRI classique
+  // (flux initial négatif requis) devient pathologique (ex. 500 %) et n'est pas
+  // interprétable comme une mesure de rentabilité — il ne doit pas être affiché tel quel.
+  const triNonSignificatif = summary.cashTotalNecessaire <= 0
+  const triLabel = triNonSignificatif ? 'Non significatif*' : pct(summary.tri)
 
   // TRI hors revente : en deçà d'un seuil, la valeur n'est plus économiquement
   // significative (flux structurellement déficitaires) — on l'exprime en mots
@@ -168,7 +176,7 @@ export function RapportPDF({
             <View>
               <Text style={[S.verdictLabel, { color: vc.text, fontSize: 16 }]}>{verdict.label}</Text>
               <Text style={{ fontSize: 9, color: vc.text, opacity: 0.8 }}>
-                TRI : {pct(summary.tri)} · Rdt net-net : {pct(summary.rendementNetNet)} · Cash-flow : {sign(summary.cashflowMensuelMoyen)}/mois
+                TRI : {triLabel} · Rdt net-net : {pct(summary.rendementNetNet)} · Cash-flow : {sign(summary.cashflowMensuelMoyen)}/mois
               </Text>
               {verdict.erreursBloquantes.length > 0 && (
                 <Text style={{ fontSize: 8, color: vc.text, opacity: 0.9, marginTop: 4 }}>
@@ -244,12 +252,12 @@ export function RapportPDF({
             {[
               { q: 'Le bien s\'autofinance-t-il ?',           v: summary.cashflowMensuelMoyen >= 0 ? 'Oui' : 'Non', ok: summary.cashflowMensuelMoyen >= 0 },
               { q: 'Rendement d\'exploitation net-net (loyers – charges – impôts) ?', v: `${pct(summary.rendementNetNet)} — exploitation ${summary.rendementNetNet >= 0.04 ? 'correcte' : summary.rendementNetNet >= 0.03 ? 'faible' : 'faible, insuffisante hors revente'}`, ok: summary.rendementNetNet >= 0.04 },
-              { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: summary.tri >= 0.04 && summary.van > 0 },
-              { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: pct(summary.tri), ok: summary.tri >= 0.04 },
+              { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: triNonSignificatif ? `TRI non significatif (surfinancement, cash nécessaire <= 0) — VAN ${eur(summary.van)}` : `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: !triNonSignificatif && summary.tri >= 0.04 && summary.van > 0 },
+              { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: triNonSignificatif ? 'Non significatif (surfinancement)' : pct(summary.tri), ok: !triNonSignificatif && summary.tri >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
               { q: 'Le projet est-il rentable sans aucune revente ?', v: summary.dependanceRevente ? `Non — TRI hors revente ${triSansReventeLabel}` : `Oui — TRI hors revente ${triSansReventeLabelPositif}`, ok: !summary.dependanceRevente },
               { q: 'L\'exploitation locative couvre-t-elle les charges hors crédit ?', v: (summary.rendementNetNet > 0) ? 'Oui — avant effet du financement' : 'Non — rendement net-net négatif', ok: summary.rendementNetNet > 0 },
-              { q: 'Le DPE crée-t-il un risque réglementaire ?', v: isFG ? `Oui — DPE ${input.bien.dpe}, risque location 2028` : `Non — DPE ${input.bien.dpe} conforme`, ok: !isFG },
+              { q: 'Le DPE crée-t-il un risque réglementaire ?', v: input.bien.dpe === 'G' ? `Oui — DPE G, location déjà interdite depuis 2025` : input.bien.dpe === 'F' ? `Oui — DPE F, interdiction de location à partir de 2028` : `Non — DPE ${input.bien.dpe} conforme`, ok: !isFG },
               { q: 'L\'effort mensuel est-il supportable (< 300 €) ?', v: `${eur(summary.effortEpargne)}/mois`, ok: summary.effortEpargne < 300 },
               { q: 'Le plan de financement est-il cohérent ?', v: gapFinancement > 0 ? `Écart : ${eur(gapFinancement)} à couvrir` : (input.financement.apport < (input.acquisition.fraisNotaire + input.acquisition.fraisAgence)) ? 'Oui — équilibré, mais apport insuffisant pour les frais d\'acquisition (financement bancaire partiel des frais, accord à confirmer)' : 'Oui — apport suffisant', ok: gapFinancement <= 0 },
             ].map((row, i) => (
@@ -276,12 +284,18 @@ export function RapportPDF({
                 { label: 'Rendement brut sur coût total (prix + travaux + frais)',     val: pct(summary.rendementBrutCoutTotal),  ok: summary.rendementBrutCoutTotal >= 0.04 },
                 { label: 'Rendement net (loyers enc. – charges / coût total, moy.)',   val: pct(summary.rendementNet),            ok: summary.rendementNet >= 0.04 },
                 { label: 'Rendement net-net (idem – impôts / coût total, moy.)',       val: pct(summary.rendementNetNet),         ok: summary.rendementNetNet >= 0.03 },
-                { label: 'TRI projet',        val: pct(summary.tri),                   ok: summary.tri >= 0.04 },
+                { label: 'TRI projet',        val: triLabel,                          ok: !triNonSignificatif && summary.tri >= 0.04 },
                 { label: 'VAN',               val: eur(summary.van),                   ok: summary.van > 0 },
                 { label: 'Cash-flow moyen',   val: `${sign(summary.cashflowMensuelMoyen)}/mois`, ok: summary.cashflowMensuelMoyen >= 0 },
                 { label: 'CF cumulé',         val: eur(summary.cashflowCumule),        ok: summary.cashflowCumule >= 0 },
                 { label: 'Effort mensuel',    val: `${eur(summary.effortEpargne)}/mois`, ok: summary.effortEpargne < 300 },
               ].map(k => <HypRow key={k.label} label={k.label} value={k.val} highlight={k.ok} />)}
+              {triNonSignificatif && (
+                <Text style={{ fontSize: 6, color: COLORS.slate400, fontStyle: 'italic', marginTop: 2 }}>
+                  * Cash total nécessaire {eur(summary.cashTotalNecessaire)} (≤ 0 €) : le projet est financé à 100 % ou sur-financé.
+                  Le TRI classique n&apos;est pas interprétable dans ce cas (flux non conventionnels) et n&apos;est donc pas affiché.
+                </Text>
+              )}
             </View>
             <View style={S.col}>
               <Text style={S.subTitle}>Prix cible selon objectif de simulation</Text>
@@ -308,9 +322,9 @@ export function RapportPDF({
               </View>
 
               {verdict.recommandations.length > 0 && (
-                <>
+                <View wrap={false}>
                   <Text style={[S.subTitle, { marginTop: 8 }]}>Leviers d'amélioration</Text>
-                  <View style={S.card} wrap={false}>
+                  <View style={S.card}>
                     {verdict.recommandations.slice(0, 3).map((r, i) => (
                       <View key={i} style={S.listItem} wrap={false}>
                         <Text style={S.listBullet}>-</Text>
@@ -318,7 +332,7 @@ export function RapportPDF({
                       </View>
                     ))}
                   </View>
-                </>
+                </View>
               )}
             </View>
           </View>
@@ -374,9 +388,11 @@ export function RapportPDF({
               },
               {
                 arg: `"TRI immobilier attractif"`,
-                reel: `TRI simulé : ${pct(summary.tri)} — ${summary.tri < 0.04 ? `inférieur au seuil de risque immobilier (4 %)` : 'conforme au seuil minimum'}`,
-                ecart: summary.tri < 0.04 ? 'Insuffisant' : 'Correct',
-                bad: summary.tri < 0.04,
+                reel: triNonSignificatif
+                  ? `TRI non significatif (surfinancement, cash nécessaire ${eur(summary.cashTotalNecessaire)})`
+                  : `TRI simulé : ${pct(summary.tri)} — ${summary.tri < 0.04 ? `inférieur au seuil de risque immobilier (4 %)` : 'conforme au seuil minimum'}`,
+                ecart: triNonSignificatif ? 'Non interprétable' : summary.tri < 0.04 ? 'Insuffisant' : 'Correct',
+                bad: triNonSignificatif || summary.tri < 0.04,
               },
               {
                 arg: '"Projet auto-financé"',
@@ -396,7 +412,9 @@ export function RapportPDF({
               },
               ...(isFG ? [{
                 arg: `"DPE ${input.bien.dpe} gérable avec des travaux"`,
-                reel: `Interdiction de location DPE F à partir de 2028 — Gel des loyers déjà applicable — Risque majeur`,
+                reel: input.bien.dpe === 'G'
+                  ? `Interdiction de location DPE G depuis le 1er janvier 2025 — Gel des loyers déjà applicable — Risque majeur`
+                  : `Interdiction de location DPE F à partir de 2028 — Gel des loyers déjà applicable — Risque majeur`,
                 ecart: 'Risque critique',
                 bad: true,
               }] : []),
@@ -464,7 +482,7 @@ export function RapportPDF({
               { label: 'Net-net hors trav. récurrents',  val: pct(summary.rendementNetNet), sub: 'idem – impôts / coût total, moy.',  ok: summary.rendementNetNet >= 0.03 },
               { label: 'Net-net après trav. récurrents', val: pct(Math.max(0, summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition)), sub: 'trav. récurrents déduits du net-net', ok: (summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition) >= 0.03 },
               { label: 'Cash-flow mensuel',  val: sign(summary.cashflowMensuelMoyen), sub: 'moyen / mois',                ok: summary.cashflowMensuelMoyen >= 0 },
-              { label: 'TRI projet',         val: pct(summary.tri),                   sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.tri >= 0.06 },
+              { label: 'TRI projet',         val: triLabel,                          sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: !triNonSignificatif && summary.tri >= 0.06 },
               { label: 'VAN',                val: eur(summary.van),                   sub: `vs ${pct(input.revente.tauxActualisation)} de réf.`, ok: summary.van > 0 },
               { label: 'Effort mensuel',     val: eur(summary.effortEpargne),         sub: 'à sortir de poche / mois',    ok: summary.effortEpargne < 300 },
               { label: 'CF cumulé',          val: sign(summary.cashflowCumule),       sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.cashflowCumule >= 0 },
@@ -708,7 +726,10 @@ export function RapportPDF({
               )
             })}
           </View>
-          {/* Tableau des hypothèses par scénario */}
+          {/* Tableau des hypothèses par scénario + note de projection : regroupés
+              pour éviter qu'une note d'une seule ligne se retrouve seule sur une
+              page quasi vide si le tableau tient juste sur la page précédente. */}
+          <View wrap={false}>
           <View style={[S.table, { marginTop: 4 }]}>
             <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
               {['Hypothèse', 'Pessimiste', 'Central', 'Optimiste'].map((h, i) => (
@@ -748,6 +769,7 @@ export function RapportPDF({
               return `Valeur de revente projetée : base de projection (${baseLabel}) = ${eur(baseValeurBien)}, revalorisée à ${pct(input.revente.revalorisationAnnuelle)}/an sur ${n} ans, soit ${eur(valeurTheorique)}.`
             })()}
           </Text>
+          </View>
 
         </View>
         <PageFooter />
@@ -1008,7 +1030,7 @@ export function RapportPDF({
                       <Text style={{ fontSize: 6.5, color: COLORS.slate500, lineHeight: 1.5 }}>{REGIME_DESC[reg]}</Text>
                     </View>
                   ))}
-                  <View style={[S.alertBox, { marginTop: 4 }]}>
+                  <View style={[S.alertBox, { marginTop: 4 }]} wrap={false}>
                     <Text style={S.alertText}>
                       Simulation sous réserve d'éligibilité. Le régime le plus favorable dépend de votre situation patrimoniale globale.
                       Certains régimes (LMNP réel, SCI IS) nécessitent un expert-comptable.
@@ -1228,9 +1250,9 @@ export function RapportPDF({
                             {statusLabel}
                           </Text>
                         </View>
-                        <Text style={[S.tableCell, { flex: 2, color: cc.text }]}>{c.label}</Text>
+                        <Text style={[S.tableCell, { flex: 2, color: cc.text }]}>{sanitize(c.label)}</Text>
                         <Text style={[S.tableCell, { flex: 2.5, color: COLORS.slate500, fontStyle: c.note ? 'normal' : 'italic' }]}>
-                          {c.note ?? '—'}
+                          {c.note ? sanitize(c.note) : '—'}
                         </Text>
                       </View>
                     )
@@ -1281,33 +1303,46 @@ export function RapportPDF({
                       <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>CF moyen / mois</Text>
                       <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>Impots cumules</Text>
                     </View>
-                    {[
-                      { label: 'Hors avantage fiscal', d: scerariosAvantage.horsAvantage, color: COLORS.slate600 },
-                      { label: 'Avantage theorique complet', d: scerariosAvantage.avantageTheorique, color: '#2563eb' },
-                      { label: 'Avantage reellement utilisable', d: scerariosAvantage.avantageUtilisable, color: '#059669' },
-                    ].map((row, i) => (
-                      <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                        <Text style={[S.tableCell, { flex: 2, fontFamily: i === 2 ? 'Arial' : undefined, fontWeight: i === 2 ? 'bold' : 'normal', color: row.color }]}>
-                          {row.label}{i === 2 ? ' ★' : ''}
-                        </Text>
-                        <Text style={[S.tableCell, { flex: 1, color: row.color, fontFamily: 'Arial', fontWeight: 'bold' }]}>
-                          {(row.d.tri * 100).toFixed(2)} %
-                        </Text>
-                        <Text style={[S.tableCell, { flex: 1, color: row.color }]}>
-                          {eur(row.d.van)}
-                        </Text>
-                        <Text style={[S.tableCell, { flex: 1.2, color: row.d.cashflowMensuelMoyen >= 0 ? COLORS.emerald : '#dc2626' }]}>
-                          {eur(row.d.cashflowMensuelMoyen)} / mois
-                        </Text>
-                        <Text style={[S.tableCell, { flex: 1.2, color: COLORS.slate600 }]}>
-                          {eur(row.d.impotsCumules)}
-                        </Text>
-                      </View>
-                    ))}
+                    {(() => {
+                      const starIndex = avantageIntegreDansTRI ? 2 : 0
+                      return [
+                        { label: 'Hors avantage fiscal', d: scerariosAvantage.horsAvantage, color: COLORS.slate600 },
+                        { label: 'Avantage theorique complet', d: scerariosAvantage.avantageTheorique, color: '#2563eb' },
+                        { label: 'Avantage reellement utilisable', d: scerariosAvantage.avantageUtilisable, color: '#059669' },
+                      ].map((row, i) => (
+                        <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                          <Text style={[S.tableCell, { flex: 2, fontFamily: i === starIndex ? 'Arial' : undefined, fontWeight: i === starIndex ? 'bold' : 'normal', color: row.color }]}>
+                            {row.label}{i === starIndex ? ' ★' : ''}
+                          </Text>
+                          <Text style={[S.tableCell, { flex: 1, color: row.color, fontFamily: 'Arial', fontWeight: 'bold' }]}>
+                            {(row.d.tri * 100).toFixed(2)} %
+                          </Text>
+                          <Text style={[S.tableCell, { flex: 1, color: row.color }]}>
+                            {eur(row.d.van)}
+                          </Text>
+                          <Text style={[S.tableCell, { flex: 1.2, color: row.d.cashflowMensuelMoyen >= 0 ? COLORS.emerald : '#dc2626' }]}>
+                            {eur(row.d.cashflowMensuelMoyen)} / mois
+                          </Text>
+                          <Text style={[S.tableCell, { flex: 1.2, color: COLORS.slate600 }]}>
+                            {eur(row.d.impotsCumules)}
+                          </Text>
+                        </View>
+                      ))
+                    })()}
                   </View>
-                  <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 6, fontStyle: 'italic' }}>
-                    ★ Le scenario &quot;avantage utilisable&quot; correspond a la simulation principale du rapport — il tient compte de votre IR disponible et du plafond des niches fiscales.
-                  </Text>
+                  <View style={{ marginTop: 6, padding: 6, borderRadius: 4, backgroundColor: avantageIntegreDansTRI ? '#f0fdf4' : '#fef3f2', borderWidth: 1, borderColor: avantageIntegreDansTRI ? '#bbf7d0' : '#fecaca' }}>
+                    <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: avantageIntegreDansTRI ? '#166534' : '#991b1b' }}>
+                      {avantageIntegreDansTRI
+                        ? (input.revente.modeSimulationAvantage === 'indicatif'
+                          ? 'Badge : avantage integre (mode indicatif — eligibilite non encore validee)'
+                          : 'Badge : avantage integre (eligibilite validee)')
+                        : 'Badge : hors avantage fiscal — eligibilite non validee, l\'avantage n\'est pas integre'}
+                    </Text>
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate500, marginTop: 2, fontStyle: 'italic' }}>
+                      ★ Le scenario marque correspond aux chiffres (TRI, VAN, cash-flow, impots) utilises dans le reste de ce rapport.
+                      {!avantageIntegreDansTRI && ' Le scenario "avantage reellement utilisable" affiche ici a titre indicatif n\'est PAS integre dans les pages precedentes.'}
+                    </Text>
+                  </View>
                 </View>
               )}
 
@@ -2006,7 +2041,7 @@ export function RapportPDF({
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>TRI calculé</Text>
-                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: summary.tri >= 0.04 ? COLORS.emeraldDark : summary.tri >= 0 ? COLORS.amber : COLORS.red }}>{pct(summary.tri)}</Text>
+                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: triNonSignificatif ? COLORS.slate400 : summary.tri >= 0.04 ? COLORS.emeraldDark : summary.tri >= 0 ? COLORS.amber : COLORS.red }}>{triLabel}</Text>
                     <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Voir page Audit pour le détail</Text>
                   </View>
                 </View>
@@ -2470,6 +2505,7 @@ export function RapportPDF({
             const coutTotal = summary.coutTotalAcquisition
             const financement = input.financement.apport + input.financement.montantEmprunte
             const ecartFinancement = Math.abs(coutTotal - financement)
+            const surfinancement = financement > coutTotal
             const fraisAchat = input.acquisition.fraisNotaire + input.acquisition.fraisAgence
             const loyerM2 = input.location.loyerMensuelHC / input.bien.surface
             const dureesCreditAns = input.financement.dureeCredit / 12
@@ -2478,9 +2514,13 @@ export function RapportPDF({
             const checks: Array<{ label: string; valeur: string; statut: 'OK' | 'Attention' | 'Alerte'; note: string }> = [
               {
                 label: 'Cohérence financement (coût total vs apport + emprunt)',
-                valeur: `Ecart ${eur(ecartFinancement)}`,
+                valeur: `Écart ${eur(ecartFinancement)} (${surfinancement ? 'sur-financement' : 'sous-financement'})`,
                 statut: ecartFinancement < 2000 ? 'OK' : ecartFinancement < 10000 ? 'Attention' : 'Alerte',
-                note: ecartFinancement < 2000 ? 'Financement équilibré' : `Ecart de ${eur(ecartFinancement)} — vérifiez les frais annexes`,
+                note: ecartFinancement < 2000
+                  ? 'Financement équilibré'
+                  : surfinancement
+                  ? `Apport + emprunt dépassent le coût total de ${eur(ecartFinancement)} — trésorerie excédentaire à l'origine, mensualités potentiellement plus élevées que nécessaire.`
+                  : `Apport + emprunt couvrent le coût total à ${eur(ecartFinancement)} près — vérifiez les frais annexes (notaire, courtage, garantie, dossier).`,
               },
               {
                 label: 'Apport couvre les frais d\'acquisition',
@@ -2552,6 +2592,28 @@ export function RapportPDF({
               },
             ]
 
+            // Erreurs / avertissements du moteur de validation métier (CDC §P1.1) —
+            // ce sont eux qui déterminent le statut "Non arbitrable en l'état" en page
+            // de couverture : ils doivent donc apparaître ici comme alertes/attentions,
+            // sous peine de contredire le verdict global (page 1 vs page audit).
+            const validation = validerAnalyse(analysis)
+            for (const err of validation.errors) {
+              checks.push({
+                label: 'Incohérence bloquante détectée',
+                valeur: 'Bloquant',
+                statut: 'Alerte',
+                note: err,
+              })
+            }
+            for (const warn of validation.warnings) {
+              checks.push({
+                label: 'Point de vigilance détecté',
+                valeur: 'À vérifier',
+                statut: 'Attention',
+                note: warn,
+              })
+            }
+
             const nbOk = checks.filter(c => c.statut === 'OK').length
             const nbAttention = checks.filter(c => c.statut === 'Attention').length
             const nbAlerte = checks.filter(c => c.statut === 'Alerte').length
@@ -2588,13 +2650,13 @@ export function RapportPDF({
                   </View>
                   {checks.map((c, i) => (
                     <View key={i} style={[S.tableRow, i % 2 === 1 ? { backgroundColor: COLORS.slate50 } : {}]}>
-                      <Text style={[S.tableCell, { flex: 3 }]}>{c.label}</Text>
-                      <Text style={[S.tableCell, { flex: 2 }]}>{c.valeur}</Text>
+                      <Text style={[S.tableCell, { flex: 3 }]}>{sanitize(c.label)}</Text>
+                      <Text style={[S.tableCell, { flex: 2 }]}>{sanitize(c.valeur)}</Text>
                       <Text style={[S.tableCell, { flex: 1,
                         color: c.statut === 'OK' ? COLORS.emeraldDark : c.statut === 'Attention' ? '#92400e' : COLORS.red,
                         fontFamily: 'Arial', fontWeight: 'bold'
                       }]}>{c.statut}</Text>
-                      <Text style={[S.tableCell, { flex: 3, color: COLORS.slate500 }]}>{c.note}</Text>
+                      <Text style={[S.tableCell, { flex: 3, color: COLORS.slate500 }]}>{sanitize(c.note)}</Text>
                     </View>
                   ))}
                 </View>
@@ -2713,13 +2775,13 @@ export function RapportPDF({
                   </View>
                   {checksFinanciers.map((c, i) => (
                     <View key={i} style={[S.tableRow, i % 2 === 1 ? { backgroundColor: COLORS.slate50 } : {}]}>
-                      <Text style={[S.tableCell, { flex: 3 }]}>{c.label}</Text>
-                      <Text style={[S.tableCell, { flex: 2.5, fontSize: 6 }]}>{c.valeur}</Text>
+                      <Text style={[S.tableCell, { flex: 3 }]}>{sanitize(c.label)}</Text>
+                      <Text style={[S.tableCell, { flex: 2.5, fontSize: 6 }]}>{sanitize(c.valeur)}</Text>
                       <Text style={[S.tableCell, { flex: 1,
                         color: c.statut === 'OK' ? COLORS.emeraldDark : c.statut === 'Attention' ? '#92400e' : COLORS.red,
                         fontFamily: 'Arial', fontWeight: 'bold'
                       }]}>{c.statut}</Text>
-                      <Text style={[S.tableCell, { flex: 3, color: COLORS.slate500, fontSize: 6 }]}>{c.note}</Text>
+                      <Text style={[S.tableCell, { flex: 3, color: COLORS.slate500, fontSize: 6 }]}>{sanitize(c.note)}</Text>
                     </View>
                   ))}
                 </View>

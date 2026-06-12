@@ -1025,13 +1025,35 @@ export function validerAnalyse(a: import('./types').ProjectAnalysis): Validation
   // Test 5 — Sensibilité : une variable censée impacter le TRI doit le faire (CDC §6.5)
   // Exception : si le montant de base est nul, une variation de ±10 % vaut 0 et n'a
   // logiquement aucun effet — ce n'est pas une anomalie de calcul.
+  const ANNEE_ACHAT = new Date().getFullYear()
+  const isDpeG = input.bien.dpe === 'G'
+  const isDpeF = input.bien.dpe === 'F'
+  const anneeInterdiction = isDpeG
+    ? Math.max(1, 2025 - ANNEE_ACHAT + 1)
+    : isDpeF
+    ? Math.max(1, 2028 - ANNEE_ACHAT + 1)
+    : Infinity
+  const travauxDpeAnneeOk = input.travauxFuturs.travauxDpeAnnee ?? Infinity
+  // Si la location est interdite (DPE F/G) sur toute la durée de détention sans
+  // travaux DPE programmés, les loyers sont nuls chaque année : le loyer mensuel
+  // n'a alors structurellement aucun effet sur le TRI.
+  const loyerSansEffetSurTri = (isDpeG || isDpeF)
+    && anneeInterdiction <= 1
+    && travauxDpeAnneeOk > input.revente.dureeDetentionAns
   const sensibiliteVariationNulleAttendue: Record<string, boolean> = {
     'Travaux initiaux': input.acquisition.travauxInitiaux === 0,
     'Charges copropriété': !input.bien.copropriete || input.charges.chargesCoproAnnuelles === 0,
+    'Loyer mensuel': loyerSansEffetSurTri,
   }
+  // Si le TRI n'est pas significatif (cash nécessaire <= 0, sur-financement), les
+  // flux sont non conventionnels et le TRI est saturé à une borne de calcul : toute
+  // variation ±10 % d'une variable peut rester sans effet sans que cela soit une
+  // anomalie de calcul.
+  const triNonSignificatif = summary.cashTotalNecessaire <= 0
   for (const row of sensibilite ?? []) {
     if (row.moins10 === row.central && row.plus10 === row.central) {
       if (sensibiliteVariationNulleAttendue[row.variable]) continue
+      if (triNonSignificatif) continue
       errors.push(`Sensibilité non valide : la variation de "${row.variable}" ne modifie pas le TRI`)
     }
   }

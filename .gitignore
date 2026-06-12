@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# audit pack (généré localement via scripts/generate-audit-pack.ts)
+/audit-pack/
+/audit-pack.zip
+/pdfshots/
