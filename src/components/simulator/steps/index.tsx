@@ -1367,6 +1367,43 @@ export function Step8({ data, onChange }: SP) {
           onChange={e => set({ dureeDetentionAns: +e.target.value })} suffix="ans" />
       </Section>
 
+      <Section title="Valeur de marché (optionnel)">
+        <p className="text-xs text-slate-500">
+          Si vous disposez d&apos;une estimation de valeur (avis d&apos;agence, comparables, expertise),
+          renseignez-la ici. La valeur post-travaux estimée remplace alors la base
+          &laquo; prix d&apos;achat + travaux &raquo; pour projeter le prix de revente.
+        </p>
+        <Grid2>
+          <Input label="Valeur de marché actuelle estimée" type="number"
+            value={r.valeurMarcheActuelle ?? ''}
+            onChange={e => set({ valeurMarcheActuelle: e.target.value === '' ? undefined : +e.target.value })}
+            suffix="€"
+            hint="Valeur du bien en l'état, avant travaux" />
+          <Input label="Valeur post-travaux estimée" type="number"
+            value={r.valeurPostTravauxEstimee ?? ''}
+            onChange={e => set({ valeurPostTravauxEstimee: e.target.value === '' ? undefined : +e.target.value })}
+            suffix="€"
+            hint="Remplace prix d'achat + travaux comme base de projection de revente" />
+        </Grid2>
+        {(r.valeurMarcheActuelle || r.valeurPostTravauxEstimee) && (
+          <Grid2>
+            <Input label="Source de l'estimation" type="text"
+              value={r.valeurMarcheSource ?? ''}
+              onChange={e => set({ valeurMarcheSource: e.target.value === '' ? undefined : e.target.value })}
+              placeholder="Avis d'agence, comparables, expertise..." />
+            <Select label="Niveau de confiance" value={r.valeurMarcheFiabilite ?? 'estimation'}
+              onChange={e => set({ valeurMarcheFiabilite: e.target.value as typeof r.valeurMarcheFiabilite })}
+              options={[
+                { value: 'élevée', label: 'Élevée (expertise/compromis récent)' },
+                { value: 'moyenne', label: 'Moyenne (avis agence)' },
+                { value: 'à vérifier', label: 'À vérifier' },
+                { value: 'estimation', label: 'Estimation personnelle' },
+              ]}
+            />
+          </Grid2>
+        )}
+      </Section>
+
       <Section title="Prix de revente">
         {/* Rappel de l'enveloppe d'acquisition */}
         <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-xs text-slate-600 space-y-1">

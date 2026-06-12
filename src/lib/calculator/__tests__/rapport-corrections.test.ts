@@ -157,6 +157,33 @@ console.log('\nTest 6 — Cash-flow cumulé positif')
   }
 }
 
+// ─── Test 7 — Valeur post-travaux estimée (CDC §5.1) ────────────────────────
+console.log('\nTest 7 — Valeur post-travaux estimée remplace prix d\'achat + travaux')
+{
+  const inputSansEstimation: ProjectInput = {
+    ...DEFAULT_INPUT,
+    acquisition: { ...DEFAULT_INPUT.acquisition, prixAchat: 100000, travauxInitiaux: 30000 },
+    revente: { ...DEFAULT_INPUT.revente, revalorisationAnnuelle: 0.02, dureeDetentionAns: 10 },
+  }
+  const aSans = analyser(inputSansEstimation)
+  const vSans = validerAnalyse(aSans)
+  assert(!vSans.passed, 'sans valeur post-travaux : travaux > 20% prix d\'achat sans réconciliation = erreur bloquante')
+
+  const inputAvecEstimation: ProjectInput = {
+    ...inputSansEstimation,
+    revente: { ...inputSansEstimation.revente, valeurPostTravauxEstimee: 145000, valeurMarcheSource: 'Avis agence', valeurMarcheFiabilite: 'moyenne' },
+  }
+  const aAvec = analyser(inputAvecEstimation)
+  const vAvec = validerAnalyse(aAvec)
+  assert(vAvec.passed || !vAvec.errors.some(e => e.includes('Travaux initiaux')), 'avec valeur post-travaux estimée : plus d\'erreur bloquante sur les travaux')
+
+  const valeurAnnee0 = aAvec.yearlyTable[0].valeurEstimeeBien
+  assert(approx(valeurAnnee0, 145000 * 1.02, 0.001), 'valeur estimée année 1 basée sur valeurPostTravauxEstimee (145 000 €)', `valeurAnnee0=${valeurAnnee0}`)
+
+  const niveau = aAvec.niveauxConfiance?.find(n => n.donnee === 'Valeur post-travaux estimée')
+  assert(!!niveau && niveau.source === 'Avis agence' && niveau.fiabilite === 'moyenne', 'niveau de confiance "Valeur post-travaux estimée" reprend source/fiabilité saisies')
+}
+
 // ─── Bilan ────────────────────────────────────────────────────────────────
 console.log(`\n${failures === 0 ? 'Tous les tests sont passés.' : `${failures} test(s) en échec.`}`)
 if (failures > 0) process.exit(1)

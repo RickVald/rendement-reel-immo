@@ -230,6 +230,15 @@ export interface ReventeInput {
    *  - 'prudent'  (défaut) : avantage non intégré dans TRI/VAN si éligibilité non confirmée
    *  - 'indicatif': avantage intégré même si conditions non totalement vérifiées, marqué "sous réserve" */
   modeSimulationAvantage?: 'prudent' | 'indicatif'
+  /** Valeur de marché actuelle estimée du bien (avant travaux) — donnée informative (CDC §5.1). */
+  valeurMarcheActuelle?: number
+  /** Valeur de marché post-travaux estimée — si renseignée, remplace (prix d'achat + travaux initiaux)
+   *  comme base de projection de la valeur de revente. */
+  valeurPostTravauxEstimee?: number
+  /** Source de l'estimation de valeur de marché (ex: "Avis d'agence", "Comparables annonces", "Expertise"). */
+  valeurMarcheSource?: string
+  /** Niveau de confiance de l'estimation de valeur de marché. */
+  valeurMarcheFiabilite?: 'élevée' | 'moyenne' | 'à vérifier' | 'estimation'
 }
 
 export interface ProjectInput {

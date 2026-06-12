@@ -927,6 +927,14 @@ function genererNiveauxConfiance(input: ProjectInput): NiveauConfiance[] {
     { donnee: 'Fiscalité', source: 'Moteur de calcul 2025-2026', fiabilite: 'moyenne', note: 'Dépend du profil global — à valider avec un expert-comptable' },
     { donnee: 'Vacance locative', source: 'Saisi utilisateur', fiabilite: 'à vérifier', note: 'Vérifier le taux de vacance local (observatoire loyers)' },
     { donnee: 'Prix de revente', source: 'Hypothèse projection', fiabilite: 'estimation', note: 'Projections non garanties — très sensible au marché local' },
+    ...(input.revente.valeurPostTravauxEstimee && input.revente.valeurPostTravauxEstimee > 0
+      ? [{
+          donnee: 'Valeur post-travaux estimée',
+          source: input.revente.valeurMarcheSource || 'Estimation utilisateur',
+          fiabilite: input.revente.valeurMarcheFiabilite ?? 'estimation',
+          note: 'Sert de base à la projection de revente (remplace prix d\'achat + travaux initiaux)',
+        } as NiveauConfiance]
+      : []),
   ]
 }
 
@@ -1013,8 +1021,12 @@ export function validerAnalyse(a: import('./types').ProjectAnalysis): Validation
   }
 
   // Règle 5 — Travaux importants sans valeur de revente réconciliée
-  if (input.acquisition.travauxInitiaux > 0.2 * input.acquisition.prixAchat && !input.revente.prixReventeManuel) {
-    errors.push(`Travaux initiaux (${Math.round(input.acquisition.travauxInitiaux)} €) supérieurs à 20 % du prix d'achat sans valeur de revente post-travaux renseignée — la formule par défaut (prix d'achat × revalorisation) ne reflète pas la plus-value des travaux.`)
+  if (
+    input.acquisition.travauxInitiaux > 0.2 * input.acquisition.prixAchat
+    && !input.revente.prixReventeManuel
+    && !input.revente.valeurPostTravauxEstimee
+  ) {
+    errors.push(`Travaux initiaux (${Math.round(input.acquisition.travauxInitiaux)} €) supérieurs à 20 % du prix d'achat sans valeur de revente post-travaux ni valeur post-travaux estimée renseignée — la formule par défaut (prix d'achat × revalorisation) ne reflète pas la plus-value des travaux.`)
   }
 
   // ── Avertissements : qualité des données ────────────────────────────────────

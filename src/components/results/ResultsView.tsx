@@ -7,7 +7,8 @@ import {
   Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
-import type { ProjectAnalysis, AIInterpretation, Verdict, SummaryKPIs, ProjectInput, YearlyRow } from '@/lib/calculator/types'
+import type { ProjectAnalysis, AIInterpretation, Verdict, SummaryKPIs, ProjectInput, YearlyRow, NiveauConfiance } from '@/lib/calculator/types'
+import { validerAnalyse } from '@/lib/calculator'
 import { SimplifiedResultsView } from './SimplifiedResultsView'
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -133,6 +134,8 @@ export function ResultsView() {
 
   const { summary, verdict, yearlyTable, scenarios, prixMax, creditSchedule, input } = analysis
   const c = COULEUR_MAP[verdict.couleur]
+  const validation = validerAnalyse(analysis)
+  const bloquePdf = !validation.passed
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -190,9 +193,9 @@ export function ResultsView() {
             <div className="flex flex-col gap-2 shrink-0 items-end">
               <button
                 onClick={downloadPdf}
-                disabled={pdfLoading || aiLoading}
-                title={aiLoading ? 'Attendez la fin de l\'analyse IA…' : ''}
-                className="flex items-center gap-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-400 disabled:cursor-wait text-white px-4 py-2 rounded-lg transition-colors"
+                disabled={pdfLoading || aiLoading || bloquePdf}
+                title={bloquePdf ? 'Corrigez les erreurs bloquantes signalées dans l\'audit ci-dessous avant de générer le rapport' : aiLoading ? 'Attendez la fin de l\'analyse IA…' : ''}
+                className="flex items-center gap-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors"
               >
                 {pdfLoading ? (
                   <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Génération…</>
@@ -203,6 +206,7 @@ export function ResultsView() {
                 )}
               </button>
               {aiLoading && <p className="text-xs text-slate-400">Rapport disponible après l'analyse IA</p>}
+              {bloquePdf && <p className="text-xs text-red-600 max-w-xs text-right">Erreur bloquante détectée — voir l&apos;audit ci-dessous</p>}
               <button
                 onClick={() => router.push('/simulateur')}
                 className="text-sm text-slate-500 hover:text-slate-800 border border-slate-300 hover:border-slate-400 px-4 py-2 rounded-lg transition-colors"
@@ -211,6 +215,8 @@ export function ResultsView() {
               </button>
             </div>
           </div>
+
+          <AuditAvantGeneration validation={validation} niveauxConfiance={analysis.niveauxConfiance} />
         </div>
       </div>
 
@@ -245,6 +251,92 @@ export function ResultsView() {
       </div>
 
     </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AUDIT AVANT GÉNÉRATION (CDC §5.2)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function AuditAvantGeneration({ validation, niveauxConfiance }: {
+  validation: { passed: boolean; errors: string[]; warnings: string[] }
+  niveauxConfiance?: NiveauConfiance[]
+}) {
+  const aVerifier = (niveauxConfiance ?? []).filter(n => n.fiabilite === 'à vérifier')
+  const estimees  = (niveauxConfiance ?? []).filter(n => n.fiabilite === 'estimation')
+  const justifiees = (niveauxConfiance ?? []).filter(n => n.fiabilite === 'élevée' || n.fiabilite === 'moyenne')
+
+  const totalIssues = validation.errors.length + validation.warnings.length
+
+  return (
+    <details className="mt-4 group" open={!validation.passed}>
+      <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-semibold text-slate-700 select-none">
+        <span className="inline-block transition-transform group-open:rotate-90">▶</span>
+        Audit avant génération du rapport
+        {validation.errors.length > 0 && (
+          <span className="text-xs font-bold bg-red-600 text-white px-2 py-0.5 rounded-full">{validation.errors.length} erreur{validation.errors.length > 1 ? 's' : ''} bloquante{validation.errors.length > 1 ? 's' : ''}</span>
+        )}
+        {validation.warnings.length > 0 && (
+          <span className="text-xs font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full">{validation.warnings.length} alerte{validation.warnings.length > 1 ? 's' : ''} forte{validation.warnings.length > 1 ? 's' : ''}</span>
+        )}
+        {totalIssues === 0 && (
+          <span className="text-xs font-bold bg-emerald-500 text-white px-2 py-0.5 rounded-full">Aucune incohérence détectée</span>
+        )}
+      </summary>
+
+      <div className="mt-3 space-y-3 text-sm">
+        {validation.errors.length > 0 && (
+          <div className="bg-red-50 border border-red-300 rounded-lg p-3">
+            <p className="font-semibold text-red-800 mb-1">⛔ Erreurs bloquantes — à corriger avant de générer le rapport</p>
+            <ul className="list-disc list-inside space-y-1 text-red-700">
+              {validation.errors.map((e, i) => <li key={i}>{e}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {validation.warnings.length > 0 && (
+          <div className="bg-amber-50 border border-amber-300 rounded-lg p-3">
+            <p className="font-semibold text-amber-800 mb-1">⚠ Alertes fortes — confirmation recommandée</p>
+            <ul className="list-disc list-inside space-y-1 text-amber-700">
+              {validation.warnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {aVerifier.length > 0 && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <p className="font-semibold text-slate-700 mb-1">🔍 Points à vérifier avant signature</p>
+            <ul className="list-disc list-inside space-y-1 text-slate-600">
+              {aVerifier.map((n, i) => (
+                <li key={i}>{n.donnee}{n.note ? ` — ${n.note}` : ''}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {estimees.length > 0 && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+            <p className="font-semibold text-slate-700 mb-1">📐 Données estimées (hypothèses non garanties)</p>
+            <ul className="list-disc list-inside space-y-1 text-slate-600">
+              {estimees.map((n, i) => (
+                <li key={i}>{n.donnee}{n.note ? ` — ${n.note}` : ''}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {justifiees.length > 0 && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <p className="font-semibold text-emerald-800 mb-1">✓ Données justifiées</p>
+            <ul className="list-disc list-inside space-y-1 text-emerald-700">
+              {justifiees.map((n, i) => (
+                <li key={i}>{n.donnee} <span className="text-emerald-600/70">({n.source})</span></li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </details>
   )
 }
 

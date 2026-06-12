@@ -237,8 +237,11 @@ export function genererTableauAnnuel(
     // Si l'utilisateur a saisi un prix de revente manuel, on interpole linéairement en log
     // (croissance constante) pour obtenir la valeur à chaque année intermédiaire.
     // Base de projection : valeur du bien après travaux (prix d'achat + travaux initiaux),
-    // cohérente avec le coût total d'acquisition affiché par ailleurs.
-    const baseValeurBien = input.acquisition.prixAchat + input.acquisition.travauxInitiaux
+    // cohérente avec le coût total d'acquisition affiché par ailleurs — sauf si l'utilisateur
+    // a renseigné une valeur post-travaux estimée (CDC §5.1), qui prévaut alors.
+    const baseValeurBien = revente.valeurPostTravauxEstimee && revente.valeurPostTravauxEstimee > 0
+      ? revente.valeurPostTravauxEstimee
+      : input.acquisition.prixAchat + input.acquisition.travauxInitiaux
     const valeurEstimee = (() => {
       if (revente.prixReventeManuel && revente.prixReventeManuel > 0 && revente.dureeDetentionAns > 0) {
         const cible = revente.prixReventeManuel
