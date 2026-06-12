@@ -204,11 +204,11 @@ export function RapportPDF({
             </View>
           </View>
 
-          {/* Bloc "Ce qui invalide ou fragilise le rapport" (CDC §6.2) */}
+          {/* Bloc "Points de fragilité à intégrer dans la décision" (CDC §6.2) */}
           {verdict.alertes.length > 0 && (
             <View style={{ marginBottom: 16, padding: 8, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red }}>
               <Text style={{ fontSize: 9, fontFamily: 'Arial', fontWeight: 'bold', color: '#7f1d1d', marginBottom: 4 }}>
-                Ce qui invalide ou fragilise ce rapport
+                Points de fragilité à intégrer dans la décision
               </Text>
               {verdict.alertes.map((a, i) => (
                 <View key={i} style={S.listItem}>
@@ -565,6 +565,11 @@ export function RapportPDF({
                 ].map(item => (
                   <ScoreBar key={item.label} label={item.label} val={item.val} max={item.max} />
                 ))}
+                {scoreRobustesse.dependanceRevente === 0 && (
+                  <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 4, lineHeight: 1.4 }}>
+                    {`Note revente : pénalisée à 0/20 car le TRI hors revente est négatif (${pct(summary.triSansRevente)}) — le projet n'est rentable qu'avec la plus-value à la revente, même si la variation ±10 % du prix de revente reste contenue sur le TRI global (cf. analyse de sensibilité).`}
+                  </Text>
+                )}
               </View>
 
               <View style={S.col}>
@@ -1802,6 +1807,11 @@ export function RapportPDF({
                         <Text style={valStyle(bold)}>{val}</Text>
                       </View>
                     ))}
+                    {isSciIs && (
+                      <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
+                        Produit net calculé dans la SCI après IS, hors fiscalité de distribution aux associés. Si ce produit est ensuite distribué (dividendes), une flat tax de 30 % (ou option barème IR + PS) s&apos;applique en plus, au niveau de l&apos;associé.
+                      </Text>
+                    )}
                     <View style={{ height: 12 }} />
                     <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 6, color: COLORS.slate700 }}>Bilan investisseur sur {duree} ans</Text>
                     {([
@@ -1816,7 +1826,7 @@ export function RapportPDF({
                       </View>
                     ))}
                     <View style={{ marginTop: 8, padding: 6, backgroundColor: '#eff6ff', borderRadius: 3 }}>
-                      <Text style={{ fontSize: 6.5, color: COLORS.indigo, marginBottom: 2 }}>Convention : le "Gain net total investisseur" intègre tous les flux de l'investissement — apport initial, effort d'épargne cumulé sur {duree} ans (déjà dans le cash-flow cumulé), et produit de la revente nette. Il mesure ce que l'investisseur ressort effectivement par rapport à ce qu'il a mis.</Text>
+                      <Text style={{ fontSize: 6.5, color: COLORS.indigo, marginBottom: 2 }}>Convention : le "Gain net total investisseur" intègre tous les flux de l'investissement — apport initial, effort d'épargne cumulé sur {duree} ans (déjà dans le cash-flow cumulé), et produit de la revente nette. Il mesure ce que l'investisseur ressort effectivement par rapport à ce qu'il a mis.{isSciIs ? ' En SCI à l\'IS, ce montant reste au niveau de la société : une distribution aux associés (dividendes) déclencherait une fiscalité supplémentaire (flat tax 30 % ou option barème) non intégrée ici.' : ''}</Text>
                     </View>
                   </View>
                 </View>

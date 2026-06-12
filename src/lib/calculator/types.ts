@@ -418,6 +418,7 @@ export interface ComparaisonRegime {
 export type VerdictLabel =
   | 'Excellent projet'
   | 'Bon projet — dépendant de la revente'
+  | 'Bon projet — robustesse à surveiller'
   | 'Projet correct — cash-flow négatif maîtrisé'
   | 'Projet fragile'
   | 'Projet non rentable aux hypothèses saisies'

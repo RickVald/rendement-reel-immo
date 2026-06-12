@@ -152,15 +152,34 @@ export function finaliserVerdict(
   scoreFiabilite: number,
   erreursBloquantes: string[]
 ): Verdict {
+  const recommandations = [...verdict.recommandations]
+  if (scoreFiabilite < 70) {
+    recommandations.push(`Fiabilité documentaire moyenne (${scoreFiabilite}/100) — la décision reste conditionnée à la validation des justificatifs (devis, relevés, avis d'imposition) avant signature.`)
+  }
+
   const base: Verdict = {
     ...verdict,
     scoreRobustesseGlobal,
     scoreFiabilite,
     erreursBloquantes,
+    recommandations,
     alertes: [...erreursBloquantes.map(e => `Erreur bloquante : ${e}`), ...verdict.alertes],
   }
 
-  if (erreursBloquantes.length === 0) return base
+  if (erreursBloquantes.length === 0) {
+    // "Excellent projet" doit être réservé aux projets à la fois rentables ET robustes.
+    // Un score de rentabilité élevé qui repose sur une dépendance forte à la revente,
+    // ou avec une robustesse globale faible, ne justifie pas ce label.
+    if (base.label === 'Excellent projet') {
+      if (base.scoreDetail.dependanceRevente === 0) {
+        return { ...base, label: 'Bon projet — dépendant de la revente', couleur: 'green' }
+      }
+      if (scoreRobustesseGlobal < 50) {
+        return { ...base, label: 'Bon projet — robustesse à surveiller', couleur: 'green' }
+      }
+    }
+    return base
+  }
 
   return {
     ...base,
