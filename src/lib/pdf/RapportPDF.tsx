@@ -1823,7 +1823,7 @@ export function RapportPDF({
 
                 {/* Détail prix de revient fiscal poste-by-poste */}
                 <View style={{ marginBottom: 10, padding: 8, backgroundColor: '#f8fafc', borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200 }}>
-                  <Text style={{ fontSize: 7.5, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 6, color: COLORS.slate700 }}>Détail du prix de revient fiscal (base de calcul de la plus-value)</Text>
+                  <Text style={{ fontSize: 7.5, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 6, color: COLORS.slate700 }}>{isSciIs ? 'Détail de la valeur nette comptable (base de calcul de la plus-value)' : 'Détail du prix de revient fiscal (base de calcul de la plus-value)'}</Text>
                   <View style={S.table}>
                     <View style={[S.tableRow, { backgroundColor: COLORS.slate100 }]}>
                       <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>Poste</Text>
@@ -1845,6 +1845,9 @@ export function RapportPDF({
                       ...(isLmnpReel && amortsCumules > 0 ? [
                         ["- Amortissements réintégrés (immeuble, LF 2025)", '- ' + eur(amortsCumules), `Réintégration obligatoire — immeuble uniquement. Mobilier ${amortsCumulesMob > 0 ? eur(amortsCumulesMob) + ' à qualifier (notaire)' : 'N/A'}`, 'Oui'],
                       ] as [string,string,string,string][] : []),
+                      ...(isSciIs && amortsCumules > 0 ? [
+                        ["- Amortissements cumulés (immeuble)", '- ' + eur(amortsCumules), `Amortissements déduits du résultat IS sur la période — viennent en déduction de la valeur comptable. Mobilier ${amortsCumulesMob > 0 ? eur(amortsCumulesMob) + ' à qualifier (notaire)' : 'N/A'}`, 'Oui'],
+                      ] as [string,string,string,string][] : []),
                     ] as [string, string, string, string][]).map(([poste, montant, source, retenu], i) => {
                       const isNonRetenu = retenu === 'Non'
                       const retenuColor = retenu === 'Oui' || retenu === 'Oui*' ? COLORS.emeraldDark
@@ -1860,9 +1863,15 @@ export function RapportPDF({
                       )
                     })}
                     <View style={[S.tableRow, { backgroundColor: '#eff6ff', borderTopWidth: 1, borderTopColor: COLORS.slate300 }]}>
-                      <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>= Prix de revient fiscal retenu</Text>
+                      <Text style={[S.tableCell, { flex: 3, fontFamily: 'Arial', fontWeight: 'bold' }]}>{isSciIs ? '= Valeur nette comptable (VNC) retenue' : '= Prix de revient fiscal retenu'}</Text>
                       <Text style={[S.tableCell, { flex: 1.5, textAlign: 'right', fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.indigo }]}>{eur(detailApplicable.prixRevientFiscal)}</Text>
-                      <Text style={[S.tableCell, { flex: 3, fontSize: 6, color: COLORS.indigo }]}>{isLmnpReel && amortsCumules > 0 ? 'Prix achat + frais admissibles - amorts réintégrés (Loi de finances 2025)' : "Prix achat + frais d'acquisition (abattement forfaitaire 7,5 % si non justifiés)"}</Text>
+                      <Text style={[S.tableCell, { flex: 3, fontSize: 6, color: COLORS.indigo }]}>
+                        {isSciIs
+                          ? 'Prix achat + frais admissibles + travaux − amortissements cumulés (immeuble)'
+                          : isLmnpReel && amortsCumules > 0
+                          ? 'Prix achat + frais admissibles - amorts réintégrés (Loi de finances 2025)'
+                          : "Prix achat + frais d'acquisition (abattement forfaitaire 7,5 % si non justifiés)"}
+                      </Text>
                       <Text style={[S.tableCell, { flex: 1.5, fontSize: 6 }]}> </Text>
                     </View>
                   </View>

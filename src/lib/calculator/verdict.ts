@@ -81,7 +81,7 @@ export function genererVerdict(kpis: SummaryKPIs, input: ProjectInput): Verdict 
 
   // Recommandations
   if (score >= 70)
-    recommandations.push(`Ce projet présente de bons fondamentaux. Vérifiez les hypothèses de revalorisation et les charges de copropriété sur les 5 prochaines années.`)
+    recommandations.push(`Ce projet présente de bons fondamentaux. Vérifiez les hypothèses de revalorisation${input.bien.copropriete ? ' et les charges de copropriété' : ''} sur les 5 prochaines années.`)
   if (kpis.prixMaximum < input.acquisition.prixAchat)
     recommandations.push(`Le prix cible calculé selon l'objectif de simulation est ${eur(kpis.prixMaximum)}, soit ${eur(input.acquisition.prixAchat - kpis.prixMaximum)} de négociation à obtenir (${pct((input.acquisition.prixAchat - kpis.prixMaximum) / input.acquisition.prixAchat)}).`)
   if (input.bien.dpe === 'E')
