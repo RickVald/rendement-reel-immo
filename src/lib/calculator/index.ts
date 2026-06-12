@@ -232,6 +232,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     cashflowAnnuelMoyen: Math.round(cashflowTotal / rows.length),
     cashflowCumule: Math.round(cashflowCumule),
     tri,
+    triNonSignificatif: apportInitial <= 0,
     van,
     effortEpargne: Math.round(effortEpargne),
     prixMaximum: prixMaxResult.prixMaximum,
@@ -306,16 +307,18 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     const dispositif = input.fiscalite.dispositif ?? 'aucun'
     if (dispositif === 'aucun') return undefined
 
-    // Scénario A : zéro avantage — on force irBrutAnnuel = 0 pour bloquer toute réduction
-    const inputHors = { ...input, fiscalite: { ...input.fiscalite, irBrutAnnuel: 0, nichesDejaConsommees: 0 } }
-    const rowsHors = genererTableauAnnuel(inputHors, creditSchedule.tableau, coutTotal)
+    // Scénario A : zéro avantage — integrerAvantage=false désactive intégralement
+    // l'avantage du dispositif (amortissement, réduction IR, etc.), quel que soit
+    // l'IR disponible. C'est le même mécanisme que celui utilisé pour le tableau
+    // principal lorsque l'éligibilité n'est pas validée (cf. integrerAvantage plus haut).
+    const rowsHors = genererTableauAnnuel(input, creditSchedule.tableau, coutTotal, false)
     const dernierHors = rowsHors[rowsHors.length - 1]
     const triHors = calculerTRI(apportInitial, 0, 0, rowsHors, dernierHors?.produitNetReventePotentiel ?? 0)
     const vanHors = calculerVAN(apportInitial, 0, 0, rowsHors, dernierHors?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
 
-    // Scénario B : avantage théorique complet — IR illimité
+    // Scénario B : avantage théorique complet — IR illimité, avantage intégré
     const inputTheo = { ...input, fiscalite: { ...input.fiscalite, irBrutAnnuel: undefined, nichesDejaConsommees: 0 } }
-    const rowsTheo = genererTableauAnnuel(inputTheo, creditSchedule.tableau, coutTotal)
+    const rowsTheo = genererTableauAnnuel(inputTheo, creditSchedule.tableau, coutTotal, true)
     const dernierTheo = rowsTheo[rowsTheo.length - 1]
     const triTheo = calculerTRI(apportInitial, 0, 0, rowsTheo, dernierTheo?.produitNetReventePotentiel ?? 0)
     const vanTheo = calculerVAN(apportInitial, 0, 0, rowsTheo, dernierTheo?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
@@ -1049,11 +1052,10 @@ export function validerAnalyse(a: import('./types').ProjectAnalysis): Validation
   // flux sont non conventionnels et le TRI est saturé à une borne de calcul : toute
   // variation ±10 % d'une variable peut rester sans effet sans que cela soit une
   // anomalie de calcul.
-  const triNonSignificatif = summary.cashTotalNecessaire <= 0
   for (const row of sensibilite ?? []) {
     if (row.moins10 === row.central && row.plus10 === row.central) {
       if (sensibiliteVariationNulleAttendue[row.variable]) continue
-      if (triNonSignificatif) continue
+      if (summary.triNonSignificatif) continue
       errors.push(`Sensibilité non valide : la variation de "${row.variable}" ne modifie pas le TRI`)
     }
   }

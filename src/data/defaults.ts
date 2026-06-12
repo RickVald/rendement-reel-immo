@@ -94,6 +94,9 @@ export const DEFAULT_INPUT: ProjectInput = {
       jeanbrun_niveauLoyer: 'intermediaire',
       jeanbrun_montantTravauxAncien: 0,
       jeanbrun_engagementAns: 9,
+      jeanbrun_batimentCollectif: false,
+      jeanbrun_residencePrincipaleLocataire: false,
+      jeanbrun_loyerRespectePlafond: false,
     },
   },
   revente: {

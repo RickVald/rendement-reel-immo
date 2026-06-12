@@ -68,6 +68,9 @@ export interface DispositifParams {
   jeanbrun_niveauLoyer: 'intermediaire' | 'social' | 'tres_social'
   jeanbrun_montantTravauxAncien: number            // pour l'ancien uniquement, inclus dans base amortissable
   jeanbrun_engagementAns: number                   // durée d'engagement (min 9 ans)
+  jeanbrun_batimentCollectif: boolean              // le logement est situé dans un immeuble d'habitation collectif
+  jeanbrun_residencePrincipaleLocataire: boolean   // le locataire occupe le logement à titre de résidence principale
+  jeanbrun_loyerRespectePlafond: boolean           // le loyer pratiqué respecte le plafond Jeanbrun de la zone
 }
 
 export interface BienInput {
@@ -375,6 +378,7 @@ export interface SummaryKPIs {
   cashflowAnnuelMoyen: number
   cashflowCumule: number
   tri: number
+  triNonSignificatif: boolean  // surfinancement (cash nécessaire <= 0) : TRI saturé à la borne de calcul, non interprétable
   van: number
   effortEpargne: number       // |cashflow négatif mensuel moyen|
   prixMaximum: number

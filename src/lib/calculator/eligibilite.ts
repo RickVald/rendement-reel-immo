@@ -254,7 +254,8 @@ function checkDenormandie(input: ProjectInput): EligibilityResult {
 
   // 5. Date d'acquisition ≤ 31/12/2026
   conditions.push(ANNEE_COURANTE <= 2026
-    ? ok('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie) — dans la période éligible`)
+    ? aVerifier('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie)`,
+        'À confirmer avec la date réelle d\'acquisition : le dispositif Denormandie est éligible jusqu\'au 31 décembre 2026.')
     : bloquant('date_acquisition', 'Période Denormandie expirée',
         'Les acquisitions Denormandie sont éligibles jusqu\'au 31 décembre 2026.'))
 
@@ -309,16 +310,19 @@ function checkJeanbrun(input: ProjectInput): EligibilityResult {
   // 1. Location nue obligatoire
   conditions.push(checkLocationNue(location.type))
 
-  // 2. Bâtiment collectif — ne peut pas être vérifié automatiquement
-  conditions.push(aVerifier('batiment_collectif', 'Bâtiment d\'habitation collectif',
-    'Le dispositif s\'applique uniquement aux logements en immeuble collectif. Maison individuelle = inéligible.'))
+  // 2. Bâtiment collectif
+  conditions.push(dp.jeanbrun_batimentCollectif
+    ? ok('batiment_collectif', 'Bâtiment d\'habitation collectif confirmé')
+    : aVerifier('batiment_collectif', 'Bâtiment d\'habitation collectif',
+        'Le dispositif s\'applique uniquement aux logements en immeuble collectif. Maison individuelle = inéligible.'))
 
   // 3. Date d'acquisition (depuis 21/02/2026, jusqu'au 31/12/2028)
   if (ANNEE_COURANTE < 2026) {
     conditions.push(bloquant('date_acquisition', 'Dispositif pas encore en vigueur',
       'Le dispositif Relance logement (LF 2026) s\'applique aux acquisitions à compter du 21 février 2026.'))
   } else if (ANNEE_COURANTE <= 2028) {
-    conditions.push(ok('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie) — dans la période éligible (21/02/2026–31/12/2028)`))
+    conditions.push(aVerifier('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie)`,
+      'À confirmer avec la date réelle d\'acquisition : le dispositif Relance logement est éligible du 21/02/2026 au 31/12/2028.'))
   } else {
     conditions.push(bloquant('date_acquisition', 'Période éligible expirée (après 31/12/2028)'))
   }
@@ -354,11 +358,15 @@ function checkJeanbrun(input: ProjectInput): EligibilityResult {
         `L'engagement minimal est de 9 ans. Valeur saisie : ${engagement} ans.`))
 
   // 7. Résidence principale
-  conditions.push(checkResidencePrincipale(location.type))
+  conditions.push(dp.jeanbrun_residencePrincipaleLocataire
+    ? ok('residence_principale', 'Résidence principale du locataire confirmée')
+    : checkResidencePrincipale(location.type))
 
   // 8. Plafonds de loyer (à vérifier dans le formulaire loyer)
-  conditions.push(aVerifier('loyer_plafond', 'Loyer plafonné selon zone géographique',
-    'Vérifiez que le loyer saisi respecte les plafonds Jeanbrun pour votre zone (calculés à l\'étape Location).'))
+  conditions.push(dp.jeanbrun_loyerRespectePlafond
+    ? ok('loyer_plafond', 'Loyer plafonné selon zone géographique confirmé')
+    : aVerifier('loyer_plafond', 'Loyer plafonné selon zone géographique',
+        'Vérifiez que le loyer saisi respecte les plafonds Jeanbrun pour votre zone (calculés à l\'étape Location).'))
 
   // Avantage : économie fiscale via amortissement (estimée sur durée engagement)
   const TAUX_AMORT: Record<string, Record<string, number>> = {

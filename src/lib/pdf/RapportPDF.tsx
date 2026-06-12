@@ -110,8 +110,22 @@ export function RapportPDF({
   // Surfinancement (emprunt >= coût total => cash nécessaire <= 0) : le TRI classique
   // (flux initial négatif requis) devient pathologique (ex. 500 %) et n'est pas
   // interprétable comme une mesure de rentabilité — il ne doit pas être affiché tel quel.
-  const triNonSignificatif = summary.cashTotalNecessaire <= 0
+  const triNonSignificatif = summary.triNonSignificatif
   const triLabel = triNonSignificatif ? 'Non significatif*' : pct(summary.tri)
+
+  // DPE F/G sans travaux programmés sur toute la durée de détention : la location est
+  // interdite dès l'an 1, donc les loyers encaissés sont nuls chaque année. Le loyer HC
+  // saisi n'est donc pas nul, mais structurellement sans effet sur le TRI (sensibilité).
+  const ANNEE_ACHAT_PDF = new Date().getFullYear()
+  const anneeInterdictionPdf = input.bien.dpe === 'G'
+    ? Math.max(1, 2025 - ANNEE_ACHAT_PDF + 1)
+    : input.bien.dpe === 'F'
+    ? Math.max(1, 2028 - ANNEE_ACHAT_PDF + 1)
+    : Infinity
+  const travauxDpeAnneeOkPdf = input.travauxFuturs.travauxDpeAnnee ?? Infinity
+  const loyerSansEffetSurTriPdf = isFG
+    && anneeInterdictionPdf <= 1
+    && travauxDpeAnneeOkPdf > input.revente.dureeDetentionAns
 
   // TRI hors revente : en deçà d'un seuil, la valeur n'est plus économiquement
   // significative (flux structurellement déficitaires) — on l'exprime en mots
@@ -1054,6 +1068,12 @@ export function RapportPDF({
         if (!synth) return null
         const reductionParAn = yearlyTable.reduce((s, r) => s + (r.reductionDispositif ?? 0), 0) / Math.max(1, yearlyTable.length)
         const reductionTotale = yearlyTable.reduce((s, r) => s + (r.reductionDispositif ?? 0), 0)
+        // Jeanbrun : l'avantage est une déduction (reductionDispositif=0), pas une réduction
+        // d'impôt — on affiche donc l'avantage théorique (jeanbrunAmortissement × TMI) et,
+        // s'il est intégré au calcul principal (avantageIntegreDansTRI), l'avantage intégré.
+        const isJeanbrun = input.fiscalite.dispositif === 'jeanbrun'
+        const avantageTheoriqueTotal = yearlyTable.reduce((s, r) => s + (r.avantageTheorique ?? 0), 0)
+        const avantageIntegreTotal = avantageIntegreDansTRI ? avantageTheoriqueTotal : 0
 
         const DISPOSITIF_COLORS: Record<string, { bg: string; border: string; text: string }> = {
           denormandie:              { bg: '#ecfdf5', border: '#6ee7b7', text: '#065f46' },
@@ -1076,12 +1096,12 @@ export function RapportPDF({
                 <Text style={{ fontSize: 11, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text, marginBottom: 6 }}>{synth.label} — Synthèse</Text>
                 <View style={{ flexDirection: 'row', gap: 16 }}>
                   <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: 8, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Avantage moyen / an</Text>
-                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{eur(reductionParAn)}</Text>
+                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>{isJeanbrun ? 'Avantage intégré au rapport' : 'Avantage moyen / an'}</Text>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{eur(isJeanbrun ? avantageIntegreTotal : reductionParAn)}</Text>
                   </View>
                   <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: 8, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Avantage total simulé</Text>
-                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{eur(reductionTotale)}</Text>
+                    <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>{isJeanbrun ? 'Avantage théorique sous réserve' : 'Avantage total simulé'}</Text>
+                    <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{eur(isJeanbrun ? avantageTheoriqueTotal : reductionTotale)}</Text>
                   </View>
                   <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.6)', borderRadius: 6, padding: 8, alignItems: 'center' }}>
                     <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Durée de détention</Text>
@@ -1091,7 +1111,8 @@ export function RapportPDF({
                     <Text style={{ fontSize: 7, color: dc.text, marginBottom: 3 }}>Économie / impôts bruts</Text>
                     {(() => {
                       const impotsBruts = yearlyTable.reduce((s, r) => s + r.ir + r.ps, 0)
-                      const pctEco = impotsBruts > 0 ? (reductionTotale / impotsBruts * 100).toFixed(0) : '—'
+                      const avantageRef = isJeanbrun ? avantageIntegreTotal : reductionTotale
+                      const pctEco = impotsBruts > 0 ? (avantageRef / impotsBruts * 100).toFixed(0) : '—'
                       return <Text style={{ fontSize: 14, fontFamily: 'Arial', fontWeight: 'bold', color: dc.text }}>{pctEco} %</Text>
                     })()}
                   </View>
@@ -1308,7 +1329,7 @@ export function RapportPDF({
                       return [
                         { label: 'Hors avantage fiscal', d: scerariosAvantage.horsAvantage, color: COLORS.slate600 },
                         { label: 'Avantage theorique complet', d: scerariosAvantage.avantageTheorique, color: '#2563eb' },
-                        { label: 'Avantage reellement utilisable', d: scerariosAvantage.avantageUtilisable, color: '#059669' },
+                        { label: 'Avantage integre dans le rapport', d: scerariosAvantage.avantageUtilisable, color: '#059669' },
                       ].map((row, i) => (
                         <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                           <Text style={[S.tableCell, { flex: 2, fontFamily: i === starIndex ? 'Arial' : undefined, fontWeight: i === starIndex ? 'bold' : 'normal', color: row.color }]}>
@@ -1339,8 +1360,8 @@ export function RapportPDF({
                         : 'Badge : hors avantage fiscal — eligibilite non validee, l\'avantage n\'est pas integre'}
                     </Text>
                     <Text style={{ fontSize: 6.5, color: COLORS.slate500, marginTop: 2, fontStyle: 'italic' }}>
-                      ★ Le scenario marque correspond aux chiffres (TRI, VAN, cash-flow, impots) utilises dans le reste de ce rapport.
-                      {!avantageIntegreDansTRI && ' Le scenario "avantage reellement utilisable" affiche ici a titre indicatif n\'est PAS integre dans les pages precedentes.'}
+                      ★ Le scenario marque correspond aux chiffres (TRI, VAN, cash-flow, impots) utilises dans le reste de ce rapport. La ligne &quot;Avantage integre dans le rapport&quot; reprend toujours ces memes chiffres
+                      {!avantageIntegreDansTRI && ' — ici identiques au scenario "Hors avantage fiscal" car l\'avantage n\'est pas integre dans ce rapport'}.
                     </Text>
                   </View>
                 </View>
@@ -1550,7 +1571,7 @@ export function RapportPDF({
                     </View>
                   </View>
                   <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
-                    {`Amort. Jean. = amortissement Jeanbrun déduit du revenu foncier (art. 31 CGI, LF 2026) — 80 % de la base × taux annuel sur ${Math.max(9, input.fiscalite.dispositifParams.jeanbrun_engagementAns ?? 9)} ans d'engagement. La fraction excédant les loyers génère un déficit foncier imputable sur le revenu global (10 700 €/an max, art. 156 CGI). Réintégration dans le prix de revient à la revente (art. 150 VB III CGI).`}
+                    {`Amort. Jean. = amortissement Jeanbrun déduit du revenu foncier (art. 31 CGI, LF 2026) — 80 % de la base × taux annuel sur ${Math.max(9, input.fiscalite.dispositifParams.jeanbrun_engagementAns ?? 9)} ans d'engagement. La fraction excédant les loyers génère un déficit foncier imputable sur le revenu global (10 700 €/an max, art. 156 CGI). Ces amortissements ne sont pas réintégrés dans le prix de revient fiscal à la revente (régime PP, voir page « Produit net de cession »).`}
                   </Text>
                   {basePsDiffereDeBaseIR && (
                     <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>
@@ -1874,6 +1895,26 @@ export function RapportPDF({
                         En SCI à l&apos;IS, la plus-value de cession est un produit exceptionnel imposé à l&apos;IS au même barème que le résultat d&apos;exploitation, sans abattement pour durée de détention (contrairement à l&apos;IR des particuliers).
                       </Text>
                     )}
+                    {input.fiscalite.dispositif === 'jeanbrun' && (() => {
+                      const amortJeanbrunCumul = Math.round(yearlyTable.reduce((s, r) => s + (r.amortissementJeanbrun ?? 0), 0))
+                      return (
+                        <View style={{ marginTop: 8, padding: 6, backgroundColor: COLORS.slate100, borderRadius: 3 }}>
+                          <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Amortissements Jeanbrun (déficit fiscal en exploitation)</Text>
+                          {avantageIntegreDansTRI ? (
+                            <>
+                              <View style={rowStyle}><Text style={labelStyle(false)}>Cumul déduit en exploitation sur {duree} ans :</Text><Text style={valStyle(false)}>{eur(amortJeanbrunCumul)}</Text></View>
+                              <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>
+                                Le dispositif Jeanbrun (Relance logement, LF 2026) ne prévoit pas de réintégration de ces déductions dans la plus-value à la revente (régime distinct du LMNP réel / SCI IS) : le prix de revient fiscal ci-dessus n&apos;est pas réduit de ce montant.
+                              </Text>
+                            </>
+                          ) : (
+                            <Text style={{ fontSize: 6, color: COLORS.slate400 }}>
+                              Avantage Jeanbrun non intégré au calcul principal (éligibilité non validée) : aucune déduction n&apos;est appliquée en exploitation ni à la revente.
+                            </Text>
+                          )}
+                        </View>
+                      )
+                    })()}
                   </View>
 
                   {/* Colonne droite : produit net et bilan */}
@@ -2164,6 +2205,13 @@ export function RapportPDF({
             <Text style={{ fontSize: 7.5, color: COLORS.slate500, marginBottom: 8 }}>
               Impact sur le TRI d'une variation de ±10 % (ou ±1 point) de chaque variable. Les sensibilités recalculent les flux liés à la variable testée ; les autres hypothèses restent constantes, sauf dépendances mécaniques du moteur (fiscalité, dette, revente, cash-flow).
             </Text>
+            {triNonSignificatif && (
+              <View style={{ marginBottom: 8, padding: 6, backgroundColor: '#f8fafc', borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.slate400 }}>
+                <Text style={{ fontSize: 7, color: COLORS.slate500 }}>
+                  TRI non significatif (surfinancement, cash nécessaire {eur(summary.cashTotalNecessaire)}) : le TRI est saturé à la borne de calcul et n'est pas interprétable. Les variations ci-dessous sont indiquées à titre indicatif uniquement.
+                </Text>
+              </View>
+            )}
             <View style={[S.table, { marginBottom: 16 }]}>
               <View style={S.tableHeader}>
                 <Text style={[S.tableHeaderCell, { flex: 2 }]}>Variable</Text>
@@ -2177,20 +2225,35 @@ export function RapportPDF({
                 return (
                   <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                     <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold' }]}>{row.variable}</Text>
-                    <Text style={[S.tableCell, row.moins10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.moins10)}</Text>
-                    <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(row.central)}</Text>
-                    <Text style={[S.tableCell, row.plus10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.plus10)}</Text>
-                    <Text style={[S.tableCell, ecart > 0.05 ? S.tableCellBad : ecart > 0.02 ? { color: COLORS.amber } : S.tableCellGood]}>{pct(ecart, 1)}</Text>
+                    {triNonSignificatif ? (
+                      <>
+                        <Text style={[S.tableCell, { color: COLORS.slate400 }]}>n/a</Text>
+                        <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate400 }]}>n/a</Text>
+                        <Text style={[S.tableCell, { color: COLORS.slate400 }]}>n/a</Text>
+                        <Text style={[S.tableCell, { color: COLORS.slate400 }]}>n/a</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={[S.tableCell, row.moins10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.moins10)}</Text>
+                        <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(row.central)}</Text>
+                        <Text style={[S.tableCell, row.plus10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.plus10)}</Text>
+                        <Text style={[S.tableCell, ecart > 0.05 ? S.tableCellBad : ecart > 0.02 ? { color: COLORS.amber } : S.tableCellGood]}>{pct(ecart, 1)}</Text>
+                      </>
+                    )}
                   </View>
                 )
               })}
             </View>
 
-            {/* Variable sans effet mesurable sur le TRI (ex. montant nul) : à signaler sans alarmer */}
-            {sensibilite.filter(row => row.moins10 === row.central && row.plus10 === row.central).map((row, i) => (
+            {/* Variable sans effet mesurable sur le TRI (ex. montant nul) : à signaler sans alarmer.
+                Si le TRI global n'est pas significatif (surfinancement), une seule note globale
+                suffit — les notes par variable ("X est nul") seraient trompeuses ici. */}
+            {!triNonSignificatif && sensibilite.filter(row => row.moins10 === row.central && row.plus10 === row.central).map((row, i) => (
               <View key={i} style={{ marginTop: 6, padding: 6, backgroundColor: '#f8fafc', borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.slate400 }}>
                 <Text style={{ fontSize: 7, color: COLORS.slate500 }}>
-                  Non applicable — « {row.variable} » est nul dans ce projet, une variation de ±10 % reste sans effet sur le TRI.
+                  {row.variable === 'Loyer mensuel' && loyerSansEffetSurTriPdf
+                    ? `Non applicable — loyers encaissés nuls car la location est interdite sur toute la période (DPE ${input.bien.dpe}, aucuns travaux DPE programmés) : une variation du loyer hors charges reste sans effet sur le TRI.`
+                    : `Non applicable — « ${row.variable} » est nul dans ce projet, une variation de ±10 % reste sans effet sur le TRI.`}
                 </Text>
               </View>
             ))}
@@ -2206,16 +2269,21 @@ export function RapportPDF({
                 <Text style={[S.tableHeaderCell, { flex: 2 }]}>Impact calculé</Text>
                 <Text style={S.tableHeaderCell}>Sévérité</Text>
               </View>
-              {stressTests.map((st, i) => (
-                <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                  <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold' }]}>{st.label}</Text>
-                  <Text style={[S.tableCell, { flex: 2, fontSize: 6.5, color: COLORS.slate500 }]}>{st.description}</Text>
-                  <Text style={[S.tableCell, { flex: 2, fontSize: 6.5 }, st.severite === 'severe' ? S.tableCellBad : st.severite === 'modere' ? { color: COLORS.amber } : S.tableCellGood]}>{st.impact}</Text>
-                  <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }, st.severite === 'severe' ? S.tableCellBad : st.severite === 'modere' ? { color: COLORS.amber } : S.tableCellGood]}>
-                    {st.severite === 'severe' ? 'Sévère' : st.severite === 'modere' ? 'Modéré' : 'Faible'}
-                  </Text>
-                </View>
-              ))}
+              {stressTests.map((st, i) => {
+                const triImpactNonSignificatif = triNonSignificatif && st.unite === 'TRI'
+                return (
+                  <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
+                    <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold' }]}>{st.label}</Text>
+                    <Text style={[S.tableCell, { flex: 2, fontSize: 6.5, color: COLORS.slate500 }]}>{st.description}</Text>
+                    <Text style={[S.tableCell, { flex: 2, fontSize: 6.5 }, triImpactNonSignificatif ? { color: COLORS.slate400 } : st.severite === 'severe' ? S.tableCellBad : st.severite === 'modere' ? { color: COLORS.amber } : S.tableCellGood]}>
+                      {triImpactNonSignificatif ? 'TRI non significatif (surfinancement) — impact non interprétable' : st.impact}
+                    </Text>
+                    <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }, triImpactNonSignificatif ? { color: COLORS.slate400 } : st.severite === 'severe' ? S.tableCellBad : st.severite === 'modere' ? { color: COLORS.amber } : S.tableCellGood]}>
+                      {triImpactNonSignificatif ? 'N/A' : st.severite === 'severe' ? 'Sévère' : st.severite === 'modere' ? 'Modéré' : 'Faible'}
+                    </Text>
+                  </View>
+                )
+              })}
             </View>
 
             {/* Point mort recap */}
@@ -2498,7 +2566,9 @@ export function RapportPDF({
 
           <Text style={S.sectionTitle}>Audit de cohérence des données saisies</Text>
           <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 10 }}>
-            Vérification automatique des hypothèses saisies. Les alertes n'invalident pas le rapport mais signalent des points à confirmer.
+            {verdict.erreursBloquantes.length > 0
+              ? "Vérification automatique des hypothèses saisies. Des erreurs bloquantes ont été détectées : ces alertes bloquent l'arbitrage tant qu'elles ne sont pas corrigées."
+              : "Vérification automatique des hypothèses saisies. Les alertes n'invalident pas le rapport mais signalent des points à confirmer."}
           </Text>
 
           {(() => {

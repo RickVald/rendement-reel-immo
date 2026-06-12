@@ -188,6 +188,32 @@ export const QA_SCENARIOS: QaScenario[] = [
     },
   },
   {
+    id: 'jeanbrun_valide',
+    label: 'Relance logement (Jeanbrun) — toutes conditions confirmées',
+    description: 'Même bien que le scénario "indicatif", mais bâtiment collectif, résidence principale du locataire, plafond de loyer et non-cumul tous confirmés. Avantage intégré sans réserve sur ces points.',
+    notes: 'Vérifier que les conditions "bâtiment collectif", "résidence principale", "loyer plafonné" et "non-cumul" sont toutes "OK" dans l\'audit d\'éligibilité, et que l\'avantage Jeanbrun est intégré au TRI/VAN (mode indicatif). Seule la condition "date d\'acquisition" reste "à vérifier" (aucune date d\'acquisition saisie dans le formulaire).',
+    overrides: {
+      bien: { ville: 'Reims', codePostal: '51100', etat: 'neuf' },
+      fiscalite: {
+        regime: 'reel_foncier',
+        dispositif: 'jeanbrun',
+        parcours: 'avance',
+        irBrutAnnuel: 4000,
+        autresDisposiftifsEnCours: ['aucun'],
+        dispositifParams: {
+          ...DEFAULT_INPUT.fiscalite.dispositifParams,
+          jeanbrun_typeBien: 'neuf',
+          jeanbrun_niveauLoyer: 'intermediaire',
+          jeanbrun_engagementAns: 9,
+          jeanbrun_batimentCollectif: true,
+          jeanbrun_residencePrincipaleLocataire: true,
+          jeanbrun_loyerRespectePlafond: true,
+        },
+      },
+      revente: { modeSimulationAvantage: 'indicatif' },
+    },
+  },
+  {
     id: 'jeanbrun_non_eligible',
     label: 'Relance logement (Jeanbrun) — non éligible (engagement insuffisant)',
     description: 'Engagement de location de 5 ans (< 9 ans minimum requis) → condition bloquante.',

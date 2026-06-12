@@ -1332,6 +1332,18 @@ function DispositifFields({
             value={params.jeanbrun_engagementAns}
             onChange={e => setP({ jeanbrun_engagementAns: +e.target.value })}
             suffix="ans" hint="Minimum 9 ans. L'amortissement s'applique sur toute la durée d'engagement (location nue, résidence principale du locataire)." />
+          <Toggle label="Le logement est situé dans un immeuble d'habitation collectif"
+            hint="Maison individuelle = inéligible au dispositif Jeanbrun"
+            checked={params.jeanbrun_batimentCollectif}
+            onChange={v => setP({ jeanbrun_batimentCollectif: v })} />
+          <Toggle label="Le locataire occupe le logement à titre de résidence principale"
+            hint="Condition obligatoire du dispositif Jeanbrun"
+            checked={params.jeanbrun_residencePrincipaleLocataire}
+            onChange={v => setP({ jeanbrun_residencePrincipaleLocataire: v })} />
+          <Toggle label="Le loyer pratiqué respecte le plafond Jeanbrun de la zone"
+            hint="Plafonds définis selon le niveau de loyer choisi ci-dessus et la zone géographique"
+            checked={params.jeanbrun_loyerRespectePlafond}
+            onChange={v => setP({ jeanbrun_loyerRespectePlafond: v })} />
         </>
       )}
     </div>
