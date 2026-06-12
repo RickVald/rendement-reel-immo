@@ -266,8 +266,8 @@ export function RapportPDF({
             {[
               { q: 'Le bien s\'autofinance-t-il ?',           v: summary.cashflowMensuelMoyen >= 0 ? 'Oui' : 'Non', ok: summary.cashflowMensuelMoyen >= 0 },
               { q: 'Rendement d\'exploitation net-net (loyers – charges – impôts) ?', v: `${pct(summary.rendementNetNet)} — exploitation ${summary.rendementNetNet >= 0.04 ? 'correcte' : summary.rendementNetNet >= 0.03 ? 'faible' : 'faible, insuffisante hors revente'}`, ok: summary.rendementNetNet >= 0.04 },
-              { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: triNonSignificatif ? `TRI non significatif (surfinancement, cash nécessaire <= 0) — VAN ${eur(summary.van)}` : `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: !triNonSignificatif && summary.tri >= 0.04 && summary.van > 0 },
-              { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: triNonSignificatif ? 'Non significatif (surfinancement)' : pct(summary.tri), ok: !triNonSignificatif && summary.tri >= 0.04 },
+              { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: triNonSignificatif ? `TRI non significatif (surfinancement, cash nécessaire <= 0) — VAN ${eur(summary.van)}` : `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${(summary.tri ?? 0) >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: !triNonSignificatif && (summary.tri ?? 0) >= 0.04 && summary.van > 0 },
+              { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: triNonSignificatif ? 'Non significatif (surfinancement)' : pct(summary.tri), ok: !triNonSignificatif && (summary.tri ?? 0) >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
               { q: 'Le projet est-il rentable sans aucune revente ?', v: summary.dependanceRevente ? `Non — TRI hors revente ${triSansReventeLabel}` : `Oui — TRI hors revente ${triSansReventeLabelPositif}`, ok: !summary.dependanceRevente },
               { q: 'L\'exploitation locative couvre-t-elle les charges hors crédit ?', v: (summary.rendementNetNet > 0) ? 'Oui — avant effet du financement' : 'Non — rendement net-net négatif', ok: summary.rendementNetNet > 0 },
@@ -298,7 +298,7 @@ export function RapportPDF({
                 { label: 'Rendement brut sur coût total (prix + travaux + frais)',     val: pct(summary.rendementBrutCoutTotal),  ok: summary.rendementBrutCoutTotal >= 0.04 },
                 { label: 'Rendement net (loyers enc. – charges / coût total, moy.)',   val: pct(summary.rendementNet),            ok: summary.rendementNet >= 0.04 },
                 { label: 'Rendement net-net (idem – impôts / coût total, moy.)',       val: pct(summary.rendementNetNet),         ok: summary.rendementNetNet >= 0.03 },
-                { label: 'TRI projet',        val: triLabel,                          ok: !triNonSignificatif && summary.tri >= 0.04 },
+                { label: 'TRI projet',        val: triLabel,                          ok: !triNonSignificatif && (summary.tri ?? 0) >= 0.04 },
                 { label: 'VAN',               val: eur(summary.van),                   ok: summary.van > 0 },
                 { label: 'Cash-flow moyen',   val: `${sign(summary.cashflowMensuelMoyen)}/mois`, ok: summary.cashflowMensuelMoyen >= 0 },
                 { label: 'CF cumulé',         val: eur(summary.cashflowCumule),        ok: summary.cashflowCumule >= 0 },
@@ -404,9 +404,9 @@ export function RapportPDF({
                 arg: `"TRI immobilier attractif"`,
                 reel: triNonSignificatif
                   ? `TRI non significatif (surfinancement, cash nécessaire ${eur(summary.cashTotalNecessaire)})`
-                  : `TRI simulé : ${pct(summary.tri)} — ${summary.tri < 0.04 ? `inférieur au seuil de risque immobilier (4 %)` : 'conforme au seuil minimum'}`,
-                ecart: triNonSignificatif ? 'Non interprétable' : summary.tri < 0.04 ? 'Insuffisant' : 'Correct',
-                bad: triNonSignificatif || summary.tri < 0.04,
+                  : `TRI simulé : ${pct(summary.tri)} — ${(summary.tri ?? 0) < 0.04 ? `inférieur au seuil de risque immobilier (4 %)` : 'conforme au seuil minimum'}`,
+                ecart: triNonSignificatif ? 'Non interprétable' : (summary.tri ?? 0) < 0.04 ? 'Insuffisant' : 'Correct',
+                bad: triNonSignificatif || (summary.tri ?? 0) < 0.04,
               },
               {
                 arg: '"Projet auto-financé"',
@@ -496,7 +496,7 @@ export function RapportPDF({
               { label: 'Net-net hors trav. récurrents',  val: pct(summary.rendementNetNet), sub: 'idem – impôts / coût total, moy.',  ok: summary.rendementNetNet >= 0.03 },
               { label: 'Net-net après trav. récurrents', val: pct(Math.max(0, summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition)), sub: 'trav. récurrents déduits du net-net', ok: (summary.rendementNetNet - input.travauxFuturs.travauxRecurrentsAnnuels / summary.coutTotalAcquisition) >= 0.03 },
               { label: 'Cash-flow mensuel',  val: sign(summary.cashflowMensuelMoyen), sub: 'moyen / mois',                ok: summary.cashflowMensuelMoyen >= 0 },
-              { label: 'TRI projet',         val: triLabel,                          sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: !triNonSignificatif && summary.tri >= 0.06 },
+              { label: 'TRI projet',         val: triLabel,                          sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: !triNonSignificatif && (summary.tri ?? 0) >= 0.06 },
               { label: 'VAN',                val: eur(summary.van),                   sub: `vs ${pct(input.revente.tauxActualisation)} de réf.`, ok: summary.van > 0 },
               { label: 'Effort mensuel',     val: eur(summary.effortEpargne),         sub: 'à sortir de poche / mois',    ok: summary.effortEpargne < 300 },
               { label: 'CF cumulé',          val: sign(summary.cashflowCumule),       sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.cashflowCumule >= 0 },
@@ -548,9 +548,9 @@ export function RapportPDF({
                 <View style={[S.card, { marginTop: 10 }]}>
                   <Text style={S.cardTitle}>Seuils de viabilité (point mort)</Text>
                   <HypRow label="Loyer pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois`} />
-                  <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                  <HypRow label="Prix max pour TRI >= 4 %" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && (summary.tri ?? 0) < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
                   <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
-                  <HypRow label="Travaux sup. max supportables" value={summary.tri < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
+                  <HypRow label="Travaux sup. max supportables" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (summary.tri ?? 0) < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
                   <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
                   <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                 </View>
@@ -671,7 +671,7 @@ export function RapportPDF({
                   Convention unique : capital final disponible après {input.revente.dureeDetentionAns} ans. Immo = produit net de cession après frais et fiscalité plus-value. Alternatives = capital capitalisé (même apport initial + même effort mensuel réinvesti).
                 </Text>
                 <ComparaisonPlacementsChart
-                  tri={summary.tri}
+                  tri={summary.tri ?? 0}
                   triNonSignificatif={triNonSignificatif}
                   rendementAlternatif={input.revente.rendementAlternatif}
                   cashNecessaire={summary.cashTotalNecessaire}
@@ -1368,7 +1368,9 @@ export function RapportPDF({
                   <View style={{ marginTop: 6, padding: 6, borderRadius: 4, backgroundColor: avantageIntegreDansTRI ? '#f0fdf4' : '#fef3f2', borderWidth: 1, borderColor: avantageIntegreDansTRI ? '#bbf7d0' : '#fecaca' }}>
                     <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: avantageIntegreDansTRI ? '#166534' : '#991b1b' }}>
                       {avantageIntegreDansTRI
-                        ? (input.revente.modeSimulationAvantage === 'indicatif'
+                        ? (eligibilite.status === 'eligible'
+                          ? 'Badge : avantage integre (mode valide — eligibilite validee)'
+                          : input.revente.modeSimulationAvantage === 'indicatif'
                           ? 'Badge : avantage integre (mode indicatif — eligibilite non encore validee)'
                           : 'Badge : avantage integre (eligibilite validee)')
                         : 'Badge : hors avantage fiscal — eligibilite non validee, l\'avantage n\'est pas integre'}
@@ -2096,7 +2098,7 @@ export function RapportPDF({
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>TRI calculé</Text>
-                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: triNonSignificatif ? COLORS.slate400 : summary.tri >= 0.04 ? COLORS.emeraldDark : summary.tri >= 0 ? COLORS.amber : COLORS.red }}>{triLabel}</Text>
+                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: triNonSignificatif ? COLORS.slate400 : (summary.tri ?? 0) >= 0.04 ? COLORS.emeraldDark : (summary.tri ?? 0) >= 0 ? COLORS.amber : COLORS.red }}>{triLabel}</Text>
                     <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Voir page Audit pour le détail</Text>
                   </View>
                 </View>
@@ -2307,11 +2309,11 @@ export function RapportPDF({
                 <View style={{ flexDirection: 'row', gap: 16 }}>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Loyer minimum pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois (actuel : ${eur(input.location.loyerMensuelHC)}/mois)`} />
-                    <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                    <HypRow label="Prix max pour TRI >= 4 %" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && (summary.tri ?? 0) < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
                     <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <HypRow label="Travaux sup. max sans dégrader le TRI" value={summary.tri < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
+                    <HypRow label="Travaux max (sans dégrader le TRI)" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (summary.tri ?? 0) < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
                     <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
                     <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                   </View>
@@ -2754,7 +2756,7 @@ export function RapportPDF({
             const coutTotal = summary.coutTotalAcquisition
             const ltv = input.financement.montantEmprunte / input.acquisition.prixAchat
             const tauxActu = input.revente.tauxActualisation
-            const vanPositiveSiTRISupActu = summary.tri >= tauxActu
+            const vanPositiveSiTRISupActu = (summary.tri ?? 0) >= tauxActu
             const cfCumule = lastRow?.cashflowCumule ?? 0
             const amortsCumules = yearlyTable.reduce((s, r) => s + (r.amortissementsUtilises ?? 0), 0)
             const amortsCumulesTheo = yearlyTable.reduce((s, r) => s + r.amortissements, 0)

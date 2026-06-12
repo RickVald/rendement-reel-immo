@@ -6,6 +6,7 @@
  */
 
 import type { DispositifFiscal, DispositifParams, ProjectInput } from './types'
+import { fmtEur } from './format'
 
 export interface AvantageDispositif {
   reductionAnnuelle: number       // € de réduction d'impôt cette année
@@ -252,7 +253,7 @@ export function getSynthèseDispositif(
 ): SynthèseDispositif | null {
   if (dispositif === 'aucun') return null
 
-  const eur = (n: number) => `${Math.round(n).toLocaleString('fr-FR')} €`
+  const eur = fmtEur
   const pct = (n: number) => `${(n * 100).toFixed(0)} %`
   const duree = input.revente.dureeDetentionAns
   const surface = input.bien.surface

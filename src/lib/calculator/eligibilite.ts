@@ -21,6 +21,7 @@ import type {
   ConditionCheck,
   EligibilityStatus,
 } from './types'
+import { fmtEur } from './format'
 
 const ANNEE_COURANTE = new Date().getFullYear()
 
@@ -131,7 +132,7 @@ function checkIRDisponible(
   if (avantageAnnuel <= 0) return na('ir_disponible', 'IR disponible', 'Avantage nul')
   if (irBrutAnnuel === undefined) {
     return aVerifier('ir_disponible', 'IR disponible pour absorber la réduction',
-      `Saisissez votre IR annuel (parcours avancé) pour vérifier si la réduction de ${Math.round(avantageAnnuel).toLocaleString('fr-FR')} €/an est absorbable.`)
+      `Saisissez votre IR annuel (parcours avancé) pour vérifier si la réduction de ${fmtEur(avantageAnnuel)}/an est absorbable.`)
   }
   const nichesRestantes = horsPlafonnement
     ? Infinity
@@ -139,13 +140,13 @@ function checkIRDisponible(
   const disponible = Math.min(irBrutAnnuel, nichesRestantes)
   if (disponible >= avantageAnnuel) {
     return ok('ir_disponible', 'IR disponible',
-      `IR disponible ${Math.round(disponible).toLocaleString('fr-FR')} € ≥ réduction annuelle ${Math.round(avantageAnnuel).toLocaleString('fr-FR')} €`)
+      `IR disponible ${fmtEur(disponible)} ≥ réduction annuelle ${fmtEur(avantageAnnuel)}`)
   }
   return {
     id: 'ir_disponible',
     label: 'Capacité d\'absorption fiscale partielle',
     status: 'a_verifier',
-    note: `IR disponible ${Math.round(disponible).toLocaleString('fr-FR')} € < réduction théorique ${Math.round(avantageAnnuel).toLocaleString('fr-FR')} €/an. Avantage partiellement perdu.`,
+    note: `IR disponible ${fmtEur(disponible)} < réduction théorique ${fmtEur(avantageAnnuel)}/an. Avantage partiellement perdu.`,
   }
 }
 
@@ -189,7 +190,7 @@ function checkDeficitFoncierRenforce(input: ProjectInput): EligibilityResult {
   // 4. Montant travaux énergie saisi
   const montantTravaux = dp.deficitRenforce_montantTravauxEnergie
   conditions.push(montantTravaux > 0
-    ? ok('travaux_energie', `Travaux rénovation énergétique : ${montantTravaux.toLocaleString('fr-FR')} €`)
+    ? ok('travaux_energie', `Travaux rénovation énergétique : ${fmtEur(montantTravaux)}`)
     : aVerifier('travaux_energie', 'Montant travaux rénovation énergétique à saisir',
         'Indiquez le montant des travaux éligibles (isolation, chauffage, VMC…) pour activer le plafond majoré.'))
 
@@ -248,7 +249,7 @@ function checkDenormandie(input: ProjectInput): EligibilityResult {
     ? ok('travaux_25pct', `Travaux ≥ 25 % (${(ratioTravaux * 100).toFixed(1)} %)`)
     : ratioTravaux > 0
     ? bloquant('travaux_25pct', `Travaux insuffisants (${(ratioTravaux * 100).toFixed(1)} % < 25 %)`,
-        `Les travaux (${acquisition.travauxInitiaux.toLocaleString('fr-FR')} €) doivent représenter au moins 25 % du prix total (${prixTotal.toLocaleString('fr-FR')} €).`)
+        `Les travaux (${fmtEur(acquisition.travauxInitiaux)}) doivent représenter au moins 25 % du prix total (${fmtEur(prixTotal)}).`)
     : aVerifier('travaux_25pct', 'Montant des travaux à confirmer',
         'Saisissez le montant des travaux à l\'étape Acquisition pour vérifier le ratio de 25 %.'))
 
@@ -264,18 +265,18 @@ function checkDenormandie(input: ProjectInput): EligibilityResult {
     ? dp.denormandie_prixTotalRetenu
     : Math.min(prixTotal, 300_000)
   conditions.push(prixRetenu <= 300_000
-    ? ok('plafond_prix', `Prix retenu ${prixRetenu.toLocaleString('fr-FR')} € ≤ 300 000 €`)
+    ? ok('plafond_prix', `Prix retenu ${fmtEur(prixRetenu)} ≤ 300 000 €`)
     : aVerifier('plafond_prix', 'Prix retenu plafonné à 300 000 €',
-        `Le prix total est ${prixRetenu.toLocaleString('fr-FR')} € — la réduction sera calculée sur 300 000 €.`))
+        `Le prix total est ${fmtEur(prixRetenu)} — la réduction sera calculée sur 300 000 €.`))
 
   // 7. Plafond au m² (5 500 €/m²)
   const surface = bien.surface
   const plafondM2 = surface > 0 ? Math.min(300_000, surface * 5_500) : 300_000
   if (surface > 0 && prixRetenu > plafondM2) {
     conditions.push(aVerifier('plafond_m2', `Plafond au m² (5 500 €/m²) atteint`,
-      `Surface ${surface} m² → plafond 5 500 €/m² = ${plafondM2.toLocaleString('fr-FR')} €. Prix retenu sera limité à ce plafond.`))
+      `Surface ${surface} m² → plafond 5 500 €/m² = ${fmtEur(plafondM2)}. Prix retenu sera limité à ce plafond.`))
   } else if (surface > 0) {
-    conditions.push(ok('plafond_m2', `Plafond 5 500 €/m² respecté (${Math.round(prixRetenu / surface).toLocaleString('fr-FR')} €/m²)`))
+    conditions.push(ok('plafond_m2', `Plafond 5 500 €/m² respecté (${fmtEur(Math.round(prixRetenu / surface))}/m²)`))
   }
 
   // 8. Résidence principale
@@ -337,7 +338,7 @@ function checkJeanbrun(input: ProjectInput): EligibilityResult {
       ? ok('travaux_ancien', `Travaux ${(ratioTravaux * 100).toFixed(1)} % ≥ 30 % du prix d'acquisition`)
       : ratioTravaux > 0
       ? bloquant('travaux_ancien', `Travaux insuffisants pour Jeanbrun ancien (${(ratioTravaux * 100).toFixed(1)} % < 30 %)`,
-          `Les travaux (${montantTravaux.toLocaleString('fr-FR')} €) doivent représenter ≥ 30 % du prix d'achat (${acquisition.prixAchat.toLocaleString('fr-FR')} €).`)
+          `Les travaux (${fmtEur(montantTravaux)}) doivent représenter ≥ 30 % du prix d'achat (${fmtEur(acquisition.prixAchat)}).`)
       : aVerifier('travaux_ancien', 'Montant des travaux ancien à saisir (≥ 30 % requis)'))
     // DPE cible A/B
     conditions.push(aVerifier('dpe_cible', 'DPE A ou B après travaux requis',
@@ -467,13 +468,13 @@ function checkMalraux(input: ProjectInput): EligibilityResult {
   // 3. Montant travaux > 0
   const montantTravaux = dp.malraux_montantTravaux
   conditions.push(montantTravaux > 0
-    ? ok('travaux', `Travaux de restauration : ${montantTravaux.toLocaleString('fr-FR')} €`)
+    ? ok('travaux', `Travaux de restauration : ${fmtEur(montantTravaux)}`)
     : bloquant('travaux', 'Montant des travaux de restauration à saisir',
         'Saisissez le montant des travaux éligibles Malraux (restauration complète, ABF).'))
 
   // 4. Plafond travaux 400 000 € sur 4 ans
   if (montantTravaux > 400_000) {
-    conditions.push(aVerifier('plafond_travaux', `Travaux (${montantTravaux.toLocaleString('fr-FR')} €) > plafond 400 000 €/4 ans`,
+    conditions.push(aVerifier('plafond_travaux', `Travaux (${fmtEur(montantTravaux)}) > plafond 400 000 €/4 ans`,
       'La réduction sera calculée sur 400 000 € maximum.'))
   }
 
@@ -515,14 +516,14 @@ function checkMonumentsHistoriques(input: ProjectInput): EligibilityResult {
   // 3. Charges déductibles saisies
   const charges = dp.mh_montantChargesDeductibles
   conditions.push(charges > 0
-    ? ok('charges', `Charges déductibles : ${charges.toLocaleString('fr-FR')} €/an`)
+    ? ok('charges', `Charges déductibles : ${fmtEur(charges)}/an`)
     : aVerifier('charges', 'Montant des charges déductibles à saisir',
         'Travaux + intérêts + charges courantes admissibles sur le revenu global sans plafond.'))
 
   // 4. Revenu global suffisant — à vérifier
   if (fiscalite.irBrutAnnuel !== undefined) {
     const economie = charges * fiscalite.tmi
-    conditions.push(ok('ir_suffisant', `Économie fiscale estimée : ${Math.round(economie).toLocaleString('fr-FR')} €/an (TMI ${(fiscalite.tmi * 100).toFixed(0)} %)`))
+    conditions.push(ok('ir_suffisant', `Économie fiscale estimée : ${fmtEur(economie)}/an (TMI ${(fiscalite.tmi * 100).toFixed(0)} %)`))
   } else {
     conditions.push(aVerifier('ir_suffisant', 'Revenu global à confirmer (parcours avancé)',
       'L\'avantage MH dépend du revenu global imposable. Saisissez l\'IR brut en parcours avancé.'))

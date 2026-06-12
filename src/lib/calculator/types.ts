@@ -379,7 +379,7 @@ export interface SummaryKPIs {
   cashflowMensuelMoyen: number
   cashflowAnnuelMoyen: number
   cashflowCumule: number
-  tri: number
+  tri: number | null    // null si triNonSignificatif (ne jamais exposer la borne de calcul 5 comme TRI métier)
   triNonSignificatif: boolean  // surfinancement (cash nécessaire <= 0) : TRI saturé à la borne de calcul, non interprétable
   triDisplay: string           // valeur affichable : pourcentage formaté, ou "Non significatif" si triNonSignificatif
   van: number

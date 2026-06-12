@@ -11,6 +11,7 @@ import { calculerImpotAnnee } from './fiscalite'
 import { genererVerdict, genererScenarios, scorerRisqueDpe, calculerScoreFiabilite, finaliserVerdict } from './verdict'
 import { calculerFiscalitePlusValue } from './fiscalite'
 import { DISPOSITIF_REGIMES_COMPATIBLES } from './dispositifs'
+import { fmtEur } from './format'
 import { calculerEligibilite } from './eligibilite'
 
 /** Ordre de préférence pour le critère 'simplicite' : régimes micro en premier */
@@ -231,7 +232,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     cashflowMensuelMoyen: Math.round(cashflowMensuelMoyen),
     cashflowAnnuelMoyen: Math.round(cashflowTotal / rows.length),
     cashflowCumule: Math.round(cashflowCumule),
-    tri,
+    tri: apportInitial <= 0 ? null : tri,
     triNonSignificatif: apportInitial <= 0,
     triDisplay: apportInitial <= 0 ? 'Non significatif' : `${(tri * 100).toFixed(2)} %`,
     van,
@@ -620,7 +621,7 @@ function calculerStressTests(
     {
       label: 'Travaux supplémentaires +15 000 €',
       description: 'Dépassement budget travaux (DPE, copropriété), sans valeur ajoutée à la revente',
-      impact: `TRI : ${(summary.tri * 100).toFixed(2)} % -> ${(triTravaux * 100).toFixed(2)} %`,
+      impact: `TRI : ${(((summary.tri ?? 0)) * 100).toFixed(2)} % -> ${(triTravaux * 100).toFixed(2)} %`,
       valeur: triTravaux,
       unite: 'TRI',
       severite: triTravaux < 0 ? 'severe' : triTravaux < 0.03 ? 'modere' : 'faible',
@@ -821,10 +822,10 @@ function buildIndicateurs(kpis: SummaryKPIs) {
     },
     {
       label: 'TRI projet',
-      valeur: kpis.tri * 100,
+      valeur: kpis.triNonSignificatif ? 0 : (kpis.tri ?? 0) * 100,
       unite: '%',
-      interpretation: kpis.tri >= 0.08 ? 'Excellent' : kpis.tri >= 0.05 ? 'Bon' : kpis.tri >= 0.03 ? 'Moyen' : 'Faible',
-      niveau: kpis.tri >= 0.06 ? 'bon' : kpis.tri >= 0.03 ? 'moyen' : 'mauvais',
+      interpretation: kpis.triNonSignificatif ? 'Non significatif' : (kpis.tri ?? 0) >= 0.08 ? 'Excellent' : (kpis.tri ?? 0) >= 0.05 ? 'Bon' : (kpis.tri ?? 0) >= 0.03 ? 'Moyen' : 'Faible',
+      niveau: kpis.triNonSignificatif ? 'mauvais' : (kpis.tri ?? 0) >= 0.06 ? 'bon' : (kpis.tri ?? 0) >= 0.03 ? 'moyen' : 'mauvais',
     },
     {
       label: 'VAN',
@@ -857,8 +858,8 @@ function calculerScoreRobustesse(
   stressTests: StressTest[]
 ): ScoreRobustesse {
   // Dépendance à la revente (20 pts) — crucial
-  const scoreDependance = summary.dependanceRevente ? 0
-    : summary.tri > 0.05 ? 20 : summary.tri > 0.02 ? 12 : 6
+  const scoreDependance = summary.dependanceRevente || summary.triNonSignificatif ? 0
+    : (summary.tri ?? 0) > 0.05 ? 20 : (summary.tri ?? 0) > 0.02 ? 12 : 6
 
   // Sensibilité au loyer (15 pts) — écart entre scénario -10% et central
   const sensLoyer = sensibilite.find(s => s.variable === 'Loyer mensuel')
@@ -869,7 +870,7 @@ function calculerScoreRobustesse(
   // supplémentaires +15 000 €" (dépassement de budget pur surcoût), qui
   // s'applique dans tous les cas, y compris quand travauxInitiaux = 0.
   const stressTravaux = stressTests.find(s => s.label === 'Travaux supplémentaires +15 000 €')
-  const ecartTravaux = stressTravaux ? Math.max(0, summary.tri - stressTravaux.valeur) : 0.02
+  const ecartTravaux = stressTravaux ? Math.max(0, (summary.tri ?? 0) - stressTravaux.valeur) : 0.02
   const scoreSensTravaux = ecartTravaux < 0.005 ? 15 : ecartTravaux < 0.01 ? 10 : ecartTravaux < 0.02 ? 5 : 0
 
   // Risque DPE (15 pts)
@@ -1099,6 +1100,15 @@ export function validerAnalyse(a: import('./types').ProjectAnalysis): Validation
     && !input.revente.valeurPostTravauxEstimee
   ) {
     errors.push(`Travaux initiaux (${Math.round(input.acquisition.travauxInitiaux)} €) supérieurs à 20 % du prix d'achat sans valeur de revente post-travaux ni valeur post-travaux estimée renseignée — la formule par défaut (prix d'achat × revalorisation) ne reflète pas la plus-value des travaux.`)
+  }
+
+  // Règle 6 — Sur-financement : emprunt > coût total (cash nécessaire négatif).
+  // Un financement où l'emprunt dépasse le coût total ne décrit pas un plan
+  // d'investissement normal : le TRI devient non significatif (saturé) et tous
+  // les indicateurs qui en dérivent (point mort, prix max, seuils de viabilité)
+  // ne sont plus interprétables. Le projet n'est pas arbitrable tel que saisi.
+  if (summary.cashTotalNecessaire < 0 || input.financement.montantEmprunte > summary.coutTotalAcquisition) {
+    errors.push(`Financement incohérent : l'emprunt (${fmtEur(input.financement.montantEmprunte)}) dépasse le coût total de l'opération (${fmtEur(summary.coutTotalAcquisition)}), soit un cash nécessaire négatif (${fmtEur(summary.cashTotalNecessaire)}). Le TRI et les indicateurs dérivés (point mort, prix max, seuils de viabilité) ne sont pas interprétables — corrigez le montant emprunté avant d'arbitrer ce projet.`)
   }
 
   // ── Avertissements : qualité des données ────────────────────────────────────

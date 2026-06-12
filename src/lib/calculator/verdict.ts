@@ -2,11 +2,13 @@ import type { ProjectInput, SummaryKPIs, Verdict, ScenarioResult, YearlyRow, Niv
 
 /** Score /100 selon CDC §10 */
 export function calculerScore(kpis: SummaryKPIs): Verdict['scoreDetail'] {
-  // TRI : 25 pts — bon > 8%, moyen 4-8%, mauvais < 4%
-  const scoreTri = kpis.tri >= 0.08 ? 25
-    : kpis.tri >= 0.06 ? 20
-    : kpis.tri >= 0.04 ? 13
-    : kpis.tri >= 0.02 ? 6
+  // TRI : 25 pts — bon > 8%, moyen 4-8%, mauvais < 4% (0 si non significatif)
+  const triNum = kpis.tri ?? 0
+  const scoreTri = kpis.triNonSignificatif ? 0
+    : triNum >= 0.08 ? 25
+    : triNum >= 0.06 ? 20
+    : triNum >= 0.04 ? 13
+    : triNum >= 0.02 ? 6
     : 0
 
   // Cash-flow : 20 pts — positif = max, légèrement négatif = partiel
@@ -232,7 +234,7 @@ export function genererScenarios(
       label: 'Pessimiste' as const,
       rendementNetNet: kpisPess.rendementNetNet,
       cashflowMensuel: kpisPess.cashflowMensuelMoyen,
-      tri: kpisPess.tri,
+      tri: kpisPess.tri ?? 0,
       van: kpisPess.van,
       patrimoineFinal: kpisPess.patrimoineNet ?? 0,
     },
@@ -240,7 +242,7 @@ export function genererScenarios(
       label: 'Central',
       rendementNetNet: kpis.rendementNetNet,  // identique à la synthèse (même méthode row-average)
       cashflowMensuel: kpis.cashflowMensuelMoyen,
-      tri: kpis.tri,
+      tri: kpis.tri ?? 0,
       van: kpis.van,
       patrimoineFinal: rows[rows.length - 1]?.patrimoineNet ?? 0,
     },
@@ -248,7 +250,7 @@ export function genererScenarios(
       label: 'Optimiste' as const,
       rendementNetNet: kpisOpt.rendementNetNet,
       cashflowMensuel: kpisOpt.cashflowMensuelMoyen,
-      tri: kpisOpt.tri,
+      tri: kpisOpt.tri ?? 0,
       van: kpisOpt.van,
       patrimoineFinal: kpisOpt.patrimoineNet ?? 0,
     },

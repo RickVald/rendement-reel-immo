@@ -29,7 +29,7 @@ export function SimplifiedResultsView({ analysis, onEdit }: SimplifiedResultsVie
   const kpis = [
     { label: 'Rendement net-net', value: pct(summary.rendementNetNet) },
     { label: 'Cash-flow mensuel moyen', value: sign(summary.cashflowMensuelMoyen) },
-    { label: 'TRI projet', value: pct(summary.tri) },
+    { label: 'TRI projet', value: summary.triNonSignificatif ? 'Non significatif' : pct(summary.tri ?? 0) },
     { label: 'VAN', value: eur(summary.van) },
   ]
 

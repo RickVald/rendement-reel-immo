@@ -28,7 +28,7 @@ Voici les résultats de la simulation :
 - Rendement net : ${(summary.rendementNet * 100).toFixed(2)}%
 - Rendement net-net : ${(summary.rendementNetNet * 100).toFixed(2)}%
 - Cash-flow mensuel moyen : ${summary.cashflowMensuelMoyen} €/mois
-- TRI projet : ${(summary.tri * 100).toFixed(2)}%
+- TRI projet : ${summary.triNonSignificatif ? 'Non significatif (surfinancement — emprunt > coût total)' : `${((summary.tri ?? 0) * 100).toFixed(2)}%`}
 - VAN : ${summary.van.toLocaleString('fr-FR')} €
 - Effort d'épargne mensuel : ${summary.effortEpargne} €/mois
 - Dépendance à la revente : ${summary.dependanceRevente ? 'Oui' : 'Non'}

@@ -420,7 +420,7 @@ function TabSynthese({ analysis, ai, aiLoading, onEdit }: {
             { label: 'Rendement net',                 val: pct(summary.rendementNet),             sub: 'après charges — sur coût total',             ok: summary.rendementNet >= 0.04 },
             { label: 'Rendement net-net',             val: pct(summary.rendementNetNet),          sub: 'après impôts — sur coût total',              ok: summary.rendementNetNet >= 0.04 },
             { label: 'Cash-flow mensuel',             val: sign(summary.cashflowMensuelMoyen),    sub: '/mois moyen',                                ok: summary.cashflowMensuelMoyen >= 0 },
-            { label: 'TRI projet',                    val: pct(summary.tri),                      sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.tri >= 0.06 },
+            { label: 'TRI projet',                    val: summary.triNonSignificatif ? 'Non significatif' : pct(summary.tri ?? 0), sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: !summary.triNonSignificatif && (summary.tri ?? 0) >= 0.06 },
             { label: 'VAN',                           val: eur(summary.van),                      sub: `vs référence ${pct(input.revente.tauxActualisation)}`, ok: summary.van > 0 },
             { label: 'Effort mensuel',                val: eur(summary.effortEpargne),            sub: 'à sortir de poche / mois',                   ok: summary.effortEpargne < 200 },
             { label: 'Cash-flow cumulé',              val: sign(summary.cashflowCumule),          sub: `sur ${input.revente.dureeDetentionAns} ans`, ok: summary.cashflowCumule >= 0 },
