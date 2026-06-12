@@ -94,7 +94,11 @@ export function RapportPDF({
     scoreRobustesse, niveauxConfiance, regimeAutoSelectionne, scerariosAvantage,
   } = analysis
   const vc = verdictColors(verdict.couleur)
-  const meta = `${TYPE_LABELS[input.bien.type] ?? input.bien.type} · ${input.bien.ville} · DPE ${input.bien.dpe}`
+  // Met une majuscule à chaque mot de la ville (ex: "saint-malo" -> "Saint-Malo")
+  const villeFormatee = input.bien.ville?.trim()
+    ? input.bien.ville.trim().split(/(\s|-)/).map(w => /[\s-]/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')
+    : input.bien.ville
+  const meta = `${TYPE_LABELS[input.bien.type] ?? input.bien.type} · ${villeFormatee} · DPE ${input.bien.dpe}`
   const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
   const isFG = ['F', 'G'].includes(input.bien.dpe)
 
@@ -114,7 +118,7 @@ export function RapportPDF({
 
   return (
     <Document
-      title={`Rapport Rendement Réel Immo — ${input.bien.ville}`}
+      title={`Rapport Rendement Réel Immo — ${villeFormatee}`}
       author="Rendement Réel Immo"
       subject="Analyse financière investissement locatif"
       creator="rendementreelimmo.fr"
@@ -134,7 +138,7 @@ export function RapportPDF({
 
           <View style={{ flexDirection: 'row', gap: 24, marginBottom: 24 }}>
             <View><Text style={S.coverMeta}>Bien analysé</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{TYPE_LABELS[input.bien.type] ?? input.bien.type}</Text></View>
-            <View><Text style={S.coverMeta}>Localisation</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{input.bien.ville} ({input.bien.codePostal})</Text></View>
+            <View><Text style={S.coverMeta}>Localisation</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{villeFormatee} ({input.bien.codePostal})</Text></View>
             <View><Text style={S.coverMeta}>Surface</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{input.bien.surface} m²</Text></View>
             <View><Text style={S.coverMeta}>DPE</Text><Text style={[S.coverMeta, S.coverMetaVal, isFG ? { color: '#ef4444' } : {}]}>Classe {input.bien.dpe}</Text></View>
           </View>
@@ -207,7 +211,7 @@ export function RapportPDF({
             <View style={{ flex: 1 }}>
               <Text style={[S.verdictLabel, { color: vc.text, fontSize: 14 }]}>{verdict.label}</Text>
               <Text style={{ fontSize: 8, color: vc.text, marginTop: 4, opacity: 0.8 }}>
-                {TYPE_LABELS[input.bien.type]} · {input.bien.surface} m² · {input.bien.ville} · DPE {input.bien.dpe}
+                {TYPE_LABELS[input.bien.type]} · {input.bien.surface} m² · {villeFormatee} · DPE {input.bien.dpe}
               </Text>
             </View>
             <View style={{ alignItems: 'center', paddingLeft: 16 }}>
@@ -239,7 +243,7 @@ export function RapportPDF({
             </View>
             {[
               { q: 'Le bien s\'autofinance-t-il ?',           v: summary.cashflowMensuelMoyen >= 0 ? 'Oui' : 'Non', ok: summary.cashflowMensuelMoyen >= 0 },
-              { q: 'Rendement d\'exploitation net-net (loyers – charges – impôts) ?', v: `${pct(summary.rendementNetNet)} — exploitation ${summary.rendementNetNet >= 0.04 ? 'correcte' : summary.rendementNetNet >= 0.03 ? 'faible' : 'faible, insuffisante hors revente'}, hors effet levier et revente`, ok: summary.rendementNetNet >= 0.04 },
+              { q: 'Rendement d\'exploitation net-net (loyers – charges – impôts) ?', v: `${pct(summary.rendementNetNet)} — exploitation ${summary.rendementNetNet >= 0.04 ? 'correcte' : summary.rendementNetNet >= 0.03 ? 'faible' : 'faible, insuffisante hors revente'}`, ok: summary.rendementNetNet >= 0.04 },
               { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: summary.tri >= 0.04 && summary.van > 0 },
               { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: pct(summary.tri), ok: summary.tri >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
@@ -1468,13 +1472,21 @@ export function RapportPDF({
           ) : (
             <View>
               {/* Table fiscale de base (tous régimes hors LMNP réel) */}
-              {input.fiscalite.dispositif === 'jeanbrun' ? (
+              {(() => {
+                // PS calculés sur la base brute du résultat foncier, non réduite par le déficit
+                // reportable (art. L136-6 CSS) : base IR et base PS peuvent diverger les années
+                // où un déficit foncier antérieur est imputé.
+                const basePsDiffereDeBaseIR = yearlyTable.some(r => (r.basePS ?? 0) !== (r.baseImposable ?? 0))
+                return input.fiscalite.dispositif === 'jeanbrun' ? (
                 /* Jeanbrun : table avec colonne amortissement Jeanbrun déduit */
                 <View>
                   <View style={S.table}>
                     <View style={S.tableHeader}>
-                      {['An.','Loyers enc.','Charges','Amort. Jean.','Base imp.','IR','PS','Impôts nets'].map((h,i)=>(
-                        <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+                      {(basePsDiffereDeBaseIR
+                        ? ['An.','Loyers enc.','Charges','Amort. Jean.','Base IR','Base PS','IR','PS','Impôts nets']
+                        : ['An.','Loyers enc.','Charges','Amort. Jean.','Base IR','IR','PS','Impôts nets']
+                      ).map((h,i)=>(
+                        <Text key={i} style={[S.tableHeaderCell, basePsDiffereDeBaseIR ? { fontSize: 5.5 } : {}]}>{h}</Text>
                       ))}
                     </View>
                     {yearlyTable.map((row, i) => (
@@ -1484,6 +1496,7 @@ export function RapportPDF({
                         <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.chargesDeduites ?? 0)}</Text>
                         <Text style={[S.tableCell, { color: COLORS.emeraldDark }]}>-{fmt(row.amortissementJeanbrun ?? 0)}</Text>
                         <Text style={S.tableCell}>{fmt(row.baseImposable ?? 0)}</Text>
+                        {basePsDiffereDeBaseIR && <Text style={[S.tableCell, S.tableCellGray]}>{fmt(row.basePS ?? 0)}</Text>}
                         <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ir ?? 0)}</Text>
                         <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ps ?? 0)}</Text>
                         <Text style={[S.tableCell, S.tableCellBad, S.tableCellBold]}>-{fmt(row.impots)}</Text>
@@ -1495,6 +1508,7 @@ export function RapportPDF({
                       <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.chargesDeduites??0),0))}</Text>
                       <Text style={[S.tableCell, S.tableCellBold, { color: COLORS.emeraldDark }]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.amortissementJeanbrun??0),0))}</Text>
                       <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.baseImposable??0),0))}</Text>
+                      {basePsDiffereDeBaseIR && <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.basePS??0),0))}</Text>}
                       <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ir??0),0))}</Text>
                       <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ps??0),0))}</Text>
                       <Text style={[S.tableCell, S.tableCellBold, S.tableCellBad]}>-{fmt(yearlyTable.reduce((s,r)=>s+r.impots,0))}</Text>
@@ -1503,15 +1517,25 @@ export function RapportPDF({
                   <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
                     {`Amort. Jean. = amortissement Jeanbrun déduit du revenu foncier (art. 31 CGI, LF 2026) — 80 % de la base × taux annuel sur ${Math.max(9, input.fiscalite.dispositifParams.jeanbrun_engagementAns ?? 9)} ans d'engagement. La fraction excédant les loyers génère un déficit foncier imputable sur le revenu global (10 700 €/an max, art. 156 CGI). Réintégration dans le prix de revient à la revente (art. 150 VB III CGI).`}
                   </Text>
+                  {basePsDiffereDeBaseIR && (
+                    <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>
+                      {`Base IR et Base PS diffèrent certaines années : la Base IR est réduite par l'imputation du déficit foncier reportable des années précédentes, alors que la Base PS reste calculée sur le résultat foncier brut de l'année, non réduit par ce report (art. L136-6 CSS). Les prélèvements sociaux restent donc dus même les années où la Base IR est nulle.`}
+                    </Text>
+                  )}
                 </View>
               ) : (
+                <View>
                 <View style={S.table}>
                   <View style={S.tableHeader}>
-                    {(input.fiscalite.regime === 'sci_is'
-                      ? ['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IS','Prél. soc.','Total impôts']
-                      : ['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IR','Prél. soc.','Total impôts']
+                    {(basePsDiffereDeBaseIR
+                      ? (input.fiscalite.regime === 'sci_is'
+                        ? ['An.','Loyers enc.','Charges déd.','Amortiss.','Base IR','Base PS','IS','Prél. soc.','Total impôts']
+                        : ['An.','Loyers enc.','Charges déd.','Amortiss.','Base IR','Base PS','IR','Prél. soc.','Total impôts'])
+                      : (input.fiscalite.regime === 'sci_is'
+                        ? ['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IS','Prél. soc.','Total impôts']
+                        : ['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IR','Prél. soc.','Total impôts'])
                     ).map((h,i)=>(
-                      <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+                      <Text key={i} style={[S.tableHeaderCell, basePsDiffereDeBaseIR ? { fontSize: 5.5 } : {}]}>{h}</Text>
                     ))}
                   </View>
                   {yearlyTable.map((row, i) => (
@@ -1521,6 +1545,7 @@ export function RapportPDF({
                       <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.chargesDeduites ?? 0)}</Text>
                       <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.amortissements ?? 0)}</Text>
                       <Text style={S.tableCell}>{fmt(row.baseImposable ?? 0)}</Text>
+                      {basePsDiffereDeBaseIR && <Text style={[S.tableCell, S.tableCellGray]}>{fmt(row.basePS ?? 0)}</Text>}
                       <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ir ?? 0)}</Text>
                       <Text style={[S.tableCell, S.tableCellGray]}>-{fmt(row.ps ?? 0)}</Text>
                       <Text style={[S.tableCell, S.tableCellBad, S.tableCellBold]}>-{fmt(row.impots)}</Text>
@@ -1532,12 +1557,20 @@ export function RapportPDF({
                     <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.chargesDeduites??0),0))}</Text>
                     <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.amortissements??0),0))}</Text>
                     <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.baseImposable??0),0))}</Text>
+                    {basePsDiffereDeBaseIR && <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.basePS??0),0))}</Text>}
                     <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ir??0),0))}</Text>
                     <Text style={[S.tableCell, S.tableCellBold]}>-{fmt(yearlyTable.reduce((s,r)=>s+(r.ps??0),0))}</Text>
                     <Text style={[S.tableCell, S.tableCellBold, S.tableCellBad]}>-{fmt(yearlyTable.reduce((s,r)=>s+r.impots,0))}</Text>
                   </View>
                 </View>
-              )}
+                {basePsDiffereDeBaseIR && (
+                  <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>
+                    {`Base IR et Base PS diffèrent certaines années : la Base IR est réduite par l'imputation du déficit foncier reportable des années précédentes, alors que la Base PS reste calculée sur le résultat foncier brut de l'année, non réduit par ce report (art. L136-6 CSS). Les prélèvements sociaux restent donc dus même les années où la Base IR est nulle.`}
+                  </Text>
+                )}
+                </View>
+              )
+              })()}
 
               {/* Tableau déficit foncier carry-forward (réel foncier + Jeanbrun) */}
               {(['reel_foncier', 'sci_ir'].includes(input.fiscalite.regime) || input.fiscalite.dispositif === 'jeanbrun') &&
@@ -2161,7 +2194,7 @@ export function RapportPDF({
                     <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <HypRow label="Travaux sup. max sans dégrader le TRI" value={eur(pointMort.travauxMaxSupportables)} />
+                    <HypRow label="Travaux sup. max sans dégrader le TRI" value={summary.tri < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
                     <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
                     <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                   </View>
@@ -2259,7 +2292,7 @@ export function RapportPDF({
               <View style={[S.card, { marginBottom: 10 }]}>
                 <Text style={S.cardTitle}>1. Le bien immobilier</Text>
                 <HypRow label="Type" value={TYPE_LABELS[input.bien.type] ?? input.bien.type} />
-                <HypRow label="Localisation" value={`${input.bien.ville} (${input.bien.codePostal})`} />
+                <HypRow label="Localisation" value={`${villeFormatee} (${input.bien.codePostal})`} />
                 <HypRow label="Surface" value={`${input.bien.surface} m2`} />
                 <HypRow label="DPE" value={`Classe ${input.bien.dpe}`} />
                 <HypRow label="État général" value={ETAT_LABELS[input.bien.etat] ?? input.bien.etat} />

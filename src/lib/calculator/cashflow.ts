@@ -297,6 +297,7 @@ export function genererTableauAnnuel(
       amortissementsUtilises: Math.round(impot.amortissementsUtilises),
       amortissementsReportes: Math.round(amortissementsReportesLMNP),
       baseImposable: Math.round(impot.baseImposable),
+      basePS: Math.round(impot.basePS),
       ir: Math.round(impot.ir),
       ps: Math.round(impot.ps),
       reductionDispositif: Math.round(reductionDispositif),

@@ -331,6 +331,7 @@ export interface YearlyRow {
   amortissementsUtilises?: number // amortissements effectivement déduits (LMNP réel)
   amortissementsReportes?: number // amortissements reportés cumulés (LMNP réel)
   baseImposable: number
+  basePS: number  // base de calcul des prélèvements sociaux (non réduite par le déficit foncier reportable)
   ir: number
   ps: number
   reductionDispositif: number   // réduction d'impôt liée au dispositif fiscal (Denormandie, Malraux…)

@@ -13,7 +13,8 @@ export interface ImpotAnnee {
   deficitFoncierImpute: number    // partie immédiatement imputée sur revenu global (max 10 700/21 400€)
   deficitFoncierInterets: number      // part du déficit généré due aux intérêts d'emprunt (jamais imputable sur rev. global)
   deficitFoncierHorsInterets: number  // part du déficit généré due aux autres charges (imputable sur rev. global dans la limite du plafond)
-  baseImposable: number
+  baseImposable: number  // base de calcul de l'IR (après imputation éventuelle du déficit reportable)
+  basePS: number         // base de calcul des prélèvements sociaux (résultat foncier brut, non réduit par le déficit reportable — art. L136-6 CSS)
   ir: number
   ps: number
   total: number
@@ -82,6 +83,7 @@ function microFoncier(p: FiscaliteParams): ImpotAnnee {
     deficitFoncierInterets: 0,
     deficitFoncierHorsInterets: 0,
     baseImposable,
+    basePS: Math.max(0, p.loyersEncaisses - abattement),
     ir: Math.round(ir),
     ps: Math.round(ps),
     total: Math.round(ir + ps),
@@ -173,6 +175,7 @@ function reelFoncier(p: FiscaliteParams): ImpotAnnee {
     deficitFoncierInterets,
     deficitFoncierHorsInterets,
     baseImposable,
+    basePS: Math.round(basePsPositive),
     ir: Math.round(ir),
     ps: Math.round(ps),
     total: Math.round(ir + ps),
@@ -197,6 +200,7 @@ function lmnpMicroBic(p: FiscaliteParams): ImpotAnnee {
     deficitFoncierInterets: 0,
     deficitFoncierHorsInterets: 0,
     baseImposable,
+    basePS: baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
     total: Math.round(ir + ps),
@@ -265,6 +269,7 @@ function lmnpReel(p: FiscaliteParams): ImpotAnnee {
     deficitFoncierInterets: 0,
     deficitFoncierHorsInterets: 0,
     baseImposable,
+    basePS: baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
     total: Math.round(ir + ps),
@@ -312,6 +317,7 @@ function sciIs(p: FiscaliteParams): ImpotAnnee {
     deficitFoncierInterets: 0,
     deficitFoncierHorsInterets: 0,
     baseImposable,
+    basePS: baseImposable,
     ir: Math.round(ir),
     ps: 0,  // Pas de PS en SCI IS
     total: Math.round(ir),

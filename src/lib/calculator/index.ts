@@ -293,7 +293,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
   const pointMort = calculerPointMort(input, creditSchedule, coutTotal, apportInitial, rows, summary)
 
   // 14. Score de robustesse
-  const scoreRobustesse = calculerScoreRobustesse(input, summary, sensibilite)
+  const scoreRobustesse = calculerScoreRobustesse(input, summary, sensibilite, stressTests)
 
   // 15. Niveaux de confiance des données
   const niveauxConfiance = genererNiveauxConfiance(input)
@@ -564,8 +564,17 @@ function calculerStressTests(
   const pertePourVacance6Mois = input.location.loyerMensuelHC * 6
   const cfVacance = summary.cashflowCumule - pertePourVacance6Mois
 
-  // Travaux supplémentaires 15 000€
-  const newInputTravaux = { ...input, acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux + 15000 } }
+  // Travaux supplémentaires 15 000€ : dépassement de budget pur surcoût, sans valeur
+  // ajoutée à la revente (sinon il ne s'agirait plus d'un dépassement mais de travaux
+  // valorisants). On fige donc la valeur de revente sur la base initiale.
+  const baseValeurBienInitiale = (input.revente.valeurPostTravauxEstimee && input.revente.valeurPostTravauxEstimee > 0)
+    ? input.revente.valeurPostTravauxEstimee
+    : input.acquisition.prixAchat + input.acquisition.travauxInitiaux
+  const newInputTravaux = {
+    ...input,
+    acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux + 15000 },
+    revente: { ...input.revente, valeurPostTravauxEstimee: baseValeurBienInitiale },
+  }
   const ct2 = calculerCoutTotal(newInputTravaux.acquisition)
   const ap2 = ct2 - input.financement.montantEmprunte
   const rows2 = genererTableauAnnuel(newInputTravaux, creditSchedule.tableau, ct2)
@@ -605,10 +614,8 @@ function calculerStressTests(
     },
     {
       label: 'Travaux supplémentaires +15 000 €',
-      description: 'Dépassement budget travaux (DPE, copropriété)',
-      impact: Math.abs(triTravaux - summary.tri) < 0.0005
-        ? `TRI quasi inchangé (${(triTravaux * 100).toFixed(2)} %) — le surcoût est en grande partie compensé par la hausse de la valeur du bien à la revente`
-        : `TRI : ${(summary.tri * 100).toFixed(2)} % -> ${(triTravaux * 100).toFixed(2)} %`,
+      description: 'Dépassement budget travaux (DPE, copropriété), sans valeur ajoutée à la revente',
+      impact: `TRI : ${(summary.tri * 100).toFixed(2)} % -> ${(triTravaux * 100).toFixed(2)} %`,
       valeur: triTravaux,
       unite: 'TRI',
       severite: triTravaux < 0 ? 'severe' : triTravaux < 0.03 ? 'modere' : 'faible',
@@ -841,7 +848,8 @@ function mergeDeep(target: any, source: any): any {
 function calculerScoreRobustesse(
   input: ProjectInput,
   summary: SummaryKPIs,
-  sensibilite: SensibiliteRow[]
+  sensibilite: SensibiliteRow[],
+  stressTests: StressTest[]
 ): ScoreRobustesse {
   // Dépendance à la revente (20 pts) — crucial
   const scoreDependance = summary.dependanceRevente ? 0
@@ -852,9 +860,11 @@ function calculerScoreRobustesse(
   const ecartLoyer = sensLoyer ? Math.abs(sensLoyer.moins10 - sensLoyer.central) : 0.03
   const scoreSensLoyer = ecartLoyer < 0.01 ? 15 : ecartLoyer < 0.02 ? 10 : ecartLoyer < 0.04 ? 5 : 0
 
-  // Sensibilité aux travaux (15 pts)
-  const sensTravaux = sensibilite.find(s => s.variable === 'Travaux initiaux')
-  const ecartTravaux = sensTravaux ? Math.abs(sensTravaux.plus10 - sensTravaux.central) : 0.02
+  // Sensibilité aux travaux (15 pts) — basée sur le stress test "Travaux
+  // supplémentaires +15 000 €" (dépassement de budget pur surcoût), qui
+  // s'applique dans tous les cas, y compris quand travauxInitiaux = 0.
+  const stressTravaux = stressTests.find(s => s.label === 'Travaux supplémentaires +15 000 €')
+  const ecartTravaux = stressTravaux ? Math.max(0, summary.tri - stressTravaux.valeur) : 0.02
   const scoreSensTravaux = ecartTravaux < 0.005 ? 15 : ecartTravaux < 0.01 ? 10 : ecartTravaux < 0.02 ? 5 : 0
 
   // Risque DPE (15 pts)
