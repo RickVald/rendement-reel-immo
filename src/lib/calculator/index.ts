@@ -606,7 +606,9 @@ function calculerStressTests(
     {
       label: 'Travaux supplémentaires +15 000 €',
       description: 'Dépassement budget travaux (DPE, copropriété)',
-      impact: `TRI passe à ${(triTravaux * 100).toFixed(2)} %`,
+      impact: Math.abs(triTravaux - summary.tri) < 0.0005
+        ? `TRI quasi inchangé (${(triTravaux * 100).toFixed(2)} %) — le surcoût est en grande partie compensé par la hausse de la valeur du bien à la revente`
+        : `TRI : ${(summary.tri * 100).toFixed(2)} % -> ${(triTravaux * 100).toFixed(2)} %`,
       valeur: triTravaux,
       unite: 'TRI',
       severite: triTravaux < 0 ? 'severe' : triTravaux < 0.03 ? 'modere' : 'faible',
@@ -1029,6 +1031,13 @@ export function validerAnalyse(a: import('./types').ProjectAnalysis): Validation
   // Règle 1 — Studio de grande surface : alerte forte, confirmation requise
   if (input.bien.type === 'studio' && input.bien.surface > 60) {
     warnings.push(`Surface de ${input.bien.surface} m² inhabituelle pour un studio — vérifiez le type de bien ou la surface saisie.`)
+  }
+
+  // Règle 1bis — Localisation non renseignée : indispensable pour fiabiliser le
+  // loyer de marché, l'encadrement des loyers, la vacance locative, la valeur
+  // de revente, la taxe foncière et le prix au m².
+  if (!input.bien.ville?.trim() || !input.bien.codePostal?.trim()) {
+    errors.push(`Localisation non renseignée (ville et/ou code postal manquant) — indispensable pour fiabiliser le loyer de marché, la vacance locative, la valeur de revente et la taxe foncière.`)
   }
 
   // Règle 2 — Copropriété non renseignée mais charges de copropriété saisies

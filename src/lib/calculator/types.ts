@@ -340,6 +340,8 @@ export interface YearlyRow {
   amortissementJeanbrun: number // amortissement Jeanbrun déduit cette année (0 si autre dispositif)
   deficitFoncierGenere: number  // nouveau déficit foncier créé cette année (avant imputation)
   deficitFoncierImpute: number  // partie du déficit immédiatement imputée sur revenu global (max 10 700 ou 21 400€)
+  deficitFoncierInterets: number      // part du déficit due aux intérêts d'emprunt (jamais imputable sur rev. global)
+  deficitFoncierHorsInterets: number  // part du déficit due aux autres charges (imputable sur rev. global dans la limite du plafond)
   deficitFoncierCumul: number   // stock de déficit reportable restant en fin d'année (carry-forward)
   impots: number
   cashflowAnnuel: number

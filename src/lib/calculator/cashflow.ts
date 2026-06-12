@@ -303,6 +303,8 @@ export function genererTableauAnnuel(
       amortissementJeanbrun: Math.round(jeanbrunAmortAnnee),
       deficitFoncierGenere: Math.round(impot.deficitFoncierGenere),
       deficitFoncierImpute: Math.round(impot.deficitFoncierImpute),
+      deficitFoncierInterets: Math.round(impot.deficitFoncierInterets),
+      deficitFoncierHorsInterets: Math.round(impot.deficitFoncierHorsInterets),
       deficitFoncierCumul: Math.round(deficitFoncierRestant),
       avantageTheorique: Math.round(avantageTheorique),
       avantageUtilise: Math.round(avantageUtilise),

@@ -74,7 +74,7 @@ const SCORE_ITEMS = [
   { key: 'cashflow',          label: 'Cash-flow mensuel',      max: 20 },
   { key: 'rendementNetNet',   label: 'Rendement net-net',      max: 15 },
   { key: 'van',               label: 'VAN',                    max: 15 },
-  { key: 'margeSecurite',     label: 'Marge de sécurité',      max: 10 },
+  { key: 'margeSecurite',     label: 'Écart rendement brut / net-net', max: 10 },
   { key: 'risqueDpe',         label: 'Risque DPE',             max: 10 },
   { key: 'dependanceRevente', label: 'Indép. revente',           max:  5 },
 ] as const
@@ -239,7 +239,7 @@ export function RapportPDF({
             </View>
             {[
               { q: 'Le bien s\'autofinance-t-il ?',           v: summary.cashflowMensuelMoyen >= 0 ? 'Oui' : 'Non', ok: summary.cashflowMensuelMoyen >= 0 },
-              { q: 'Rendement d\'exploitation net-net (loyers – charges – impôts) ?', v: `${pct(summary.rendementNetNet)} — exploitation correcte, hors effet levier et revente`, ok: false },
+              { q: 'Rendement d\'exploitation net-net (loyers – charges – impôts) ?', v: `${pct(summary.rendementNetNet)} — exploitation ${summary.rendementNetNet >= 0.04 ? 'correcte' : summary.rendementNetNet >= 0.03 ? 'faible' : 'faible, insuffisante hors revente'}, hors effet levier et revente`, ok: summary.rendementNetNet >= 0.04 },
               { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: summary.tri >= 0.04 && summary.van > 0 },
               { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: pct(summary.tri), ok: summary.tri >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
@@ -514,7 +514,7 @@ export function RapportPDF({
                   <HypRow label="Loyer pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois`} />
                   <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
                   <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
-                  <HypRow label="Travaux sup. max supportables" value={eur(pointMort.travauxMaxSupportables)} />
+                  <HypRow label="Travaux sup. max supportables" value={summary.tri < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
                   <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
                   <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                 </View>
@@ -1548,29 +1548,34 @@ export function RapportPDF({
                   </Text>
                   <View style={S.table}>
                     <View style={S.tableHeader}>
-                      {['An.','Déficit généré','Imputable rev. global','Reportable (surplus)','Stock carry-forward'].map((h,i)=>(
-                        <Text key={i} style={S.tableHeaderCell}>{h}</Text>
+                      {['An.','Dont intérêts (non imputable)','Dont hors intérêts (imputable)','Imputable rev. global','Reportable (surplus)','Stock carry-forward'].map((h,i)=>(
+                        <Text key={i} style={[S.tableHeaderCell, { fontSize: 5.5, flex: i === 0 ? 0.5 : 1 }]}>{h}</Text>
                       ))}
                     </View>
                     {yearlyTable.filter(r => (r.deficitFoncierGenere ?? 0) > 0 || (r.deficitFoncierCumul ?? 0) > 0).map((row, i) => (
                       <View key={row.annee} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
-                        <Text style={[S.tableCell, S.tableCellBold]}>{row.annee}</Text>
-                        <Text style={[S.tableCell, { color: COLORS.amber }]}>{fmt(row.deficitFoncierGenere ?? 0)}</Text>
+                        <Text style={[S.tableCell, S.tableCellBold, { flex: 0.5 }]}>{row.annee}</Text>
+                        <Text style={[S.tableCell, S.tableCellGray]}>{fmt(row.deficitFoncierInterets ?? 0)}</Text>
+                        <Text style={[S.tableCell, { color: COLORS.amber }]}>{fmt(row.deficitFoncierHorsInterets ?? 0)}</Text>
                         <Text style={[S.tableCell, { color: COLORS.emeraldDark }]}>{fmt(row.deficitFoncierImpute ?? 0)}</Text>
                         <Text style={[S.tableCell, S.tableCellGray]}>{fmt((row.deficitFoncierGenere ?? 0) - (row.deficitFoncierImpute ?? 0))}</Text>
                         <Text style={[S.tableCell, S.tableCellBold]}>{fmt(row.deficitFoncierCumul ?? 0)}</Text>
                       </View>
                     ))}
                     <View style={[S.tableRow, S.tableRowTotal]}>
-                      <Text style={[S.tableCell, S.tableCellBold]}>Total</Text>
-                      <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.deficitFoncierGenere??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold, { flex: 0.5 }]}>Total</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.deficitFoncierInterets??0),0))}</Text>
+                      <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.deficitFoncierHorsInterets??0),0))}</Text>
                       <Text style={[S.tableCell, S.tableCellBold, { color: COLORS.emeraldDark }]}>{fmt(yearlyTable.reduce((s,r)=>s+(r.deficitFoncierImpute??0),0))}</Text>
                       <Text style={[S.tableCell, S.tableCellBold]}>—</Text>
                       <Text style={[S.tableCell, S.tableCellBold]}>{fmt(yearlyTable[yearlyTable.length - 1]?.deficitFoncierCumul ?? 0)}</Text>
                     </View>
                   </View>
                   <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 4 }}>
-                    {`"Imputable revenu global" = fraction immédiatement déduite de votre revenu global (dans la limite du plafond annuel). "Reportable" = excédent imputable sur les revenus fonciers des 10 années suivantes. "Stock carry-forward" = cumul disponible en fin d'année.`}
+                    {`Le déficit foncier généré se décompose en deux parts aux règles différentes (art. 156 CGI) : la part due aux intérêts d'emprunt n'est jamais imputable sur le revenu global, elle est uniquement reportable sur les revenus fonciers des 10 années suivantes ; la part hors intérêts (charges, taxe foncière, travaux...) est imputable sur le revenu global dans la limite du plafond annuel (${input.fiscalite.dispositif === 'deficit_foncier_renforce' ? '21 400' : '10 700'} €). "Imputable revenu global" = fraction effectivement déduite. "Reportable" = excédent (intérêts + surplus hors-plafond) imputable sur les revenus fonciers des 10 années suivantes. "Stock carry-forward" = cumul disponible en fin d'année.`}
+                  </Text>
+                  <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>
+                    {`Hypothèse retenue : le foyer dispose d'un revenu global imposable suffisant pour absorber cette imputation. Si ce n'est pas le cas, la fraction "Imputable rev. global" affichée ne réduit pas l'impôt et bascule en report sur les revenus fonciers.`}
                   </Text>
                 </View>
               )}
@@ -2299,7 +2304,7 @@ export function RapportPDF({
                 <HypRow label="Gestion locative" value={input.location.gestionLocative ? `Oui — ${pct(input.location.fraisGestionPct)}` : 'Non'} />
                 <HypRow label="GLI" value={input.location.gli ? `Oui — ${pct(input.location.tauxGli)}` : 'Non'} />
                 <HypRow label="Assurance PNO" value={`${eur(input.location.assurancePnoAnnuelle)}/an`} />
-                <HypRow label="Encadrement loyers" value={input.location.encadrementLoyers ? 'Oui' : 'Non'} />
+                <HypRow label="Encadrement loyers" value={input.location.encadrementLoyers ? 'Oui' : (input.bien.ville?.trim() ? 'Non' : 'Non vérifiable — localisation non renseignée')} />
               </View>
               <View style={[S.card, { marginBottom: 10 }]}>
                 <Text style={S.cardTitle}>5. Charges annuelles</Text>

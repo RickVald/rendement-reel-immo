@@ -11,6 +11,8 @@ export interface ImpotAnnee {
   deficitReporte: number          // >0 si nouveau déficit généré, <0 si déficit existant consommé
   deficitFoncierGenere: number    // nouveau déficit foncier créé cette année (> 0, avant imputation)
   deficitFoncierImpute: number    // partie immédiatement imputée sur revenu global (max 10 700/21 400€)
+  deficitFoncierInterets: number      // part du déficit généré due aux intérêts d'emprunt (jamais imputable sur rev. global)
+  deficitFoncierHorsInterets: number  // part du déficit généré due aux autres charges (imputable sur rev. global dans la limite du plafond)
   baseImposable: number
   ir: number
   ps: number
@@ -77,6 +79,8 @@ function microFoncier(p: FiscaliteParams): ImpotAnnee {
     deficitReporte: 0,
     deficitFoncierGenere: 0,
     deficitFoncierImpute: 0,
+    deficitFoncierInterets: 0,
+    deficitFoncierHorsInterets: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -116,6 +120,8 @@ function reelFoncier(p: FiscaliteParams): ImpotAnnee {
 
   let deficitFoncierGenere = 0
   let deficitFoncierImpute = 0
+  let deficitFoncierInterets = 0
+  let deficitFoncierHorsInterets = 0
   let deficitReporte = 0
   let resultatNetImposable: number
 
@@ -135,6 +141,11 @@ function reelFoncier(p: FiscaliteParams): ImpotAnnee {
     // Partie hors intérêts → imputable sur revenu global (dans la limite du plafond)
     const deficitHorsInteretsBrut = Math.max(0, -resultatHorsInterets)
     deficitFoncierImpute = Math.min(deficitHorsInteretsBrut, plafondImputation)
+
+    // Décomposition du déficit total entre intérêts (jamais imputable sur rev. global,
+    // uniquement reportable sur rev. fonciers) et hors intérêts (imputable dans la limite du plafond)
+    deficitFoncierHorsInterets = deficitHorsInteretsBrut
+    deficitFoncierInterets = deficitFoncierGenere - deficitHorsInteretsBrut
 
     // Le reste du déficit hors intérêts (si > plafond) et le déficit sur intérêts
     // → reportable sur rev. fonciers des 10 années suivantes (cashflow.ts s'en charge)
@@ -159,6 +170,8 @@ function reelFoncier(p: FiscaliteParams): ImpotAnnee {
     deficitReporte,
     deficitFoncierGenere,
     deficitFoncierImpute,
+    deficitFoncierInterets,
+    deficitFoncierHorsInterets,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -181,6 +194,8 @@ function lmnpMicroBic(p: FiscaliteParams): ImpotAnnee {
     deficitReporte: 0,
     deficitFoncierGenere: 0,
     deficitFoncierImpute: 0,
+    deficitFoncierInterets: 0,
+    deficitFoncierHorsInterets: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -247,6 +262,8 @@ function lmnpReel(p: FiscaliteParams): ImpotAnnee {
     deficitReporte: deficitBic,
     deficitFoncierGenere: 0,
     deficitFoncierImpute: 0,
+    deficitFoncierInterets: 0,
+    deficitFoncierHorsInterets: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: Math.round(ps),
@@ -292,6 +309,8 @@ function sciIs(p: FiscaliteParams): ImpotAnnee {
     deficitReporte: Math.min(0, resultatApresAmort),
     deficitFoncierGenere: 0,
     deficitFoncierImpute: 0,
+    deficitFoncierInterets: 0,
+    deficitFoncierHorsInterets: 0,
     baseImposable,
     ir: Math.round(ir),
     ps: 0,  // Pas de PS en SCI IS
