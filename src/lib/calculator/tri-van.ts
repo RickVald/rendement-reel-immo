@@ -193,17 +193,18 @@ export function calculerPrixMaximum(
     if (high - low < precision) break
   }
 
-  const negociationEuros = prixDemande - prixMax
+  const prixMaximumArrondi = Math.round(prixMax / 100) * 100
+  const negociationEuros = prixDemande - prixMaximumArrondi
   const negociationPct = negociationEuros / prixDemande
 
   const objectifLabels = {
-    rendement_net: `Rendement net ≥ ${(objectif.valeur * 100).toFixed(1).replace('.', ',')} %`,
-    cashflow: `Cash-flow ≥ ${objectif.valeur} €/mois`,
-    tri: `TRI ≥ ${(objectif.valeur * 100).toFixed(1).replace('.', ',')} %`,
+    rendement_net: `Rendement net >= ${(objectif.valeur * 100).toFixed(1).replace('.', ',')} %`,
+    cashflow: `Cash-flow >= ${objectif.valeur} €/mois`,
+    tri: `TRI >= ${(objectif.valeur * 100).toFixed(1).replace('.', ',')} %`,
   }
 
   return {
-    prixMaximum: Math.round(prixMax / 100) * 100,
+    prixMaximum: prixMaximumArrondi,
     ecartPrixDemande: Math.round(negociationEuros),
     negociationEuros: Math.round(negociationEuros),
     negociationPct: Math.round(negociationPct * 1000) / 1000,

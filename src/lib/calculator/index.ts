@@ -502,12 +502,6 @@ function calculerSensibilite(
       plus10: calc({ location: { ...input.location, loyerMensuelHC: input.location.loyerMensuelHC * 1.1 } }),
     },
     {
-      variable: 'Travaux initiaux',
-      moins10: calc({ acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux * 0.9 } }),
-      central: triCentral,
-      plus10: calc({ acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux * 1.1 } }),
-    },
-    {
       // Si un prix de revente manuel est saisi, il prime sur le taux de revalorisation
       // dans le calcul de la valeur estimée (cf. cashflow.ts) : il faut donc le faire
       // varier directement pour que la sensibilité ait un effet sur le TRI/VAN.
@@ -527,6 +521,17 @@ function calculerSensibilite(
       plus10: calc({ location: { ...input.location, vacanceLocativeMois: input.location.vacanceLocativeMois + 1 } }),
     },
   ]
+
+  // Travaux initiaux : non pertinents (variation ±10% de 0 = 0, sans effet sur le TRI)
+  // si aucun montant n'est renseigné.
+  if (input.acquisition.travauxInitiaux > 0) {
+    rowsSensibilite.push({
+      variable: 'Travaux initiaux',
+      moins10: calc({ acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux * 0.9 } }),
+      central: triCentral,
+      plus10: calc({ acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux * 1.1 } }),
+    })
+  }
 
   // Charges de copropriété : non pertinentes (et sans effet sur le TRI) si le bien
   // n'est pas déclaré en copropriété (cf. cashflow.ts qui les ignore dans ce cas)

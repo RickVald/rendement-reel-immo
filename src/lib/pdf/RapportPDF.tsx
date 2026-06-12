@@ -101,6 +101,17 @@ export function RapportPDF({
   // Financement reconciliation
   const gapFinancement = summary.cashTotalNecessaire - input.financement.apport
 
+  // TRI hors revente : en deçà d'un seuil, la valeur n'est plus économiquement
+  // significative (flux structurellement déficitaires) — on l'exprime en mots
+  // plutôt que d'afficher un pourcentage extrême issu d'une borne de calcul.
+  const triSansReventeNonSignificatif = summary.triSansRevente < -0.5
+  const triSansReventeLabel = triSansReventeNonSignificatif
+    ? 'non significatif — hors revente, aucun scénario de récupération du capital'
+    : `négatif (${pct(summary.triSansRevente)})`
+  const triSansReventeLabelPositif = triSansReventeNonSignificatif
+    ? 'non significatif'
+    : `positif (${pct(summary.triSansRevente)})`
+
   return (
     <Document
       title={`Rapport Rendement Réel Immo — ${input.bien.ville}`}
@@ -232,11 +243,11 @@ export function RapportPDF({
               { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: summary.tri >= 0.04 && summary.van > 0 },
               { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: pct(summary.tri), ok: summary.tri >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
-              { q: 'Le projet est-il rentable sans aucune revente ?', v: summary.dependanceRevente ? `Non — TRI hors revente négatif (${pct(summary.triSansRevente)})` : `Oui — TRI hors revente positif (${pct(summary.triSansRevente)})`, ok: !summary.dependanceRevente },
+              { q: 'Le projet est-il rentable sans aucune revente ?', v: summary.dependanceRevente ? `Non — TRI hors revente ${triSansReventeLabel}` : `Oui — TRI hors revente ${triSansReventeLabelPositif}`, ok: !summary.dependanceRevente },
               { q: 'L\'exploitation locative couvre-t-elle les charges hors crédit ?', v: (summary.rendementNetNet > 0) ? 'Oui — avant effet du financement' : 'Non — rendement net-net négatif', ok: summary.rendementNetNet > 0 },
               { q: 'Le DPE crée-t-il un risque réglementaire ?', v: isFG ? `Oui — DPE ${input.bien.dpe}, risque location 2028` : `Non — DPE ${input.bien.dpe} conforme`, ok: !isFG },
               { q: 'L\'effort mensuel est-il supportable (< 300 €) ?', v: `${eur(summary.effortEpargne)}/mois`, ok: summary.effortEpargne < 300 },
-              { q: 'Le plan de financement est-il cohérent ?', v: gapFinancement <= 0 ? 'Oui — apport suffisant' : `Écart : ${eur(gapFinancement)} à couvrir`, ok: gapFinancement <= 0 },
+              { q: 'Le plan de financement est-il cohérent ?', v: gapFinancement > 0 ? `Écart : ${eur(gapFinancement)} à couvrir` : (input.financement.apport < (input.acquisition.fraisNotaire + input.acquisition.fraisAgence)) ? 'Oui — équilibré, mais apport insuffisant pour les frais d\'acquisition (financement bancaire partiel des frais, accord à confirmer)' : 'Oui — apport suffisant', ok: gapFinancement <= 0 },
             ].map((row, i) => (
               <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                 <Text style={[S.tableCell, { flex: 3, fontSize: 7.5 }]}>{row.q}</Text>
@@ -295,9 +306,9 @@ export function RapportPDF({
               {verdict.recommandations.length > 0 && (
                 <>
                   <Text style={[S.subTitle, { marginTop: 8 }]}>Leviers d'amélioration</Text>
-                  <View style={S.card}>
+                  <View style={S.card} wrap={false}>
                     {verdict.recommandations.slice(0, 3).map((r, i) => (
-                      <View key={i} style={S.listItem}>
+                      <View key={i} style={S.listItem} wrap={false}>
                         <Text style={S.listBullet}>-</Text>
                         <Text style={S.listText}>{r}</Text>
                       </View>
@@ -374,8 +385,8 @@ export function RapportPDF({
               {
                 arg: '"Rentable même sans revente"',
                 reel: summary.dependanceRevente
-                  ? `Faux — TRI hors revente négatif (${pct(summary.triSansRevente)}). La rentabilité du projet dépend de la plus-value à la revente.`
-                  : `Vrai — TRI hors revente positif (${pct(summary.triSansRevente)}). Le projet reste rentable même sans tenir compte de la revente.`,
+                  ? `Faux — TRI hors revente ${triSansReventeLabel}. La rentabilité du projet dépend de la plus-value à la revente.`
+                  : `Vrai — TRI hors revente ${triSansReventeLabelPositif}. Le projet reste rentable même sans tenir compte de la revente.`,
                 ecart: summary.dependanceRevente ? 'Dépendant de la revente' : 'Indépendant de la revente',
                 bad: summary.dependanceRevente,
               },
@@ -501,7 +512,7 @@ export function RapportPDF({
                 <View style={[S.card, { marginTop: 10 }]}>
                   <Text style={S.cardTitle}>Seuils de viabilité (point mort)</Text>
                   <HypRow label="Loyer pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois`} />
-                  <HypRow label="Prix max pour TRI ≥ 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                  <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
                   <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   <HypRow label="Travaux sup. max supportables" value={eur(pointMort.travauxMaxSupportables)} />
                   <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
@@ -567,7 +578,7 @@ export function RapportPDF({
                 ))}
                 {scoreRobustesse.dependanceRevente === 0 && (
                   <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 4, lineHeight: 1.4 }}>
-                    {`Note revente : pénalisée à 0/20 car le TRI hors revente est négatif (${pct(summary.triSansRevente)}) — le projet n'est rentable qu'avec la plus-value à la revente, même si la variation ±10 % du prix de revente reste contenue sur le TRI global (cf. analyse de sensibilité).`}
+                    {`Note revente : pénalisée à 0/20 car le TRI hors revente est ${triSansReventeLabel} — le projet n'est rentable qu'avec la plus-value à la revente, même si la variation ±10 % du prix de revente reste contenue sur le TRI global (cf. analyse de sensibilité).`}
                   </Text>
                 )}
               </View>
@@ -1450,7 +1461,7 @@ export function RapportPDF({
                   const frac = (aIan + aMobAn) > 0 ? aIan / (aIan + aMobAn) : 1
                   const immoUtil = Math.round(totalUtil * frac)
                   const mobUtil = totalUtil - immoUtil
-                  return `Amortissements non déductibles au-delà des loyers nets (BOFiP). Utilisés sur ${input.revente.dureeDetentionAns} ans : ${eur(totalUtil)} — immeuble ${eur(immoUtil)} réintégré PV (LF 2025, cessions ≥ 15 fév. 2025)${mobUtil > 0 ? ` — mobilier ${eur(mobUtil)} à qualifier (notaire)` : ''}.`
+                  return `Amortissements non déductibles au-delà des loyers nets (BOFiP). Utilisés sur ${input.revente.dureeDetentionAns} ans : ${eur(totalUtil)} — immeuble ${eur(immoUtil)} réintégré PV (LF 2025, cessions à partir du 15 fév. 2025)${mobUtil > 0 ? ` — mobilier ${eur(mobUtil)} à qualifier (notaire)` : ''}.`
                 })()}
               </Text>
             </View>
@@ -2012,7 +2023,7 @@ export function RapportPDF({
                 <HypRow label="Effort mensuel à sortir de poche" value={eur(summary.effortEpargne)} highlight={summary.effortEpargne < 300} />
               </View>
               <View style={{ flex: 1 }}>
-                <HypRow label="Rentable sans revente ?" value={summary.dependanceRevente ? `Non — TRI hors revente négatif (${pct(summary.triSansRevente)})` : `Oui — TRI hors revente positif (${pct(summary.triSansRevente)})`} highlight={!summary.dependanceRevente} />
+                <HypRow label="Rentable sans revente ?" value={summary.dependanceRevente ? `Non — TRI hors revente ${triSansReventeLabel}` : `Oui — TRI hors revente ${triSansReventeLabelPositif}`} highlight={!summary.dependanceRevente} />
                 <HypRow label="Cash-flow cumulé sur la période" value={eur(summary.cashflowCumule)} highlight={summary.cashflowCumule > 0} />
                 <HypRow label="Durée de détention optimale" value={pointMort ? `${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}` : '—'} />
                 <HypRow label="Différé de remboursement" value={input.financement.differePeriode === 'aucun' ? 'Aucun' : `${input.financement.differePeriode} — ${input.financement.dureesDiffere} mois`} />
@@ -2102,11 +2113,11 @@ export function RapportPDF({
               })}
             </View>
 
-            {/* Test de cohérence moteur (CDC §6.5) : une variable censée impacter le TRI doit le faire */}
+            {/* Variable sans effet mesurable sur le TRI (ex. montant nul) : à signaler sans alarmer */}
             {sensibilite.filter(row => row.moins10 === row.central && row.plus10 === row.central).map((row, i) => (
-              <View key={i} style={{ marginTop: 6, padding: 6, backgroundColor: '#fef2f2', borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.red }}>
-                <Text style={{ fontSize: 7, color: '#7f1d1d' }}>
-                  Erreur moteur : la variation de « {row.variable} » ne modifie pas le TRI. Sensibilité non valide pour cette variable.
+              <View key={i} style={{ marginTop: 6, padding: 6, backgroundColor: '#f8fafc', borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.slate400 }}>
+                <Text style={{ fontSize: 7, color: COLORS.slate500 }}>
+                  Non applicable — « {row.variable} » est nul dans ce projet, une variation de ±10 % reste sans effet sur le TRI.
                 </Text>
               </View>
             ))}
@@ -2141,7 +2152,7 @@ export function RapportPDF({
                 <View style={{ flexDirection: 'row', gap: 16 }}>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Loyer minimum pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois (actuel : ${eur(input.location.loyerMensuelHC)}/mois)`} />
-                    <HypRow label="Prix max pour TRI ≥ 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                    <HypRow label="Prix max pour TRI >= 4 %" value={pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && summary.tri < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
                     <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -2436,8 +2447,12 @@ export function RapportPDF({
               {
                 label: 'Apport couvre les frais d\'acquisition',
                 valeur: `Apport ${eur(input.financement.apport)} / Frais ${eur(fraisAchat)}`,
-                statut: input.financement.apport >= fraisAchat ? 'OK' : 'Alerte',
-                note: input.financement.apport >= fraisAchat ? 'Apport suffisant pour les frais' : 'Apport insuffisant pour couvrir frais notaire + agence',
+                statut: input.financement.apport >= fraisAchat ? 'OK' : gapFinancement <= 0 ? 'Attention' : 'Alerte',
+                note: input.financement.apport >= fraisAchat
+                  ? 'Apport suffisant pour les frais'
+                  : gapFinancement <= 0
+                  ? 'Plan mathématiquement équilibré, mais apport insuffisant pour couvrir les frais d\'acquisition : le financement repose sur une prise en charge bancaire partielle des frais. Accord bancaire à confirmer.'
+                  : 'Apport insuffisant pour couvrir frais notaire + agence',
               },
               {
                 label: 'Rendement brut réaliste (entre 3 % et 15 %)',
@@ -2492,7 +2507,9 @@ export function RapportPDF({
                 note: input.financement.montantEmprunte <= input.acquisition.prixAchat
                   ? 'Emprunt proportionné au prix d\'achat'
                   : input.financement.montantEmprunte <= summary.coutTotalAcquisition
-                  ? 'Emprunt supérieur au prix d\'achat car financement des travaux. Vérifier accord bancaire et valeur de garantie.'
+                  ? (input.acquisition.travauxInitiaux > 0
+                    ? 'Emprunt supérieur au prix d\'achat car financement des travaux. Vérifier accord bancaire et valeur de garantie.'
+                    : 'Emprunt supérieur au prix d\'achat car financement partiel des frais annexes. Vérifier accord bancaire et valeur de garantie.')
                   : 'Financement incohérent : l\'emprunt dépasse le coût total du projet (prix + travaux + frais).',
               },
             ]
@@ -2515,7 +2532,7 @@ export function RapportPDF({
                   </View>
                   <View style={{ flex: 1.6, padding: 8, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red, alignItems: 'center' }}>
                     <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.red }}>{nbAlerte}</Text>
-                    <Text style={{ fontSize: 6.5, color: COLORS.red, textAlign: 'center' }}>{nbAlerte === 0 ? 'Aucune erreur bloquante' : nbAlerte === 1 ? 'erreur bloquante' : 'erreurs bloquantes'}</Text>
+                    <Text style={{ fontSize: 6.5, color: COLORS.red, textAlign: 'center' }}>{nbAlerte === 0 ? 'Aucune alerte forte' : nbAlerte === 1 ? 'alerte forte' : 'alertes fortes'}</Text>
                     <Text style={{ fontSize: 5.5, color: COLORS.slate500, textAlign: 'center', fontStyle: 'italic' }}>Fiabilité doc. : voir page suivante</Text>
                   </View>
                 </View>
