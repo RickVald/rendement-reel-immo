@@ -488,7 +488,7 @@ function calculerSensibilite(
     return calculerTRI(ap, 0, 0, r2, d2?.produitNetReventePotentiel ?? 0)
   }
 
-  return [
+  const rowsSensibilite: SensibiliteRow[] = [
     {
       variable: "Prix d'achat",
       moins10: calcPA(0.9),
@@ -526,13 +526,21 @@ function calculerSensibilite(
       central: triCentral,
       plus10: calc({ location: { ...input.location, vacanceLocativeMois: input.location.vacanceLocativeMois + 1 } }),
     },
-    {
+  ]
+
+  // Charges de copropriété : non pertinentes (et sans effet sur le TRI) si le bien
+  // n'est pas déclaré en copropriété (cf. cashflow.ts qui les ignore dans ce cas)
+  // ou si aucun montant n'est renseigné (variation ±10% de 0 = 0).
+  if (input.bien.copropriete && input.charges.chargesCoproAnnuelles > 0) {
+    rowsSensibilite.push({
       variable: 'Charges copropriété',
       moins10: calc({ charges: { ...input.charges, chargesCoproAnnuelles: input.charges.chargesCoproAnnuelles * 0.9 } }),
       central: triCentral,
       plus10: calc({ charges: { ...input.charges, chargesCoproAnnuelles: input.charges.chargesCoproAnnuelles * 1.1 } }),
-    },
-  ]
+    })
+  }
+
+  return rowsSensibilite
 }
 
 // ─── Stress tests ─────────────────────────────────────────────────────────────
@@ -991,8 +999,15 @@ export function validerAnalyse(a: import('./types').ProjectAnalysis): Validation
   }
 
   // Test 5 — Sensibilité : une variable censée impacter le TRI doit le faire (CDC §6.5)
+  // Exception : si le montant de base est nul, une variation de ±10 % vaut 0 et n'a
+  // logiquement aucun effet — ce n'est pas une anomalie de calcul.
+  const sensibiliteVariationNulleAttendue: Record<string, boolean> = {
+    'Travaux initiaux': input.acquisition.travauxInitiaux === 0,
+    'Charges copropriété': !input.bien.copropriete || input.charges.chargesCoproAnnuelles === 0,
+  }
   for (const row of sensibilite ?? []) {
     if (row.moins10 === row.central && row.plus10 === row.central) {
+      if (sensibiliteVariationNulleAttendue[row.variable]) continue
       errors.push(`Sensibilité non valide : la variation de "${row.variable}" ne modifie pas le TRI`)
     }
   }

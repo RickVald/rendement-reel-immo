@@ -219,6 +219,24 @@ console.log('\nTest 8 — Charges de copropriété non décomptées si "copropri
   )
 }
 
+// ─── Test 9 — Pas d'erreur de sensibilité hors copropriété ──────────────────
+console.log('\nTest 9 — Sensibilité "Charges copropriété" absente hors copropriété (pas d\'erreur bloquante)')
+{
+  const input: ProjectInput = {
+    ...DEFAULT_INPUT,
+    bien: { ...DEFAULT_INPUT.bien, copropriete: false },
+    charges: { ...DEFAULT_INPUT.charges, chargesCoproAnnuelles: 0 },
+  }
+  const a = analyser(input)
+  const v = validerAnalyse(a)
+  assert(!a.sensibilite?.some(r => r.variable === 'Charges copropriété'), 'ligne de sensibilité "Charges copropriété" absente quand copropriete = non')
+  assert(
+    !v.errors.some(e => e.toLowerCase().includes('sensibilité')),
+    'pas d\'erreur "Sensibilité non valide" hors copropriété',
+    v.errors.join(' | '),
+  )
+}
+
 // ─── Bilan ────────────────────────────────────────────────────────────────
 console.log(`\n${failures === 0 ? 'Tous les tests sont passés.' : `${failures} test(s) en échec.`}`)
 if (failures > 0) process.exit(1)
