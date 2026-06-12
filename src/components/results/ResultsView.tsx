@@ -42,6 +42,7 @@ const COULEUR_MAP = {
   yellow:  { bg: 'bg-yellow-50',  border: 'border-yellow-400',  text: 'text-yellow-800',  badge: 'bg-yellow-500',  bar: 'bg-yellow-500'  },
   orange:  { bg: 'bg-orange-50',  border: 'border-orange-400',  text: 'text-orange-800',  badge: 'bg-orange-500',  bar: 'bg-orange-500'  },
   red:     { bg: 'bg-red-50',     border: 'border-red-400',     text: 'text-red-800',     badge: 'bg-red-500',     bar: 'bg-red-500'     },
+  gray:    { bg: 'bg-slate-50',   border: 'border-slate-400',   text: 'text-slate-800',   badge: 'bg-slate-500',   bar: 'bg-slate-500'   },
 }
 
 const SCORE_ITEMS = [

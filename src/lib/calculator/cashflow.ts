@@ -184,8 +184,8 @@ export function genererTableauAnnuel(
     // Mise à jour suivi LMNP réel
     amortissementsReportesLMNP = impot.amortissementsReportes
     amortissementsCumulesUtilises += impot.amortissementsUtilises
-    // Fraction immo = amortImmoAn / (amortImmoAn + amortMobAn) — pour PV réintégration (LF 2025)
-    if (fiscalite.regime === 'lmnp_reel' && impot.amortissementsUtilises > 0) {
+    // Fraction immo = amortImmoAn / (amortImmoAn + amortMobAn) — pour PV réintégration (LF 2025 / VNC SCI IS)
+    if ((fiscalite.regime === 'lmnp_reel' || fiscalite.regime === 'sci_is') && impot.amortissementsUtilises > 0) {
       const baseImmo = coutTotalAcquisition * 0.85
       const amortImmoAn = fiscalite.dureeAmortissementImmo > 0 ? baseImmo / fiscalite.dureeAmortissementImmo : 0
       const amortMobAn = (fiscalite.amortissementMobilier ?? 0) > 0 && fiscalite.dureeAmortissementMobilier > 0
@@ -236,15 +236,17 @@ export function genererTableauAnnuel(
     // ── Valeur estimée du bien ──
     // Si l'utilisateur a saisi un prix de revente manuel, on interpole linéairement en log
     // (croissance constante) pour obtenir la valeur à chaque année intermédiaire.
+    // Base de projection : valeur du bien après travaux (prix d'achat + travaux initiaux),
+    // cohérente avec le coût total d'acquisition affiché par ailleurs.
+    const baseValeurBien = input.acquisition.prixAchat + input.acquisition.travauxInitiaux
     const valeurEstimee = (() => {
       if (revente.prixReventeManuel && revente.prixReventeManuel > 0 && revente.dureeDetentionAns > 0) {
-        const base = input.acquisition.prixAchat
         const cible = revente.prixReventeManuel
         const n = revente.dureeDetentionAns
-        const revaloImplicite = Math.pow(cible / base, 1 / n) - 1
-        return base * Math.pow(1 + revaloImplicite, annee)
+        const revaloImplicite = Math.pow(cible / baseValeurBien, 1 / n) - 1
+        return baseValeurBien * Math.pow(1 + revaloImplicite, annee)
       }
-      return input.acquisition.prixAchat * Math.pow(1 + revente.revalorisationAnnuelle, annee)
+      return baseValeurBien * Math.pow(1 + revente.revalorisationAnnuelle, annee)
     })()
 
     // ── Patrimoine net ──

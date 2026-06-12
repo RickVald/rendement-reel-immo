@@ -254,11 +254,30 @@ function lmnpReel(p: FiscaliteParams): ImpotAnnee {
   }
 }
 
-/** SCI IS : impôt sociétés 15% PME puis 25% */
+/**
+ * SCI IS : impôt sociétés 15% PME puis 25%.
+ *
+ * Contrairement à l'IR, l'IS impose la comptabilisation d'un amortissement
+ * (immeuble + mobilier, mêmes bases que le LMNP réel). Cet amortissement :
+ *  - réduit le résultat imposable (peut créer un déficit IS, reportable
+ *    indéfiniment — simplifié ici : base imposable plafonnée à 0, le déficit
+ *    n'est pas reporté sur les exercices suivants),
+ *  - réduit la valeur nette comptable (VNC) du bien, qui sert de base au
+ *    calcul de la plus-value de cession (cf. calculerDetailPlusValue).
+ */
 function sciIs(p: FiscaliteParams): ImpotAnnee {
+  const baseAmort = p.valeurImmeuble ?? (p.coutTotalAcquisition ?? 0) * 0.85
+  const amortImmo = p.dureeAmortissementImmo > 0 ? baseAmort / p.dureeAmortissementImmo : 0
+  const amortMobilier = p.amortissementMobilier
+    ? p.amortissementMobilier / (p.dureeAmortissementMobilier || 7)
+    : 0
+  const amortTheorique = amortImmo + amortMobilier
+
   const totalDeductions = p.chargesDeductibles + p.interets + p.travauxDeductibles
-  const resultat = p.loyersEncaisses - totalDeductions
-  const baseImposable = Math.max(0, resultat)
+  const resultatAvantAmort = p.loyersEncaisses - totalDeductions
+  const resultatApresAmort = resultatAvantAmort - amortTheorique
+
+  const baseImposable = Math.max(0, resultatApresAmort)
   // Taux réduit 15% jusqu'à 42 500€, 25% au-delà (2026)
   const ir =
     baseImposable <= 42500
@@ -267,10 +286,10 @@ function sciIs(p: FiscaliteParams): ImpotAnnee {
   return {
     revenuImposable: p.loyersEncaisses,
     chargesDeduites: totalDeductions,
-    amortissements: 0,
-    amortissementsUtilises: 0,
+    amortissements: amortTheorique,
+    amortissementsUtilises: amortTheorique,  // toujours comptabilisé, même s'il crée un déficit IS
     amortissementsReportes: 0,
-    deficitReporte: Math.min(0, resultat),
+    deficitReporte: Math.min(0, resultatApresAmort),
     deficitFoncierGenere: 0,
     deficitFoncierImpute: 0,
     baseImposable,
@@ -334,10 +353,12 @@ export function calculerDetailPlusValue(
   regime: string = 'autre'
 ): DetailPlusValue {
   const isLmnpReel = regime === 'lmnp_reel'
+  const isSciIs = regime === 'sci_is'
 
-  // Pour LMNP réel (cessions >= 15 fév. 2025) : réintégration des amortissements
+  // Pour LMNP réel (cessions >= 15 fév. 2025) et SCI IS : réintégration des amortissements
   // Prix de revient fiscal réduit = prix achat + frais - amortissements déduits
-  const amortissementsReintegres = isLmnpReel ? amortissementsCumulesUtilises : 0
+  // (pour la SCI IS, ce prix de revient réduit correspond à la VNC du bien)
+  const amortissementsReintegres = (isLmnpReel || isSciIs) ? amortissementsCumulesUtilises : 0
   const prixRevientFiscal = prixAchat + fraisAcquisition - amortissementsReintegres
 
   const plusValueBrute = prixRevente - fraisRevente - prixRevientFiscal
@@ -349,7 +370,33 @@ export function calculerDetailPlusValue(
       abattementIRPct: 0, abattementPSPct: 0,
       pvImposableIR: 0, pvImposablePS: 0,
       ir: 0, ps: 0, total: 0,
-      regime: isLmnpReel ? 'LMNP réel' : 'PP',
+      regime: isLmnpReel ? 'LMNP réel' : isSciIs ? 'SCI IS' : 'PP',
+    }
+  }
+
+  // SCI IS : la plus-value de cession (prix de vente - VNC) est un produit
+  // exceptionnel imposé à l'IS (15 % / 25 %), sans abattement pour durée de
+  // détention (ces abattements sont propres à l'IR des particuliers).
+  if (isSciIs) {
+    const isPV =
+      plusValueBrute <= 42500
+        ? plusValueBrute * 0.15
+        : 42500 * 0.15 + (plusValueBrute - 42500) * 0.25
+    return {
+      prixRevente,
+      fraisRevente: Math.round(fraisRevente),
+      prixRevientFiscal: Math.round(prixRevientFiscal),
+      plusValueBrute: Math.round(plusValueBrute),
+      amortissementsReintegres: Math.round(amortissementsReintegres),
+      abattementIRPct: 0,
+      abattementPSPct: 0,
+      pvImposableIR: Math.round(plusValueBrute),
+      pvImposablePS: 0,
+      ir: Math.round(isPV),
+      ps: 0,
+      total: Math.round(isPV),
+      regime: 'SCI IS',
+      note: `Plus-value = prix de vente − VNC (${Math.round(amortissementsReintegres).toLocaleString()} EUR d'amortissements déduits), imposée à l'IS (15 %/25 %), sans abattement pour durée de détention.`,
     }
   }
 

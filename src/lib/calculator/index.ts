@@ -236,6 +236,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     effortEpargne: Math.round(effortEpargne),
     prixMaximum: prixMaxResult.prixMaximum,
     dependanceRevente,
+    triSansRevente,
     scoreRisqueDpe,
     avantageTheorique: Math.round(rows.reduce((s, r) => s + r.avantageTheorique, 0)),
     avantageUtilise: Math.round(rows.reduce((s, r) => s + r.avantageUtilise, 0)),
@@ -339,7 +340,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     }
   })()
 
-  return {
+  const analysis = {
     input,
     creditSchedule,
     summary,
@@ -360,6 +361,24 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     avantageIntegreDansTRI: integrerAvantage,
     modeIndicatif,
   }
+
+  // 18. Statut global — un projet dont les contrôles de cohérence internes
+  // détectent une erreur bloquante (P0) ne peut pas afficher un verdict
+  // positif : le résultat n'est pas exploitable pour une décision d'arbitrage.
+  const coherence = validerAnalyse(analysis)
+  if (!coherence.passed) {
+    analysis.verdict = {
+      ...verdict,
+      label: "Non arbitrable en l'état",
+      couleur: 'gray',
+      alertes: [
+        `Incohérences de calcul détectées — ce rapport ne peut pas être utilisé en l'état pour une décision d'arbitrage : ${coherence.errors.join(' / ')}`,
+        ...verdict.alertes,
+      ],
+    }
+  }
+
+  return analysis
 }
 
 // ─── Comparaison régimes fiscaux ─────────────────────────────────────────────
@@ -495,10 +514,17 @@ function calculerSensibilite(
       plus10: calc({ acquisition: { ...input.acquisition, travauxInitiaux: input.acquisition.travauxInitiaux * 1.1 } }),
     },
     {
+      // Si un prix de revente manuel est saisi, il prime sur le taux de revalorisation
+      // dans le calcul de la valeur estimée (cf. cashflow.ts) : il faut donc le faire
+      // varier directement pour que la sensibilité ait un effet sur le TRI/VAN.
       variable: 'Prix de revente',
-      moins10: calc({ revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle - 0.02 } }),
+      moins10: (input.revente.prixReventeManuel && input.revente.prixReventeManuel > 0)
+        ? calc({ revente: { ...input.revente, prixReventeManuel: input.revente.prixReventeManuel * 0.9 } })
+        : calc({ revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle - 0.02 } }),
       central: triCentral,
-      plus10: calc({ revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle + 0.02 } }),
+      plus10: (input.revente.prixReventeManuel && input.revente.prixReventeManuel > 0)
+        ? calc({ revente: { ...input.revente, prixReventeManuel: input.revente.prixReventeManuel * 1.1 } })
+        : calc({ revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle + 0.02 } }),
     },
     {
       variable: 'Vacance locative',
@@ -539,7 +565,11 @@ function calculerStressTests(
   const triTravaux = calculerTRI(ap2, 0, 0, rows2, rows2[rows2.length - 1]?.produitNetReventePotentiel ?? 0)
 
   // Revente 10% sous hypothèse
-  const newInputRevente = { ...input, revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle - 0.01 } }
+  // Si un prix de revente manuel est saisi, c'est lui qui pilote la valeur estimée
+  // (cf. cashflow.ts) — il faut donc le faire varier directement.
+  const newInputRevente = (input.revente.prixReventeManuel && input.revente.prixReventeManuel > 0)
+    ? { ...input, revente: { ...input.revente, prixReventeManuel: input.revente.prixReventeManuel * 0.9 } }
+    : { ...input, revente: { ...input.revente, revalorisationAnnuelle: input.revente.revalorisationAnnuelle - 0.01 } }
   const rows3 = genererTableauAnnuel(newInputRevente, creditSchedule.tableau, coutTotal)
   const van3 = calculerVAN(apportInitial, 0, 0, rows3, rows3[rows3.length - 1]?.produitNetReventePotentiel ?? 0, input.revente.tauxActualisation)
 

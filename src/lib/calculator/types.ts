@@ -367,6 +367,7 @@ export interface SummaryKPIs {
   effortEpargne: number       // |cashflow négatif mensuel moyen|
   prixMaximum: number
   dependanceRevente: boolean   // TRI négatif sans revente
+  triSansRevente: number       // TRI calculé hors produit de revente
   scoreRisqueDpe: number       // 0-100
   // Avantage fiscal agrégé sur la durée de détention
   avantageTheorique: number    // cumul réductions d'impôt théoriques (hors plafonnement)
@@ -413,6 +414,7 @@ export type VerdictLabel =
   | 'Projet non rentable aux hypothèses saisies'
   | 'Projet à éviter sauf forte négociation'
   | 'Projet impossible à louer sans travaux DPE'
+  | "Non arbitrable en l'état"
 
 export interface Verdict {
   label: VerdictLabel
@@ -426,7 +428,7 @@ export interface Verdict {
     risqueDpe: number           // /10
     dependanceRevente: number   // /5
   }
-  couleur: 'emerald' | 'green' | 'yellow' | 'orange' | 'red'
+  couleur: 'emerald' | 'green' | 'yellow' | 'orange' | 'red' | 'gray'
   alertes: string[]
   recommandations: string[]
 }

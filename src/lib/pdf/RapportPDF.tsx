@@ -209,7 +209,7 @@ export function RapportPDF({
               { q: 'Rentabilité patrimoniale globale (TRI / VAN) ?', v: `TRI ${pct(summary.tri)} — VAN ${eur(summary.van)} — ${summary.tri >= 0.04 ? 'rentabilité acceptable' : 'insuffisant au regard du risque'}`, ok: summary.tri >= 0.04 && summary.van > 0 },
               { q: 'Le TRI couvre-t-il le risque immobilier (>= 4 %) ?', v: pct(summary.tri), ok: summary.tri >= 0.04 },
               { q: 'La VAN est-elle positive ?',              v: eur(summary.van), ok: summary.van > 0 },
-              { q: 'Le projet est-il rentable sans aucune revente ?', v: summary.dependanceRevente ? `Non — flux cumulés négatifs (${eur(summary.cashflowCumule)})` : 'Oui — cash-flow cumulé positif sans revente', ok: !summary.dependanceRevente },
+              { q: 'Le projet est-il rentable sans aucune revente ?', v: summary.dependanceRevente ? `Non — TRI hors revente négatif (${pct(summary.triSansRevente)})` : `Oui — TRI hors revente positif (${pct(summary.triSansRevente)})`, ok: !summary.dependanceRevente },
               { q: 'L\'exploitation locative couvre-t-elle les charges hors crédit ?', v: (summary.rendementNetNet > 0) ? 'Oui — avant effet du financement' : 'Non — rendement net-net négatif', ok: summary.rendementNetNet > 0 },
               { q: 'Le DPE crée-t-il un risque réglementaire ?', v: isFG ? `Oui — DPE ${input.bien.dpe}, risque location 2028` : `Non — DPE ${input.bien.dpe} conforme`, ok: !isFG },
               { q: 'L\'effort mensuel est-il supportable (< 300 €) ?', v: `${eur(summary.effortEpargne)}/mois`, ok: summary.effortEpargne < 300 },
@@ -251,7 +251,9 @@ export function RapportPDF({
                 <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: '#1e3a8a', marginBottom: 4 }}>{eur(prixMax.prixMaximum)}</Text>
                 <Text style={{ fontSize: 8, color: '#3730a3' }}>Pour atteindre : {prixMax.objectifCible}</Text>
                 <Text style={{ fontSize: 8, color: '#6b7280', marginTop: 4 }}>
-                  Décote nécessaire : {eur(prixMax.negociationEuros)} ({pct(prixMax.negociationPct, 1)} du prix demandé)
+                  {prixMax.negociationEuros > 0
+                    ? `Décote nécessaire : ${eur(prixMax.negociationEuros)} (${pct(prixMax.negociationPct, 1)} du prix demandé)`
+                    : `Marge de sécurité : ${eur(Math.abs(prixMax.negociationEuros))} (${pct(Math.abs(prixMax.negociationPct), 1)} au-dessus du prix demandé)`}
                 </Text>
               </View>
 
@@ -327,7 +329,9 @@ export function RapportPDF({
               {
                 arg: `"Prix de marché : ${eur(input.acquisition.prixAchat)}"`,
                 reel: `Prix cible pour objectif rentabilité : ${eur(prixMax.prixMaximum)}`,
-                ecart: `Décote nécessaire : ${pct(prixMax.negociationPct, 1)}`,
+                ecart: prixMax.negociationPct > 0
+                  ? `Décote nécessaire : ${pct(prixMax.negociationPct, 1)}`
+                  : `Marge de sécurité : +${pct(Math.abs(prixMax.negociationPct), 1)}`,
                 bad: prixMax.negociationPct > 0.05,
               },
               {
@@ -338,13 +342,19 @@ export function RapportPDF({
               },
               {
                 arg: '"Projet auto-financé"',
+                reel: summary.cashflowMensuelMoyen < 0
+                  ? `Faux — effort d'épargne de ${eur(summary.effortEpargne)}/mois. Cash-flow cumulé sur la période : ${eur(summary.cashflowCumule)}.`
+                  : `Vrai — le projet génère un cash-flow positif chaque mois (${sign(summary.cashflowMensuelMoyen)}/mois). Cash-flow cumulé sur la période : ${eur(summary.cashflowCumule)}.`,
+                ecart: summary.cashflowMensuelMoyen < 0 ? 'Effort mensuel' : 'Autofinancé',
+                bad: summary.cashflowMensuelMoyen < 0,
+              },
+              {
+                arg: '"Rentable même sans revente"',
                 reel: summary.dependanceRevente
-                  ? `Faux — effort d'épargne de ${eur(summary.effortEpargne)}/mois. Projet dépendant de la revente : sans plus-value, le cash-flow cumulé reste négatif (${eur(summary.cashflowCumule)}).`
-                  : summary.cashflowMensuelMoyen < 0
-                  ? `Partiel — effort de ${eur(summary.effortEpargne)}/mois. L'exploitation hors crédit est positive, mais le remboursement crée un cash-flow négatif.`
-                  : `Vrai — le projet génère un cash-flow positif chaque mois (${sign(summary.cashflowMensuelMoyen)}/mois).`,
-                ecart: summary.dependanceRevente ? 'Non autofinancé' : summary.cashflowMensuelMoyen < 0 ? 'Effort mensuel' : 'Autofinancé',
-                bad: summary.dependanceRevente || summary.cashflowMensuelMoyen < 0,
+                  ? `Faux — TRI hors revente négatif (${pct(summary.triSansRevente)}). La rentabilité du projet dépend de la plus-value à la revente.`
+                  : `Vrai — TRI hors revente positif (${pct(summary.triSansRevente)}). Le projet reste rentable même sans tenir compte de la revente.`,
+                ecart: summary.dependanceRevente ? 'Dépendant de la revente' : 'Indépendant de la revente',
+                bad: summary.dependanceRevente,
               },
               ...(isFG ? [{
                 arg: `"DPE ${input.bien.dpe} gérable avec des travaux"`,
@@ -540,7 +550,7 @@ export function RapportPDF({
                 <View style={[S.card, { marginBottom: 12 }]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
                     <View style={{ alignItems: 'center', flex: 1 }}>
-                      <Text style={{ fontSize: 22, fontFamily: 'Arial', fontWeight: 'bold', color: verdict.couleur === 'emerald' ? COLORS.emerald : verdict.couleur === 'red' ? COLORS.red : COLORS.amber }}>{verdict.score}</Text>
+                      <Text style={{ fontSize: 22, fontFamily: 'Arial', fontWeight: 'bold', color: verdict.couleur === 'emerald' ? COLORS.emerald : verdict.couleur === 'red' || verdict.couleur === 'gray' ? COLORS.red : COLORS.amber }}>{verdict.score}</Text>
                       <Text style={{ fontSize: 7, color: COLORS.slate500 }}>Score rentabilité / 100</Text>
                     </View>
                     <View style={{ width: 1, backgroundColor: COLORS.slate200 }} />
@@ -667,6 +677,12 @@ export function RapportPDF({
               </View>
             ))}
           </View>
+          <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: 6 }}>
+            Base de projection de la valeur de revente : prix d&apos;achat + travaux initiaux = {eur(input.acquisition.prixAchat + input.acquisition.travauxInitiaux)}, revalorisée à {pct(input.revente.revalorisationAnnuelle)}/an sur {input.revente.dureeDetentionAns} ans.
+            {input.revente.prixReventeManuel && input.revente.prixReventeManuel > 0
+              ? ` Prix de revente saisi manuellement : ${eur(input.revente.prixReventeManuel)} (revalorisation implicite recalculée à partir de cette base).`
+              : ''}
+          </Text>
 
         </View>
         <PageFooter />
@@ -1613,8 +1629,13 @@ export function RapportPDF({
               input.acquisition.prixAchat, prixRevente, fraisAcq, fraisVente,
               duree, input.location.type, amortsCumules, 'lmnp_reel'  // immo-only
             )
+            const detailSciIs = calculerDetailPlusValue(
+              input.acquisition.prixAchat, prixRevente, fraisAcq, fraisVente,
+              duree, input.location.type, amortsCumules, 'sci_is'  // immo-only (VNC)
+            )
             const isLmnpReel = input.fiscalite.regime === 'lmnp_reel'
-            const detailApplicable = isLmnpReel ? detailLMNP : detailPP
+            const isSciIs = input.fiscalite.regime === 'sci_is'
+            const detailApplicable = isLmnpReel ? detailLMNP : isSciIs ? detailSciIs : detailPP
             const capitalRestant = lastRow.capitalRestantDu
             const produitNet = prixRevente - fraisVente - detailApplicable.total - capitalRestant
             const cashflowCumul = lastRow.cashflowCumule
@@ -1635,21 +1656,29 @@ export function RapportPDF({
                       ['- Frais de vente (' + (input.revente.fraisVentePct * 100).toFixed(1) + ' %)', '- ' + eur(fraisVente), false],
                       isLmnpReel
                         ? ['- Prix de revient fiscal\n  (achat + frais admissibles + travaux − amorts réintégrés)', '- ' + eur(detailLMNP.prixRevientFiscal), false]
+                        : isSciIs
+                        ? ['- Valeur nette comptable (VNC)\n  (achat + frais admissibles + travaux − amortissements)', '- ' + eur(detailSciIs.prixRevientFiscal), false]
                         : ['- Prix de revient fiscal (achat + frais admissibles + travaux)', '- ' + eur(detailPP.prixRevientFiscal), false],
-                      ['= Plus-value brute imposable', eur(detailApplicable.plusValueBrute), true],
-                      ...(isLmnpReel && amortsCumules > 0 ? [
-                        [`  dont amortissements réintégrés — immeuble (LF 2025)${amortsCumulesMob > 0 ? ` / mobilier ${eur(amortsCumulesMob)} non inclus (à qualifier)` : ''}`, eur(amortsCumules), false],
+                      [isSciIs ? '= Plus-value de cession imposable à l\'IS' : '= Plus-value brute imposable', eur(detailApplicable.plusValueBrute), true],
+                      ...((isLmnpReel || isSciIs) && amortsCumules > 0 ? [
+                        [`  dont amortissements réintégrés — immeuble${isLmnpReel ? ' (LF 2025)' : ' (VNC)'}${amortsCumulesMob > 0 ? ` / mobilier ${eur(amortsCumulesMob)} non inclus (à qualifier)` : ''}`, eur(amortsCumules), false],
                       ] as [string,string,boolean][] : []),
                       ['', '', false],
-                      ['Abattement IR (' + (detailApplicable.abattementIRPct * 100).toFixed(0) + ' %)', '- ' + eur(Math.round(detailApplicable.plusValueBrute * detailApplicable.abattementIRPct)), false],
-                      ['PV imposable IR', eur(detailApplicable.pvImposableIR), false],
-                      ['IR (taux 19 % forfaitaire)', '- ' + eur(detailApplicable.ir), false],
-                      ['', '', false],
-                      ['Abattement PS (' + (detailApplicable.abattementPSPct * 100).toFixed(1) + ' %)', '- ' + eur(Math.round(detailApplicable.plusValueBrute * detailApplicable.abattementPSPct)), false],
-                      ['PV imposable PS', eur(detailApplicable.pvImposablePS), false],
-                      ['Prélèvements sociaux (17,2 %)', '- ' + eur(detailApplicable.ps), false],
-                      ['', '', false],
-                      ['= Fiscalité totale sur plus-value', eur(detailApplicable.total), true],
+                      ...(isSciIs ? [
+                        ['IS sur plus-value (15 % jusqu\'à 42 500 €, 25 % au-delà)', '- ' + eur(detailSciIs.ir), false],
+                        ['', '', false],
+                        ['= Fiscalité totale sur plus-value', eur(detailApplicable.total), true],
+                      ] as [string,string,boolean][] : [
+                        ['Abattement IR (' + (detailApplicable.abattementIRPct * 100).toFixed(0) + ' %)', '- ' + eur(Math.round(detailApplicable.plusValueBrute * detailApplicable.abattementIRPct)), false],
+                        ['PV imposable IR', eur(detailApplicable.pvImposableIR), false],
+                        ['IR (taux 19 % forfaitaire)', '- ' + eur(detailApplicable.ir), false],
+                        ['', '', false],
+                        ['Abattement PS (' + (detailApplicable.abattementPSPct * 100).toFixed(1) + ' %)', '- ' + eur(Math.round(detailApplicable.plusValueBrute * detailApplicable.abattementPSPct)), false],
+                        ['PV imposable PS', eur(detailApplicable.pvImposablePS), false],
+                        ['Prélèvements sociaux (17,2 %)', '- ' + eur(detailApplicable.ps), false],
+                        ['', '', false],
+                        ['= Fiscalité totale sur plus-value', eur(detailApplicable.total), true],
+                      ] as [string,string,boolean][]),
                     ] as [string, string, boolean][]).map(([label, val, bold], i) => (
                       label === '' ? <View key={i} style={{ height: 4 }} /> :
                       <View key={i} style={rowStyle}>
@@ -1664,6 +1693,11 @@ export function RapportPDF({
                         <View style={rowStyle}><Text style={labelStyle(false)}>Avec réintégration (Loi de finances 2025) :</Text><Text style={valStyle(false, COLORS.amber)}>{eur(detailLMNP.total)}</Text></View>
                         <View style={rowStyle}><Text style={labelStyle(true)}>Surcoût fiscal lié aux amortissements :</Text><Text style={valStyle(true, COLORS.amber)}>+{eur(detailLMNP.total - detailPP.total)}</Text></View>
                       </View>
+                    )}
+                    {isSciIs && (
+                      <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 6 }}>
+                        En SCI à l&apos;IS, la plus-value de cession est un produit exceptionnel imposé à l&apos;IS au même barème que le résultat d&apos;exploitation, sans abattement pour durée de détention (contrairement à l&apos;IR des particuliers).
+                      </Text>
                     )}
                   </View>
 
@@ -1871,7 +1905,8 @@ export function RapportPDF({
                 <HypRow label="Effort mensuel à sortir de poche" value={eur(summary.effortEpargne)} highlight={summary.effortEpargne < 300} />
               </View>
               <View style={{ flex: 1 }}>
-                <HypRow label="Rentable sans revente ?" value={summary.dependanceRevente ? `Non — CF cumulé ${eur(summary.cashflowCumule)} hors revente` : 'Oui — cash-flow cumulé positif sans revente'} highlight={!summary.dependanceRevente} />
+                <HypRow label="Rentable sans revente ?" value={summary.dependanceRevente ? `Non — TRI hors revente négatif (${pct(summary.triSansRevente)})` : `Oui — TRI hors revente positif (${pct(summary.triSansRevente)})`} highlight={!summary.dependanceRevente} />
+                <HypRow label="Cash-flow cumulé sur la période" value={eur(summary.cashflowCumule)} highlight={summary.cashflowCumule > 0} />
                 <HypRow label="Durée de détention optimale" value={pointMort ? `${pointMort.dureeDetentionOptimale} ans` : '—'} />
                 <HypRow label="Différé de remboursement" value={input.financement.differePeriode === 'aucun' ? 'Aucun' : `${input.financement.differePeriode} — ${input.financement.dureesDiffere} mois`} />
               </View>

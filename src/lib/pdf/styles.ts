@@ -503,6 +503,7 @@ export function verdictColors(couleur: string) {
     case 'yellow':  return { bg: '#fefce8', border: '#eab308', text: '#713f12' }
     case 'orange':  return { bg: '#fff7ed', border: '#f97316', text: '#7c2d12' }
     case 'red':     return { bg: '#fef2f2', border: '#ef4444', text: '#7f1d1d' }
+    case 'gray':    return { bg: '#f1f5f9', border: '#64748b', text: '#1e293b' }
     default:        return { bg: '#f8fafc', border: '#64748b', text: '#1e293b' }
   }
 }
