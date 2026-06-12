@@ -230,18 +230,22 @@ export function genererTableauAnnuel(
     const irDisponible = fiscalite.irBrutAnnuel !== undefined
       ? Math.max(0, fiscalite.irBrutAnnuel - (fiscalite.nichesDejaConsommees ?? 0))
       : Infinity
-    // avantageUtilise : portion de l'avantage réellement absorbable par l'IR disponible.
-    // Calculé à titre indicatif même si l'avantage n'est pas (encore) intégré au TRI/VAN
-    // (integrerAvantage=false), pour rester cohérent avec le tableau d'éligibilité.
+    // avantageAbsorbableSiEligible : portion de l'avantage qui serait absorbable par l'IR
+    // disponible SI le dispositif était intégré au rapport. Calculé à titre indicatif même
+    // si l'avantage n'est pas (encore) intégré au TRI/VAN (integrerAvantage=false), pour
+    // rester cohérent avec le tableau d'éligibilité — mais ne doit jamais être présenté
+    // comme "utilisé" dans ce cas (cf. avantageIntegre ci-dessous).
     // Jeanbrun : déduction non plafonnée par l'IR/niches (cf. checkJeanbrun, eligibilite.ts).
-    const avantageUtilise = isDeductionDispositif
+    const avantageAbsorbableSiEligible = isDeductionDispositif
       ? avantageTheorique
       : (isFinite(irDisponible) ? Math.min(avantageTheorique, Math.max(0, irDisponible)) : avantageTheorique)
-    const avantagePerdou = Math.max(0, avantageTheorique - avantageUtilise)
+    const avantagePerdou = Math.max(0, avantageTheorique - avantageAbsorbableSiEligible)
 
     // L'avantage n'impacte le cash-flow/impôt que si integrerAvantage est vrai
     // (éligibilité confirmée, ou mode indicatif explicite).
-    const avantageApplique = integrerAvantage ? avantageUtilise : 0
+    const avantageApplique = integrerAvantage ? avantageAbsorbableSiEligible : 0
+    // avantageIntegre : montant effectivement intégré au cash-flow/TRI/VAN de ce rapport.
+    const avantageIntegre = avantageApplique
 
     // Jeanbrun : l'avantage est une déduction déjà intégrée dans impot.total via
     // jeanbrunAmortissement — ne pas la soustraire une 2e fois.
@@ -330,7 +334,8 @@ export function genererTableauAnnuel(
       deficitFoncierHorsInterets: Math.round(impot.deficitFoncierHorsInterets),
       deficitFoncierCumul: Math.round(deficitFoncierRestant),
       avantageTheorique: Math.round(avantageTheorique),
-      avantageUtilise: Math.round(avantageUtilise),
+      avantageAbsorbableSiEligible: Math.round(avantageAbsorbableSiEligible),
+      avantageIntegre: Math.round(avantageIntegre),
       avantagePerdou: Math.round(avantagePerdou),
       impots: Math.round(impotsNets),
       cashflowAnnuel: Math.round(cashflowAnnuel),

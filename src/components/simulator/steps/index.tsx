@@ -1344,6 +1344,10 @@ function DispositifFields({
             hint="Plafonds définis selon le niveau de loyer choisi ci-dessus et la zone géographique"
             checked={params.jeanbrun_loyerRespectePlafond}
             onChange={v => setP({ jeanbrun_loyerRespectePlafond: v })} />
+          <Toggle label="La date d'acquisition réelle est confirmée (entre le 21/02/2026 et le 31/12/2028)"
+            hint="Sans confirmation, l'acquisition est supposée avoir lieu à la date du jour — à vérifier"
+            checked={params.jeanbrun_dateAcquisitionConfirmee}
+            onChange={v => setP({ jeanbrun_dateAcquisitionConfirmee: v })} />
         </>
       )}
     </div>

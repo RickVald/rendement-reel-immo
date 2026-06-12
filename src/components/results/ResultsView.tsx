@@ -829,7 +829,7 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
                   <Td neg bold>{fmt(row.impots)} €</Td>
                   {showDeficit   && <Td color={row.deficitFoncierImpute > 0 ? 'emerald' : 'slate'}>{row.deficitFoncierImpute > 0 ? `−${fmt(row.deficitFoncierImpute)} €` : '—'}</Td>}
                   {showDeficit   && <Td color={row.deficitFoncierCumul > 0 ? 'emerald' : 'slate'}>{row.deficitFoncierCumul > 0 ? `${fmt(row.deficitFoncierCumul)} €` : '—'}</Td>}
-                  {showReduction && <Td color={row.avantageUtilise > 0 ? 'emerald' : 'slate'}>{row.avantageUtilise > 0 ? `−${fmt(row.avantageUtilise)} €` : '—'}</Td>}
+                  {showReduction && <Td color={row.avantageIntegre > 0 ? 'emerald' : 'slate'}>{row.avantageIntegre > 0 ? `−${fmt(row.avantageIntegre)} €` : '—'}</Td>}
                 </tr>
               ))}
               <tr className="bg-slate-100 font-semibold border-t-2 border-slate-300">
@@ -843,7 +843,7 @@ function TabFiscaliteDette({ analysis }: { analysis: ProjectAnalysis }) {
                 <Td bold neg>{fmt(totalImpots)} €</Td>
                 {showDeficit   && <Td bold color="emerald">{fmt(yearlyTable.reduce((s,r) => s+(r.deficitFoncierImpute??0), 0))} €</Td>}
                 {showDeficit   && <Td bold color="emerald">{fmt(yearlyTable[yearlyTable.length - 1]?.deficitFoncierCumul ?? 0)} € (fin)</Td>}
-                {showReduction && <Td bold color="emerald">−{fmt(yearlyTable.reduce((s,r) => s+(r.avantageUtilise??0), 0))} €</Td>}
+                {showReduction && <Td bold color="emerald">−{fmt(yearlyTable.reduce((s,r) => s+(r.avantageIntegre??0), 0))} €</Td>}
               </tr>
             </tbody>
           </table>

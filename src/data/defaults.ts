@@ -97,6 +97,7 @@ export const DEFAULT_INPUT: ProjectInput = {
       jeanbrun_batimentCollectif: false,
       jeanbrun_residencePrincipaleLocataire: false,
       jeanbrun_loyerRespectePlafond: false,
+      jeanbrun_dateAcquisitionConfirmee: false,
     },
   },
   revente: {

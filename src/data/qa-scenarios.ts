@@ -208,6 +208,7 @@ export const QA_SCENARIOS: QaScenario[] = [
           jeanbrun_batimentCollectif: true,
           jeanbrun_residencePrincipaleLocataire: true,
           jeanbrun_loyerRespectePlafond: true,
+          jeanbrun_dateAcquisitionConfirmee: true,
         },
       },
       revente: { modeSimulationAvantage: 'indicatif' },

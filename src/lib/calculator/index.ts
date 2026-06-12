@@ -233,6 +233,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     cashflowCumule: Math.round(cashflowCumule),
     tri,
     triNonSignificatif: apportInitial <= 0,
+    triDisplay: apportInitial <= 0 ? 'Non significatif' : `${(tri * 100).toFixed(2)} %`,
     van,
     effortEpargne: Math.round(effortEpargne),
     prixMaximum: prixMaxResult.prixMaximum,
@@ -240,7 +241,8 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     triSansRevente,
     scoreRisqueDpe,
     avantageTheorique: Math.round(rows.reduce((s, r) => s + r.avantageTheorique, 0)),
-    avantageUtilise: Math.round(rows.reduce((s, r) => s + r.avantageUtilise, 0)),
+    avantageAbsorbableSiEligible: Math.round(rows.reduce((s, r) => s + r.avantageAbsorbableSiEligible, 0)),
+    avantageIntegreRapport: Math.round(rows.reduce((s, r) => s + r.avantageIntegre, 0)),
     avantagePerdou: Math.round(rows.reduce((s, r) => s + r.avantagePerdou, 0)),
   }
 

@@ -321,8 +321,10 @@ function checkJeanbrun(input: ProjectInput): EligibilityResult {
     conditions.push(bloquant('date_acquisition', 'Dispositif pas encore en vigueur',
       'Le dispositif Relance logement (LF 2026) s\'applique aux acquisitions à compter du 21 février 2026.'))
   } else if (ANNEE_COURANTE <= 2028) {
-    conditions.push(aVerifier('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie)`,
-      'À confirmer avec la date réelle d\'acquisition : le dispositif Relance logement est éligible du 21/02/2026 au 31/12/2028.'))
+    conditions.push(dp.jeanbrun_dateAcquisitionConfirmee
+      ? ok('date_acquisition', 'Date d\'acquisition confirmée — comprise dans la période éligible (21/02/2026 - 31/12/2028)')
+      : aVerifier('date_acquisition', `Acquisition supposée en ${ANNEE_COURANTE} (date du jour, aucune date saisie)`,
+          'À confirmer avec la date réelle d\'acquisition : le dispositif Relance logement est éligible du 21/02/2026 au 31/12/2028.'))
   } else {
     conditions.push(bloquant('date_acquisition', 'Période éligible expirée (après 31/12/2028)'))
   }

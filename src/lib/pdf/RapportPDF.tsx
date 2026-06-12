@@ -672,6 +672,7 @@ export function RapportPDF({
                 </Text>
                 <ComparaisonPlacementsChart
                   tri={summary.tri}
+                  triNonSignificatif={triNonSignificatif}
                   rendementAlternatif={input.revente.rendementAlternatif}
                   cashNecessaire={summary.cashTotalNecessaire}
                   effortEpargne={summary.effortEpargne}
@@ -730,7 +731,7 @@ export function RapportPDF({
                   <Text style={[S.scenarioLabel, { color: colors.text }]}>{sc.label}</Text>
                   <Text style={[S.scenarioVal, { color: colors.text }]}>{sign(sc.cashflowMensuel ?? 0)}</Text>
                   <Text style={S.scenarioSub}>CF mensuel</Text>
-                  <Text style={[S.scenarioVal, { color: colors.text, fontSize: 10 }]}>{pct(sc.tri)}</Text>
+                  <Text style={[S.scenarioVal, { color: colors.text, fontSize: 10 }]}>{triNonSignificatif ? 'n/a' : pct(sc.tri)}</Text>
                   <Text style={S.scenarioSub}>TRI</Text>
                   <Text style={[S.scenarioVal, { color: colors.text, fontSize: 10 }]}>{pct(sc.rendementNetNet)}</Text>
                   <Text style={S.scenarioSub}>Rdt net-net (coût total)</Text>
@@ -940,7 +941,7 @@ export function RapportPDF({
                     </View>
                     <Text style={[S.tableCell, { color: COLORS.red, fontFamily: 'Arial', fontWeight: 'bold' }]}>{eur(r.impotsCumules20ans)}</Text>
                     <Text style={[S.tableCell, r.cashflowMensuelMoyen >= 0 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{sign(r.cashflowMensuelMoyen)}</Text>
-                    <Text style={[S.tableCell, r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(r.tri)}</Text>
+                    <Text style={[S.tableCell, !triNonSignificatif && r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{triNonSignificatif ? 'n/a' : pct(r.tri)}</Text>
                     <Text style={[S.tableCell, r.van > 0 ? S.tableCellGood : S.tableCellBad]}>{eur(r.van)}</Text>
                     <Text style={[S.tableCell, r.rendementNetNet >= 0.03 ? S.tableCellGood : S.tableCellBad]}>{pct(r.rendementNetNet)}</Text>
                     <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6, color: verdictColor }]}>
@@ -1223,7 +1224,8 @@ export function RapportPDF({
         const tc = STATUS_TEXT[eligibilite.status] ?? '#475569'
         const bc = STATUS_BORDER[eligibilite.status] ?? '#cbd5e1'
         const avantageTheorique = yearlyTable.reduce((s, r) => s + (r.avantageTheorique ?? 0), 0)
-        const avantageUtilise   = yearlyTable.reduce((s, r) => s + (r.avantageUtilise   ?? 0), 0)
+        const avantageAbsorbableSiEligible = yearlyTable.reduce((s, r) => s + (r.avantageAbsorbableSiEligible ?? 0), 0)
+        const avantageIntegreRapport = yearlyTable.reduce((s, r) => s + (r.avantageIntegre ?? 0), 0)
         const avantagePerdou    = yearlyTable.reduce((s, r) => s + (r.avantagePerdou    ?? 0), 0)
         return (
           <Page size="A4" style={S.page}>
@@ -1281,32 +1283,39 @@ export function RapportPDF({
                 </View>
               </View>
 
-              {/* Tableau avantage théorique vs utilisable vs perdu */}
-              {(avantageTheorique > 0 || avantageUtilise > 0) && (
+              {/* Tableau avantage théorique vs absorbable vs intégré vs perdu */}
+              {(avantageTheorique > 0 || avantageAbsorbableSiEligible > 0) && (
                 <View style={[S.card, { marginBottom: 12 }]}>
-                  <Text style={S.cardTitle}>Avantage fiscal — theorique vs utilisable</Text>
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <Text style={S.cardTitle}>Avantage fiscal — theorique, absorbable et integre au rapport</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
                     <View style={{ flex: 1, backgroundColor: COLORS.slate50, borderRadius: 6, padding: 10, alignItems: 'center' }}>
                       <Text style={{ fontSize: 6.5, color: COLORS.slate500, marginBottom: 3 }}>Avantage theorique (cumule)</Text>
                       <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate800 }}>{eur(avantageTheorique)}</Text>
                       <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>Sans plafonnement IR / niches</Text>
                     </View>
-                    <View style={{ flex: 1, backgroundColor: '#f0fdf4', borderRadius: 6, padding: 10, alignItems: 'center' }}>
-                      <Text style={{ fontSize: 6.5, color: '#166534', marginBottom: 3 }}>Avantage utilisable</Text>
-                      <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: '#166534' }}>{eur(avantageUtilise)}</Text>
-                      <Text style={{ fontSize: 6, color: '#4ade80', marginTop: 2 }}>Apres plafonnement IR disponible</Text>
+                    <View style={{ flex: 1, backgroundColor: COLORS.slate50, borderRadius: 6, padding: 10, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 6.5, color: COLORS.slate500, marginBottom: 3 }}>Avantage absorbable si eligible</Text>
+                      <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate800 }}>{eur(avantageAbsorbableSiEligible)}</Text>
+                      <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 2 }}>Apres plafonnement IR disponible — hypothetique</Text>
+                    </View>
+                    <View style={{ flex: 1, backgroundColor: avantageIntegreRapport > 0 ? '#f0fdf4' : COLORS.slate50, borderRadius: 6, padding: 10, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 6.5, color: avantageIntegreRapport > 0 ? '#166534' : COLORS.slate500, marginBottom: 3 }}>Avantage integre dans ce rapport</Text>
+                      <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: avantageIntegreRapport > 0 ? '#166534' : COLORS.slate400 }}>{eur(avantageIntegreRapport)}</Text>
+                      <Text style={{ fontSize: 6, color: avantageIntegreRapport > 0 ? '#4ade80' : COLORS.slate300, marginTop: 2 }}>
+                        {avantageIntegreRapport > 0 ? 'Deja inclus dans TRI / VAN / cash-flow' : 'Non inclus — eligibilite non confirmee'}
+                      </Text>
                     </View>
                     <View style={{ flex: 1, backgroundColor: avantagePerdou > 0 ? '#fef2f2' : COLORS.slate50, borderRadius: 6, padding: 10, alignItems: 'center' }}>
                       <Text style={{ fontSize: 6.5, color: avantagePerdou > 0 ? '#991b1b' : COLORS.slate500, marginBottom: 3 }}>Avantage non absorbe</Text>
                       <Text style={{ fontSize: 13, fontFamily: 'Arial', fontWeight: 'bold', color: avantagePerdou > 0 ? '#dc2626' : COLORS.slate400 }}>{eur(avantagePerdou)}</Text>
                       <Text style={{ fontSize: 6, color: avantagePerdou > 0 ? '#fca5a5' : COLORS.slate300, marginTop: 2 }}>
-                        {avantagePerdou > 0 ? 'IR disponible insuffisant' : 'Integralite absorb ee'}
+                        {avantagePerdou > 0 ? 'IR disponible insuffisant' : 'Integralite absorbee'}
                       </Text>
                     </View>
                   </View>
                   {input.fiscalite.parcours !== 'avance' && (
                     <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 6, fontStyle: 'italic' }}>
-                      Note : l&apos;avantage utilisable est estime a 100 % car le profil fiscal avance (IR brut, niches) n&apos;a pas ete saisi. Passez en parcours avance pour une verification precise.
+                      Note : l&apos;avantage absorbable est estime a 100 % car le profil fiscal avance (IR brut, niches) n&apos;a pas ete saisi. Passez en parcours avance pour une verification precise.
                     </Text>
                   )}
                 </View>
@@ -1322,7 +1331,7 @@ export function RapportPDF({
                       <Text style={[S.tableHeaderCell, { flex: 1 }]}>TRI</Text>
                       <Text style={[S.tableHeaderCell, { flex: 1 }]}>VAN</Text>
                       <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>CF moyen / mois</Text>
-                      <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>Impots cumules</Text>
+                      <Text style={[S.tableHeaderCell, { flex: 1.2 }]}>Solde fiscal net (simule)</Text>
                     </View>
                     {(() => {
                       const starIndex = avantageIntegreDansTRI ? 2 : 0
@@ -1345,12 +1354,17 @@ export function RapportPDF({
                             {eur(row.d.cashflowMensuelMoyen)} / mois
                           </Text>
                           <Text style={[S.tableCell, { flex: 1.2, color: COLORS.slate600 }]}>
-                            {eur(row.d.impotsCumules)}
+                            {eur(row.d.impotsCumules)}{row.d.impotsCumules < 0 ? ' *' : ''}
                           </Text>
                         </View>
                       ))
                     })()}
                   </View>
+                  {scerariosAvantage.avantageTheorique.impotsCumules < 0 && (
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 4, fontStyle: 'italic' }}>
+                      * Solde negatif = gain fiscal theorique simule (impot du devenu nul ou credit excedentaire), non remboursable par l&apos;administration et plafonne en pratique par l&apos;IR disponible et les niches fiscales. Ce scenario suppose un IR illimite et ne reflete pas la situation reelle du foyer.
+                    </Text>
+                  )}
                   <View style={{ marginTop: 6, padding: 6, borderRadius: 4, backgroundColor: avantageIntegreDansTRI ? '#f0fdf4' : '#fef3f2', borderWidth: 1, borderColor: avantageIntegreDansTRI ? '#bbf7d0' : '#fecaca' }}>
                     <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: avantageIntegreDansTRI ? '#166534' : '#991b1b' }}>
                       {avantageIntegreDansTRI
@@ -2749,9 +2763,11 @@ export function RapportPDF({
             const checksFinanciers: Array<{ label: string; valeur: string; statut: 'OK' | 'Attention' | 'Alerte'; note: string }> = [
               {
                 label: 'TRI cohérent avec VAN (TRI >= taux actualisation => VAN >= 0)',
-                valeur: `TRI ${pct(summary.tri)} / Taux d'actualisation ${pct(tauxActu)} / VAN ${eur(summary.van)}`,
-                statut: (vanPositiveSiTRISupActu && summary.van >= 0) || (!vanPositiveSiTRISupActu && summary.van < 0) ? 'OK' : 'Alerte',
-                note: (vanPositiveSiTRISupActu && summary.van >= 0) ? 'Cohérence TRI/VAN confirmée' : (!vanPositiveSiTRISupActu && summary.van < 0) ? 'TRI < taux actualisation, VAN négative — cohérent' : 'Incohérence TRI/VAN — à vérifier',
+                valeur: triNonSignificatif
+                  ? `TRI non significatif (surfinancement) / Taux d'actualisation ${pct(tauxActu)} / VAN ${eur(summary.van)}`
+                  : `TRI ${pct(summary.tri)} / Taux d'actualisation ${pct(tauxActu)} / VAN ${eur(summary.van)}`,
+                statut: triNonSignificatif ? 'Attention' : (vanPositiveSiTRISupActu && summary.van >= 0) || (!vanPositiveSiTRISupActu && summary.van < 0) ? 'OK' : 'Alerte',
+                note: triNonSignificatif ? 'TRI non interprétable (apport <= 0) — piloter via la VAN et le cash-flow' : (vanPositiveSiTRISupActu && summary.van >= 0) ? 'Cohérence TRI/VAN confirmée' : (!vanPositiveSiTRISupActu && summary.van < 0) ? 'TRI < taux actualisation, VAN négative — cohérent' : 'Incohérence TRI/VAN — à vérifier',
               },
               {
                 label: 'Cash-flow mensuel moyen',

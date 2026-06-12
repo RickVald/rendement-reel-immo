@@ -71,6 +71,7 @@ export interface DispositifParams {
   jeanbrun_batimentCollectif: boolean              // le logement est situé dans un immeuble d'habitation collectif
   jeanbrun_residencePrincipaleLocataire: boolean   // le locataire occupe le logement à titre de résidence principale
   jeanbrun_loyerRespectePlafond: boolean           // le loyer pratiqué respecte le plafond Jeanbrun de la zone
+  jeanbrun_dateAcquisitionConfirmee: boolean       // la date d'acquisition réelle (entre le 21/02/2026 et le 31/12/2028) est confirmée
 }
 
 export interface BienInput {
@@ -339,7 +340,8 @@ export interface YearlyRow {
   ps: number
   reductionDispositif: number   // réduction d'impôt liée au dispositif fiscal (Denormandie, Malraux…)
   avantageTheorique: number     // réduction d'impôt théorique avant plafonnement IR/niches
-  avantageUtilise: number       // portion réellement imputée (limitée par IR disponible + niches)
+  avantageAbsorbableSiEligible: number // portion qui serait imputée si le dispositif était intégré (limitée par IR disponible + niches)
+  avantageIntegre: number       // portion effectivement intégrée au cash-flow/TRI/VAN de ce rapport (0 si integrerAvantage=false)
   avantagePerdou: number        // montant perdu : impôt insuffisant ou plafond niches épuisé
   amortissementJeanbrun: number // amortissement Jeanbrun déduit cette année (0 si autre dispositif)
   deficitFoncierGenere: number  // nouveau déficit foncier créé cette année (avant imputation)
@@ -379,6 +381,7 @@ export interface SummaryKPIs {
   cashflowCumule: number
   tri: number
   triNonSignificatif: boolean  // surfinancement (cash nécessaire <= 0) : TRI saturé à la borne de calcul, non interprétable
+  triDisplay: string           // valeur affichable : pourcentage formaté, ou "Non significatif" si triNonSignificatif
   van: number
   effortEpargne: number       // |cashflow négatif mensuel moyen|
   prixMaximum: number
@@ -387,7 +390,8 @@ export interface SummaryKPIs {
   scoreRisqueDpe: number       // 0-100
   // Avantage fiscal agrégé sur la durée de détention
   avantageTheorique: number    // cumul réductions d'impôt théoriques (hors plafonnement)
-  avantageUtilise: number      // cumul réellement absorbé par l'IR du ménage
+  avantageAbsorbableSiEligible: number // cumul qui serait absorbé par l'IR du ménage si le dispositif était intégré au rapport
+  avantageIntegreRapport: number       // cumul effectivement intégré au cash-flow/TRI/VAN de ce rapport (0 si non intégré)
   avantagePerdou: number       // cumul perdu / non utilisable
 }
 
