@@ -754,10 +754,15 @@ function calculerPointMort(
   }
   const reventeMin = Math.round((revMin + revMax) / 2 / 100) * 100
 
-  // Durée de détention optimale (max patrimoine net ou TRI)
+  // Durée de détention optimale (max TRI si revente à cette échéance)
+  // On exclut l'année 1 : une revente immédiate après achat fait supporter deux fois
+  // les frais de transaction (achat + vente) sur un horizon trop court pour être
+  // représentative — le TRI y est mécaniquement gonflé par l'effet de levier non
+  // encore amorti, ce qui produit un optimum "1 an" non significatif.
   let bestAnnee = rows.length
   let bestTri = -Infinity
   rows.forEach((r, i) => {
+    if (i === 0 && rows.length > 1) return
     const t = calculerTRI(apportInitial, 0, 0, rows.slice(0, i + 1), r.produitNetReventePotentiel)
     if (t > bestTri) { bestTri = t; bestAnnee = i + 1 }
   })
@@ -928,7 +933,9 @@ function genererNiveauxConfiance(input: ProjectInput): NiveauConfiance[] {
     { donnee: 'Loyer mensuel', source: 'Saisi utilisateur', fiabilite: 'moyenne', note: 'À comparer aux loyers de marché locaux' },
     { donnee: 'Taxe foncière', source: hasTF ? 'Saisi utilisateur' : 'Estimée', fiabilite: hasTF ? 'à vérifier' : 'estimation', note: 'Vérifier sur le dernier avis d\'imposition' },
     { donnee: 'Travaux initiaux', source: hasDevis ? 'Saisi utilisateur' : 'Non renseigné', fiabilite: hasDevis ? 'à vérifier' : 'estimation', note: 'Exiger un devis d\'artisan avant signature' },
-    { donnee: 'Charges copropriété', source: 'Saisi utilisateur', fiabilite: 'à vérifier', note: 'Vérifier les 3 derniers PV d\'AG et relevés' },
+    ...(input.bien.copropriete
+      ? [{ donnee: 'Charges copropriété', source: 'Saisi utilisateur', fiabilite: 'à vérifier', note: 'Vérifier les 3 derniers PV d\'AG et relevés' } as NiveauConfiance]
+      : []),
     { donnee: 'DPE', source: hasDpe ? `Classe ${input.bien.dpe} déclarée` : 'Non renseigné', fiabilite: hasDpe ? (isFG ? 'élevée' : 'moyenne') : 'estimation', note: isFG ? 'Risque réglementaire fort — exiger nouveau DPE' : 'Peut évoluer après travaux' },
     { donnee: 'Travaux DPE', source: input.travauxFuturs.travauxDpeMontant ? 'Estimés' : 'Non renseignés', fiabilite: 'estimation', note: 'Estimation sans devis — fiabilité faible' },
     { donnee: 'Revalorisation du bien', source: 'Hypothèse utilisateur', fiabilite: 'estimation', note: `${(input.revente.revalorisationAnnuelle * 100).toFixed(1)}%/an supposé — non garanti` },

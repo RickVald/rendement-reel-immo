@@ -505,7 +505,7 @@ export function RapportPDF({
                   <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   <HypRow label="Travaux sup. max supportables" value={eur(pointMort.travauxMaxSupportables)} />
                   <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
-                  <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} ans`} highlight />
+                  <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                 </View>
               )}
             </View>
@@ -585,10 +585,14 @@ export function RapportPDF({
                   <Text style={{ fontSize: 7, color: COLORS.slate500, lineHeight: 1.5 }}>
                     {verdict.score >= 60 && scoreRobustesse.total >= 60
                       ? 'Projet rentable ET robuste. Rare et recherché.'
-                      : verdict.score >= 60 && scoreRobustesse.total < 50
-                      ? 'Projet rentable mais fragile. La rentabilité repose sur des hypothèses sensibles.'
+                      : verdict.score >= 60 && scoreRobustesse.total >= 40
+                      ? 'Projet rentable mais fragile — rentabilité attractive, mais levier élevé et robustesse moyenne. La rentabilité repose sur des hypothèses sensibles.'
+                      : verdict.score >= 60
+                      ? 'Projet rentable mais très fragile. La rentabilité repose sur des hypothèses sensibles et la robustesse est faible : risque élevé en cas de retournement.'
                       : verdict.score < 40 && scoreRobustesse.total >= 60
                       ? 'Projet peu rentable mais robuste. Peut convenir à un investisseur prudent si les hypothèses s\'améliorent.'
+                      : scoreRobustesse.total >= 60
+                      ? 'Projet à rentabilité modérée mais robuste. Peut convenir à un investisseur prudent.'
                       : 'Projet peu rentable et fragile. Risque élevé. Forte négociation ou abandon recommandé.'
                     }
                   </Text>
@@ -706,10 +710,23 @@ export function RapportPDF({
             ))}
           </View>
           <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: 6 }}>
-            Base de projection de la valeur de revente : prix d&apos;achat + travaux initiaux = {eur(input.acquisition.prixAchat + input.acquisition.travauxInitiaux)}, revalorisée à {pct(input.revente.revalorisationAnnuelle)}/an sur {input.revente.dureeDetentionAns} ans.
-            {input.revente.prixReventeManuel && input.revente.prixReventeManuel > 0
-              ? ` Prix de revente saisi manuellement : ${eur(input.revente.prixReventeManuel)} (revalorisation implicite recalculée à partir de cette base).`
-              : ''}
+            {(() => {
+              const baseValeurBien = input.revente.valeurPostTravauxEstimee && input.revente.valeurPostTravauxEstimee > 0
+                ? input.revente.valeurPostTravauxEstimee
+                : input.acquisition.prixAchat + input.acquisition.travauxInitiaux
+              const baseLabel = input.revente.valeurPostTravauxEstimee && input.revente.valeurPostTravauxEstimee > 0
+                ? 'valeur post-travaux estimée'
+                : "prix d'achat + travaux initiaux"
+              const n = input.revente.dureeDetentionAns
+              if (input.revente.prixReventeManuel && input.revente.prixReventeManuel > 0 && n > 0) {
+                const cible = input.revente.prixReventeManuel
+                const tauxImplicite = Math.pow(cible / baseValeurBien, 1 / n) - 1
+                const valeurTheorique = baseValeurBien * Math.pow(1 + input.revente.revalorisationAnnuelle, n)
+                return `Prix de revente retenu (saisi manuellement) : ${eur(cible)}, base de projection (${baseLabel}) = ${eur(baseValeurBien)}, soit un taux de revalorisation implicite d'environ ${pct(tauxImplicite)}/an sur ${n} ans. À titre de comparaison, une revalorisation au taux saisi (${pct(input.revente.revalorisationAnnuelle)}/an) donnerait ${eur(valeurTheorique)} — ce taux n'est pas utilisé ici car le prix de revente manuel prévaut.`
+              }
+              const valeurTheorique = baseValeurBien * Math.pow(1 + input.revente.revalorisationAnnuelle, n)
+              return `Valeur de revente projetée : base de projection (${baseLabel}) = ${eur(baseValeurBien)}, revalorisée à ${pct(input.revente.revalorisationAnnuelle)}/an sur ${n} ans, soit ${eur(valeurTheorique)}.`
+            })()}
           </Text>
 
         </View>
@@ -788,6 +805,16 @@ export function RapportPDF({
               type QualifEntry = { applicable: string; changement: string; cessionIntegree: string }
               const buildQualif = (reg: string): QualifEntry => {
                 const isRetenu = reg === regimeRetenu
+                // Régime retenu = SCI à l'IS (société) : les régimes de personne physique
+                // (micro-foncier, réel foncier, LMNP) ne sont pas applicables tel quel —
+                // ils supposent une détention en direct, une autre structure juridique.
+                if (!isRetenu && regimeRetenu === 'sci_is' && reg !== 'sci_is') {
+                  return {
+                    applicable: 'Non',
+                    changement: "Structure différente — implique une détention en direct (personne physique), hors SCI à l'IS",
+                    cessionIntegree: 'Non (indicatif)',
+                  }
+                }
                 switch (reg) {
                   case 'micro_foncier':
                     return {
@@ -1296,13 +1323,17 @@ export function RapportPDF({
           </View>
 
           <View style={[S.kpiGrid, { marginBottom: 12 }]}>
-            {[
+            {(input.fiscalite.regime === 'sci_is' ? [
+              { label: 'Total impôts sur la période', val: eur(yearlyTable.reduce((s,r)=>s+r.impots,0)) },
+              { label: 'dont Impôt sur les sociétés (IS)', val: eur(yearlyTable.reduce((s,r)=>s+(r.ir??0),0)) },
+              { label: 'Taux IS applicable', val: '15 % ≤ 42 500 € / 25 % au-delà' },
+            ] : [
               { label: 'Total impôts sur la période', val: eur(yearlyTable.reduce((s,r)=>s+r.impots,0)) },
               { label: 'dont Impôt sur le revenu',    val: eur(yearlyTable.reduce((s,r)=>s+(r.ir??0),0)) },
               { label: 'dont Prélèvements sociaux',   val: eur(yearlyTable.reduce((s,r)=>s+(r.ps??0),0)) },
               { label: 'TMI applicable',              val: pct(input.fiscalite.tmi, 0) },
-            ].map(k => (
-              <View key={k.label} style={[S.kpiCard, { width: '23%' }]}>
+            ]).map((k, _i, arr) => (
+              <View key={k.label} style={[S.kpiCard, { width: arr.length === 3 ? '31%' : '23%' }]}>
                 <Text style={S.kpiLabel}>{k.label}</Text>
                 <Text style={[S.kpiValue, { fontSize: 12, color: COLORS.red }]}>{k.val}</Text>
               </View>
@@ -1460,7 +1491,10 @@ export function RapportPDF({
               ) : (
                 <View style={S.table}>
                   <View style={S.tableHeader}>
-                    {['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IR','Prél. soc.','Total impôts'].map((h,i)=>(
+                    {(input.fiscalite.regime === 'sci_is'
+                      ? ['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IS','Prél. soc.','Total impôts']
+                      : ['An.','Loyers enc.','Charges déd.','Amortiss.','Base imposable','IR','Prél. soc.','Total impôts']
+                    ).map((h,i)=>(
                       <Text key={i} style={S.tableHeaderCell}>{h}</Text>
                     ))}
                   </View>
@@ -1961,7 +1995,7 @@ export function RapportPDF({
               <View style={{ flex: 1 }}>
                 <HypRow label="Rentable sans revente ?" value={summary.dependanceRevente ? `Non — TRI hors revente négatif (${pct(summary.triSansRevente)})` : `Oui — TRI hors revente positif (${pct(summary.triSansRevente)})`} highlight={!summary.dependanceRevente} />
                 <HypRow label="Cash-flow cumulé sur la période" value={eur(summary.cashflowCumule)} highlight={summary.cashflowCumule > 0} />
-                <HypRow label="Durée de détention optimale" value={pointMort ? `${pointMort.dureeDetentionOptimale} ans` : '—'} />
+                <HypRow label="Durée de détention optimale" value={pointMort ? `${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}` : '—'} />
                 <HypRow label="Différé de remboursement" value={input.financement.differePeriode === 'aucun' ? 'Aucun' : `${input.financement.differePeriode} — ${input.financement.dureesDiffere} mois`} />
               </View>
             </View>
@@ -1978,7 +2012,7 @@ export function RapportPDF({
 
           <Text style={S.sectionTitle}>Tableau de dette annuel</Text>
           <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 6 }}>
-            Années 1-10 + milestones (15, 20). Tableau complet sur 20 ans disponible sur demande.
+            {`Années 1-10 + milestones (15${yearlyTable.length > 15 ? `, ${yearlyTable.length}` : ''}). Tableau complet sur ${input.revente.dureeDetentionAns} ans disponible sur demande.`}
           </Text>
           <View style={S.table}>
             <View style={S.tableHeader}>
@@ -2094,7 +2128,7 @@ export function RapportPDF({
                   <View style={{ flex: 1 }}>
                     <HypRow label="Travaux sup. max sans dégrader le TRI" value={eur(pointMort.travauxMaxSupportables)} />
                     <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
-                    <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} ans`} highlight />
+                    <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                   </View>
                 </View>
               </View>
@@ -2644,8 +2678,10 @@ export function RapportPDF({
                 {[
                   { point: 'Devis travaux DPE obtenu auprès d\'un artisan', done: (input.travauxFuturs.travauxDpeMontant ?? 0) > 0 },
                   { point: 'Taxe foncière vérifiée sur avis d\'imposition', done: input.charges.taxeFonciere > 0 },
-                  { point: 'Charges copropriété (3 derniers exercices)', done: input.charges.chargesCoproAnnuelles > 0 },
-                  { point: 'PV d\'AG copropriété des 3 dernières années analysés', done: false },
+                  ...(input.bien.copropriete ? [
+                    { point: 'Charges copropriété (3 derniers exercices)', done: input.charges.chargesCoproAnnuelles > 0 },
+                    { point: 'PV d\'AG copropriété des 3 dernières années analysés', done: false },
+                  ] : []),
                   { point: 'Encadrement des loyers vérifié (zones tendues)', done: input.location.encadrementLoyers },
                   { point: 'Vacance locative locale estimée (observatoire loyers)', done: input.location.vacanceLocativeMois > 0 },
                   { point: 'Assurance PNO / GLI intégrée au calcul', done: input.location.assurancePnoAnnuelle > 0 },
@@ -2759,7 +2795,9 @@ export function RapportPDF({
               <View style={[S.card, { marginBottom: 8 }]}>
                 <Text style={S.cardTitle}>TRI (Taux de Rendement Interne)</Text>
                 <Text style={S.cardText}>
-                  Méthode de bissection sur les flux annuels (cash-flows + produit net de revente). Taux qui annule la VAN. Investissement initial = coût total − emprunt. Fiscalité de plus-value intégrée (abattements progressifs, exonération IR an 22 / PS an 30).
+                  {input.fiscalite.regime === 'sci_is'
+                    ? "Méthode de bissection sur les flux annuels (cash-flows + produit net de revente). Taux qui annule la VAN. Investissement initial = coût total − emprunt. Fiscalité de plus-value intégrée : en SCI à l'IS, la plus-value (prix de vente − VNC) est imposée à l'IS (15 %/25 %), sans abattement pour durée de détention."
+                    : "Méthode de bissection sur les flux annuels (cash-flows + produit net de revente). Taux qui annule la VAN. Investissement initial = coût total − emprunt. Fiscalité de plus-value intégrée (abattements progressifs, exonération IR an 22 / PS an 30)."}
                 </Text>
               </View>
               <View style={S.card}>
@@ -2787,7 +2825,11 @@ export function RapportPDF({
                 <Text style={S.cardTitle}>Piste d'audit</Text>
                 <Text style={[S.cardText, { marginBottom: 2 }]}>Moteur v2.0 — Juin 2026. Référentiel fiscal 2025-2026 (PS 17,2 %).</Text>
                 <Text style={[S.cardText, { marginBottom: 2 }]}>DPE : Loi Climat et Résilience n°2021-1104 du 22 août 2021 — calendrier de décence énergétique : G 2025, F 2028, E 2034.</Text>
-                <Text style={[S.cardText, { marginBottom: 2 }]}>Plus-value : abattements IR progressifs (6 %/an ans 6-21, exo. an 22 ; PS exo. an 30).</Text>
+                <Text style={[S.cardText, { marginBottom: 2 }]}>
+                  {input.fiscalite.regime === 'sci_is'
+                    ? "Plus-value (SCI IS) : prix de vente − VNC, imposée à l'IS (15 %/25 %), sans abattement pour durée de détention."
+                    : 'Plus-value : abattements IR progressifs (6 %/an ans 6-21, exo. an 22 ; PS exo. an 30).'}
+                </Text>
                 <Text style={S.cardText}>Chiffres arrondis à l'euro. Crédit : amortissement à la française.</Text>
               </View>
             </View>
