@@ -68,6 +68,18 @@ export function ResultsView() {
   const [pdfLoading, setPdfLoading]   = useState(false)
   const [activeTab, setActiveTab]     = useState(0)
   const [simplified, setSimplified]   = useState(false)
+  const [isQa, setIsQa]               = useState(false)
+
+  function downloadJson() {
+    if (!analysis) return
+    const blob = new Blob([JSON.stringify({ analysis, ai }, null, 2)], { type: 'application/json' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `rri-resultats-${analysis.input.bien.ville ?? 'bien'}-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   async function downloadPdf() {
     if (!analysis) return
@@ -95,6 +107,7 @@ export function ResultsView() {
   }
 
   useEffect(() => {
+    setIsQa(sessionStorage.getItem('rri_qa') === 'true')
     const raw = sessionStorage.getItem('rri_analysis')
     if (!raw) { router.push('/simulateur'); return }
     const parsed = JSON.parse(raw) as ProjectAnalysis
@@ -207,6 +220,14 @@ export function ResultsView() {
               </button>
               {aiLoading && <p className="text-xs text-slate-400">Rapport disponible après l'analyse IA</p>}
               {bloquePdf && <p className="text-xs text-red-600 max-w-xs text-right">Erreur bloquante détectée — voir l&apos;audit ci-dessous</p>}
+              {isQa && (
+                <button
+                  onClick={downloadJson}
+                  className="flex items-center gap-2 text-sm font-medium bg-amber-100 hover:bg-amber-200 text-amber-900 px-4 py-2 rounded-lg transition-colors border border-amber-300"
+                >
+                  ⬇ Exporter JSON (résultats)
+                </button>
+              )}
               <button
                 onClick={() => router.push('/simulateur')}
                 className="text-sm text-slate-500 hover:text-slate-800 border border-slate-300 hover:border-slate-400 px-4 py-2 rounded-lg transition-colors"

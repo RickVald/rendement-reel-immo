@@ -1,11 +1,12 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { StepIndicator } from './StepIndicator'
 import { LeadGateModal } from './LeadGateModal'
 import { Step1, StepPF, Step2, Step3, Step4, Step5, Step6, Step7, Step8 } from './steps'
 import { DEFAULT_INPUT } from '@/data/defaults'
+import { QA_SCENARIOS, applyScenario } from '@/data/qa-scenarios'
 import type { ProjectInput } from '@/lib/calculator/types'
 
 const STEP_TITLES = [
@@ -27,6 +28,17 @@ export function SimulatorForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [gateOpen, setGateOpen] = useState(false)
+  const [isQa, setIsQa] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Mode QA : ?qa=1 désactive le formulaire de contact (lead gate) et active
+  // les outils d'audit (import/export JSON, scénarios pré-chargés).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('qa') === '1') {
+      setIsQa(true)
+      sessionStorage.setItem('rri_qa', 'true')
+    }
+  }, [])
 
   const updateData = (patch: Partial<ProjectInput>) => {
     setData(prev => {
@@ -103,13 +115,98 @@ export function SimulatorForm() {
   }
 
   const handleAnalyzeClick = () => {
+    if (isQa) {
+      handleSubmit()
+      return
+    }
     setGateOpen(true)
+  }
+
+  const handleLoadScenario = (id: string) => {
+    const scenario = QA_SCENARIOS.find(s => s.id === id)
+    if (!scenario) return
+    setData(applyScenario(scenario.overrides))
+    setStep(1)
+    scrollToTop()
+  }
+
+  const handleExportInput = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rri-scenario-${new Date().toISOString().split('T')[0]}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImportInput = async (file: File) => {
+    try {
+      const parsed = JSON.parse(await file.text()) as ProjectInput
+      setData(parsed)
+      setStep(1)
+      setError(null)
+      scrollToTop()
+    } catch {
+      setError('Fichier JSON invalide.')
+    }
   }
 
   return (
     <div className="max-w-2xl mx-auto">
       {/* Scroll anchor: jumps here on step change so mobile users land at the top of the form */}
       <div ref={topRef} className="scroll-mt-20" />
+
+      {/* Bandeau mode QA */}
+      {isQa && (
+        <div className="mb-6 bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-3">
+          <p className="text-xs font-bold text-amber-800 uppercase tracking-wide">
+            Mode QA — paiement et lead gate désactivés
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              onChange={e => { if (e.target.value) handleLoadScenario(e.target.value) }}
+              defaultValue=""
+              className="text-sm rounded-lg border border-amber-300 px-3 py-2 bg-white"
+            >
+              <option value="">Charger un scénario test...</option>
+              {QA_SCENARIOS.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleExportInput}
+              className="text-sm font-medium px-3 py-2 rounded-lg border border-amber-300 bg-white hover:bg-amber-100 transition-colors"
+            >
+              Exporter JSON (entrées)
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-sm font-medium px-3 py-2 rounded-lg border border-amber-300 bg-white hover:bg-amber-100 transition-colors"
+            >
+              Importer un scénario JSON
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) handleImportInput(file)
+                e.target.value = ''
+              }}
+            />
+          </div>
+          <p className="text-xs text-amber-700">
+            Le bouton « Analyser » génère directement le rapport complet, sans formulaire de contact.
+            Sur la page de résultats, utilisez « Exporter JSON (résultats) » pour récupérer les calculs source.
+          </p>
+        </div>
+      )}
+
       {/* Step indicator */}
       <div className="mb-8">
         <StepIndicator current={step} />
