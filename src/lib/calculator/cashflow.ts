@@ -99,8 +99,11 @@ export function genererTableauAnnuel(
       location.assurancePnoAnnuelle * augCharge +
       (location.gli ? loyersEncaisses * location.tauxGli : 0)
     const taxeFonciere = charges.taxeFonciere * augCharge
-    const chargesCopro =
-      charges.chargesCoproAnnuelles * augCharge * charges.partNonRecuperable
+    // Charges de copropriété ignorées si le bien n'est pas déclaré en copropriété
+    // (évite qu'une valeur résiduelle non visible dans le formulaire fausse le calcul).
+    const chargesCopro = input.bien.copropriete
+      ? charges.chargesCoproAnnuelles * augCharge * charges.partNonRecuperable
+      : 0
     const entretien = charges.entretienAnnuel * augCharge
     const autresCharges =
       (charges.comptableAnnuel + charges.cfeEventuelle + charges.fraisBancairesAnnuels + charges.autresChargesAnnuelles) * augCharge

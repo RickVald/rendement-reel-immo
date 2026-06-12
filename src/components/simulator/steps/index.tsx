@@ -180,7 +180,12 @@ export function Step1({ data, onChange }: SP) {
             onChange={e => set({ anneeConstruction: +e.target.value })}
             hint={b.etat === 'neuf' ? 'Année de livraison prévue par le promoteur' : undefined}
           />
-          <Toggle label="En copropriété" checked={b.copropriete} onChange={v => set({ copropriete: v })} />
+          <Toggle label="En copropriété" checked={b.copropriete} onChange={v => {
+            set({ copropriete: v })
+            if (!v && data.charges.chargesCoproAnnuelles !== 0) {
+              onChange({ charges: { ...data.charges, chargesCoproAnnuelles: 0 } })
+            }
+          }} />
         </Grid2>
       </Section>
 

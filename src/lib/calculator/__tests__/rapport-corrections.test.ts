@@ -184,6 +184,41 @@ console.log('\nTest 7 — Valeur post-travaux estimée remplace prix d\'achat + 
   assert(!!niveau && niveau.source === 'Avis agence' && niveau.fiabilite === 'moyenne', 'niveau de confiance "Valeur post-travaux estimée" reprend source/fiabilité saisies')
 }
 
+// ─── Test 8 — Charges de copropriété ignorées hors copropriété ─────────────
+console.log('\nTest 8 — Charges de copropriété non décomptées si "copropriété" = non')
+{
+  const baseInput: ProjectInput = {
+    ...DEFAULT_INPUT,
+    bien: { ...DEFAULT_INPUT.bien, copropriete: true },
+    charges: { ...DEFAULT_INPUT.charges, chargesCoproAnnuelles: 2400 },
+  }
+  const aAvecCopro = analyser(baseInput)
+
+  const inputSansCopro: ProjectInput = {
+    ...baseInput,
+    bien: { ...baseInput.bien, copropriete: false },
+    // Valeur résiduelle non visible dans le formulaire — ne doit pas être décomptée.
+    charges: { ...baseInput.charges, chargesCoproAnnuelles: 2400 },
+  }
+  const aSansCopro = analyser(inputSansCopro)
+
+  assert(
+    aSansCopro.summary.cashflowCumule > aAvecCopro.summary.cashflowCumule,
+    'cash-flow cumulé plus élevé hors copropriété malgré chargesCoproAnnuelles résiduel à 2400 €',
+    `avecCopro=${Math.round(aAvecCopro.summary.cashflowCumule)} sansCopro=${Math.round(aSansCopro.summary.cashflowCumule)}`,
+  )
+
+  const inputSansChargesResiduelles: ProjectInput = {
+    ...inputSansCopro,
+    charges: { ...inputSansCopro.charges, chargesCoproAnnuelles: 0 },
+  }
+  const aSansChargesResiduelles = analyser(inputSansChargesResiduelles)
+  assert(
+    approx(aSansCopro.summary.cashflowCumule, aSansChargesResiduelles.summary.cashflowCumule, 0.0001),
+    'résultat identique que chargesCoproAnnuelles résiduel soit à 2400 ou à 0 quand copropriété = non',
+  )
+}
+
 // ─── Bilan ────────────────────────────────────────────────────────────────
 console.log(`\n${failures === 0 ? 'Tous les tests sont passés.' : `${failures} test(s) en échec.`}`)
 if (failures > 0) process.exit(1)
