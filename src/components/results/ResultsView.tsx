@@ -15,7 +15,7 @@ import { SimplifiedResultsView } from './SimplifiedResultsView'
 
 const fmt  = (n: number) => Math.round(n).toLocaleString('fr-FR')
 const eur  = (n: number) => `${fmt(n)} €`
-const pct  = (n: number, d = 2) => `${(n * 100).toFixed(d)} %`
+const pct  = (n: number | null, d = 2) => n == null ? 'N/A' : `${(n * 100).toFixed(d)} %`
 const sign = (n: number) => `${n >= 0 ? '+' : ''}${fmt(n)} €`
 const pctSign = (n: number) => `${n >= 0 ? '+' : ''}${(n * 100).toFixed(2)} %`
 
@@ -475,7 +475,7 @@ function TabSynthese({ analysis, ai, aiLoading, onEdit }: {
               {[
                 { label: 'Rendement net-net', vals: scenarios.map(s => pct(s.rendementNetNet)), ok: scenarios.map(s => s.rendementNetNet >= 0.03) },
                 { label: 'Cash-flow mensuel', vals: scenarios.map(s => sign(s.cashflowMensuel ?? s.cashflowMensuelMoyen ?? 0)), ok: scenarios.map(s => (s.cashflowMensuel ?? 0) >= 0) },
-                { label: 'TRI',               vals: scenarios.map(s => pct(s.tri)),              ok: scenarios.map(s => s.tri >= 0.05) },
+                { label: 'TRI',               vals: scenarios.map(s => pct(s.tri)),              ok: scenarios.map(s => (s.tri ?? -Infinity) >= 0.05) },
                 { label: 'VAN',               vals: scenarios.map(s => eur(s.van)),              ok: scenarios.map(s => s.van > 0) },
               ].map(row => (
                 <tr key={row.label}>
@@ -606,7 +606,7 @@ function TabSynthese({ analysis, ai, aiLoading, onEdit }: {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function TabProjection({ analysis }: { analysis: ProjectAnalysis }) {
-  const { yearlyTable, scenarios, input } = analysis
+  const { summary, yearlyTable, scenarios, input } = analysis
   const [showFull, setShowFull] = useState(false)
 
   // Chart data
@@ -731,7 +731,7 @@ function TabProjection({ analysis }: { analysis: ProjectAnalysis }) {
                   <Td>{fmt(row.capitalRestantDu)} €</Td>
                   <Td>{fmt(row.valeurEstimeeBien)} €</Td>
                   <Td color="emerald" bold>{fmt(row.patrimoineNet)} €</Td>
-                  <Td color={(row.triSiReventeAnnee ?? 0) >= 0.05 ? 'emerald' : 'slate'}>{pct(row.triSiReventeAnnee ?? 0)}</Td>
+                  <Td color={!summary.triNonSignificatif && (row.triSiReventeAnnee ?? 0) >= 0.05 ? 'emerald' : 'slate'}>{summary.triNonSignificatif ? 'N/A' : pct(row.triSiReventeAnnee ?? 0)}</Td>
                 </tr>
               ))}
             </tbody>

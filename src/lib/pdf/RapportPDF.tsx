@@ -130,7 +130,7 @@ export function RapportPDF({
   // TRI hors revente : en deçà d'un seuil, la valeur n'est plus économiquement
   // significative (flux structurellement déficitaires) — on l'exprime en mots
   // plutôt que d'afficher un pourcentage extrême issu d'une borne de calcul.
-  const triSansReventeNonSignificatif = summary.triSansRevente < -0.5
+  const triSansReventeNonSignificatif = summary.triSansRevente == null || summary.triSansRevente < -0.5
   const triSansReventeLabel = triSansReventeNonSignificatif
     ? 'non significatif — hors revente, aucun scénario de récupération du capital'
     : `négatif (${pct(summary.triSansRevente)})`
@@ -818,7 +818,7 @@ export function RapportPDF({
                 <Text style={[S.tableCell, { fontSize: 6 }]}>{fmt(row.capitalRestantDu)}</Text>
                 <Text style={[S.tableCell, { fontSize: 6 }]}>{fmt(row.valeurEstimeeBien)}</Text>
                 <Text style={[S.tableCell, S.tableCellGood, { fontSize: 6 }]}>{fmt(row.patrimoineNet)}</Text>
-                <Text style={[S.tableCell, { fontSize: 6 }, (row.triSiReventeAnnee ?? 0) >= 0.05 ? S.tableCellGood : {}]}>{pct(row.triSiReventeAnnee ?? 0, 1)}</Text>
+                <Text style={[S.tableCell, { fontSize: 6 }, !triNonSignificatif && (row.triSiReventeAnnee ?? 0) >= 0.05 ? S.tableCellGood : {}]}>{triNonSignificatif ? 'N/A' : pct(row.triSiReventeAnnee ?? 0, 1)}</Text>
               </View>
             ))}
             <View style={[S.tableRow, S.tableRowTotal, { paddingVertical: 2 }]}>
@@ -918,7 +918,7 @@ export function RapportPDF({
               const renderRow = (r: typeof comparaisonsRegimes[number], i: number) => {
                 const isSelected = r.regime === selectedRegime
                 const isBestVan = r.regime === bestVanR.regime
-                const sciTriSup = r.regime === 'sci_is' && !isSelected && (selectedR ? r.tri > selectedR.tri : false)
+                const sciTriSup = r.regime === 'sci_is' && !isSelected && (selectedR && r.tri != null && selectedR.tri != null ? r.tri > selectedR.tri : false)
                 const verdictLabel = isSelected
                   ? (isBestVan ? 'Régime retenu — meilleure VAN simulée' : 'Régime retenu')
                   : sciTriSup
@@ -941,7 +941,7 @@ export function RapportPDF({
                     </View>
                     <Text style={[S.tableCell, { color: COLORS.red, fontFamily: 'Arial', fontWeight: 'bold' }]}>{eur(r.impotsCumules20ans)}</Text>
                     <Text style={[S.tableCell, r.cashflowMensuelMoyen >= 0 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{sign(r.cashflowMensuelMoyen)}</Text>
-                    <Text style={[S.tableCell, !triNonSignificatif && r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{triNonSignificatif ? 'n/a' : pct(r.tri)}</Text>
+                    <Text style={[S.tableCell, !triNonSignificatif && r.tri != null && r.tri >= 0.04 ? S.tableCellGood : S.tableCellBad, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{triNonSignificatif ? 'n/a' : pct(r.tri)}</Text>
                     <Text style={[S.tableCell, r.van > 0 ? S.tableCellGood : S.tableCellBad]}>{eur(r.van)}</Text>
                     <Text style={[S.tableCell, r.rendementNetNet >= 0.03 ? S.tableCellGood : S.tableCellBad]}>{pct(r.rendementNetNet)}</Text>
                     <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold', fontSize: 6, color: verdictColor }]}>
@@ -1074,7 +1074,9 @@ export function RapportPDF({
         // s'il est intégré au calcul principal (avantageIntegreDansTRI), l'avantage intégré.
         const isJeanbrun = input.fiscalite.dispositif === 'jeanbrun'
         const avantageTheoriqueTotal = yearlyTable.reduce((s, r) => s + (r.avantageTheorique ?? 0), 0)
-        const avantageIntegreTotal = avantageIntegreDansTRI ? avantageTheoriqueTotal : 0
+        // avantageIntegreRapport (summary) = écart réel d'impôts cumulés intégré au TRI/VAN/CF
+        // (≠ avantage théorique brut, plafonné par le déficit imputable 10 700 €/an, art. 156 CGI)
+        const avantageIntegreTotal = avantageIntegreDansTRI ? summary.avantageIntegreRapport : 0
 
         const DISPOSITIF_COLORS: Record<string, { bg: string; border: string; text: string }> = {
           denormandie:              { bg: '#ecfdf5', border: '#6ee7b7', text: '#065f46' },
@@ -1118,6 +1120,11 @@ export function RapportPDF({
                     })()}
                   </View>
                 </View>
+                {isJeanbrun && (
+                  <Text style={{ fontSize: 6.5, color: dc.text, marginTop: 8, fontStyle: 'italic' }}>
+                    {`L'« avantage intégré au rapport » (${eur(avantageIntegreTotal)}) correspond à l'écart réel d'impôts cumulés effectivement pris en compte dans le TRI, la VAN et les cash-flows de ce rapport. L'« avantage théorique sous réserve » (${eur(avantageTheoriqueTotal)}) est l'économie brute de l'amortissement Jeanbrun déduit, avant prise en compte du plafond d'imputation du déficit foncier sur le revenu global (10 700 €/an, art. 156 CGI) — l'écart entre les deux correspond à la fraction reportée et non consommée sur la durée de détention. Le ratio « Économie / impôts bruts » peut dépasser 100 % lorsque l'avantage intégré excède les impôts fonciers cumulés du scénario.`}
+                  </Text>
+                )}
               </View>
 
               <View style={S.row2}>
@@ -1225,8 +1232,10 @@ export function RapportPDF({
         const bc = STATUS_BORDER[eligibilite.status] ?? '#cbd5e1'
         const avantageTheorique = yearlyTable.reduce((s, r) => s + (r.avantageTheorique ?? 0), 0)
         const avantageAbsorbableSiEligible = yearlyTable.reduce((s, r) => s + (r.avantageAbsorbableSiEligible ?? 0), 0)
-        const avantageIntegreRapport = yearlyTable.reduce((s, r) => s + (r.avantageIntegre ?? 0), 0)
-        const avantagePerdou    = yearlyTable.reduce((s, r) => s + (r.avantagePerdou    ?? 0), 0)
+        // avantageIntegreRapport / avantagePerdou : valeurs réconciliées (cf. summary, index.ts)
+        // — écart réel d'impôts cumulés intégré au TRI/VAN/CF, pas la somme brute par année.
+        const avantageIntegreRapport = summary.avantageIntegreRapport
+        const avantagePerdou = summary.avantagePerdou
         return (
           <Page size="A4" style={S.page}>
             <PageHeader section="Audit d'eligibilite fiscale" meta={meta} />
@@ -1345,7 +1354,7 @@ export function RapportPDF({
                             {row.label}{i === starIndex ? ' ★' : ''}
                           </Text>
                           <Text style={[S.tableCell, { flex: 1, color: row.color, fontFamily: 'Arial', fontWeight: 'bold' }]}>
-                            {(row.d.tri * 100).toFixed(2)} %
+                            {row.d.tri == null ? 'N/A' : `${(row.d.tri * 100).toFixed(2)} %`}
                           </Text>
                           <Text style={[S.tableCell, { flex: 1, color: row.color }]}>
                             {eur(row.d.van)}
@@ -1955,20 +1964,31 @@ export function RapportPDF({
                     )}
                     <View style={{ height: 12 }} />
                     <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 6, color: COLORS.slate700 }}>Bilan investisseur sur {duree} ans</Text>
-                    {([
-                      ['Produit net de cession', eur(produitNet), false],
-                      ['+ Cash-flow cumulé sur ' + duree + ' ans', (cashflowCumul >= 0 ? '+' : '') + eur(cashflowCumul), false],
-                      ['- Cash initial investi (apport + frais)', '- ' + eur(summary.cashTotalNecessaire), false],
-                      ['= Gain net total investisseur', eur(gainNet), true],
-                    ] as [string, string, boolean][]).map(([label, val, bold], i) => (
-                      <View key={i} style={[rowStyle, bold ? { borderTopWidth: 1, borderTopColor: COLORS.slate300, paddingTop: 4, marginTop: 4 } : {}]}>
-                        <Text style={labelStyle(bold)}>{label}</Text>
-                        <Text style={valStyle(bold, bold ? (gainNet >= 0 ? COLORS.emeraldDark : COLORS.red) : undefined)}>{val}</Text>
+                    {triNonSignificatif ? (
+                      <View style={{ padding: 6, backgroundColor: '#f8fafc', borderRadius: 3, borderLeftWidth: 3, borderLeftColor: COLORS.slate400 }}>
+                        <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate500, marginBottom: 2 }}>N/A — financement à corriger</Text>
+                        <Text style={{ fontSize: 6.5, color: COLORS.slate500 }}>
+                          Le plan de financement de ce projet est en surfinancement (cash nécessaire négatif, {eur(summary.cashTotalNecessaire)}) : le bilan investisseur (apport, gain net) n'est pas interprétable tant que le financement n'est pas corrigé.
+                        </Text>
                       </View>
-                    ))}
-                    <View style={{ marginTop: 8, padding: 6, backgroundColor: '#eff6ff', borderRadius: 3 }}>
-                      <Text style={{ fontSize: 6.5, color: COLORS.indigo, marginBottom: 2 }}>Convention : le "Gain net total investisseur" intègre tous les flux de l'investissement — apport initial, effort d'épargne cumulé sur {duree} ans (déjà dans le cash-flow cumulé), et produit de la revente nette. Il mesure ce que l'investisseur ressort effectivement par rapport à ce qu'il a mis.{isSciIs ? ' En SCI à l\'IS, ce montant reste au niveau de la société : une distribution aux associés (dividendes) déclencherait une fiscalité supplémentaire (flat tax 30 % ou option barème) non intégrée ici.' : ''}</Text>
-                    </View>
+                    ) : (
+                      <>
+                        {([
+                          ['Produit net de cession', eur(produitNet), false],
+                          ['+ Cash-flow cumulé sur ' + duree + ' ans', (cashflowCumul >= 0 ? '+' : '') + eur(cashflowCumul), false],
+                          ['- Cash initial investi (apport + frais)', '- ' + eur(summary.cashTotalNecessaire), false],
+                          ['= Gain net total investisseur', eur(gainNet), true],
+                        ] as [string, string, boolean][]).map(([label, val, bold], i) => (
+                          <View key={i} style={[rowStyle, bold ? { borderTopWidth: 1, borderTopColor: COLORS.slate300, paddingTop: 4, marginTop: 4 } : {}]}>
+                            <Text style={labelStyle(bold)}>{label}</Text>
+                            <Text style={valStyle(bold, bold ? (gainNet >= 0 ? COLORS.emeraldDark : COLORS.red) : undefined)}>{val}</Text>
+                          </View>
+                        ))}
+                        <View style={{ marginTop: 8, padding: 6, backgroundColor: '#eff6ff', borderRadius: 3 }}>
+                          <Text style={{ fontSize: 6.5, color: COLORS.indigo, marginBottom: 2 }}>Convention : le "Gain net total investisseur" intègre tous les flux de l'investissement — apport initial, effort d'épargne cumulé sur {duree} ans (déjà dans le cash-flow cumulé), et produit de la revente nette. Il mesure ce que l'investisseur ressort effectivement par rapport à ce qu'il a mis.{isSciIs ? ' En SCI à l\'IS, ce montant reste au niveau de la société : une distribution aux associés (dividendes) déclencherait une fiscalité supplémentaire (flat tax 30 % ou option barème) non intégrée ici.' : ''}</Text>
+                        </View>
+                      </>
+                    )}
                   </View>
                 </View>
 
@@ -2237,7 +2257,7 @@ export function RapportPDF({
                 <Text style={S.tableHeaderCell}>Ecart max</Text>
               </View>
               {sensibilite.map((row, i) => {
-                const ecart = Math.abs(row.plus10 - row.moins10)
+                const ecart = row.plus10 != null && row.moins10 != null ? Math.abs(row.plus10 - row.moins10) : 0
                 return (
                   <View key={i} style={[S.tableRow, i % 2 !== 0 ? S.tableRowAlt : {}]}>
                     <Text style={[S.tableCell, { flex: 2, fontFamily: 'Arial', fontWeight: 'bold' }]}>{row.variable}</Text>
@@ -2250,9 +2270,9 @@ export function RapportPDF({
                       </>
                     ) : (
                       <>
-                        <Text style={[S.tableCell, row.moins10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.moins10)}</Text>
+                        <Text style={[S.tableCell, (row.moins10 ?? 0) > (row.central ?? 0) ? S.tableCellGood : S.tableCellBad]}>{pct(row.moins10)}</Text>
                         <Text style={[S.tableCell, { fontFamily: 'Arial', fontWeight: 'bold' }]}>{pct(row.central)}</Text>
-                        <Text style={[S.tableCell, row.plus10 > row.central ? S.tableCellGood : S.tableCellBad]}>{pct(row.plus10)}</Text>
+                        <Text style={[S.tableCell, (row.plus10 ?? 0) > (row.central ?? 0) ? S.tableCellGood : S.tableCellBad]}>{pct(row.plus10)}</Text>
                         <Text style={[S.tableCell, ecart > 0.05 ? S.tableCellBad : ecart > 0.02 ? { color: COLORS.amber } : S.tableCellGood]}>{pct(ecart, 1)}</Text>
                       </>
                     )}

@@ -46,7 +46,10 @@ export function calculerTRIParAnnee(
       sousEnsemble,
       row.produitNetReventePotentiel
     )
-    return { ...row, triSiReventeAnnee: tri }
+    // Si apportInitial <= 0 (surfinancement), le flux à t=0 n'est pas une sortie
+    // d'argent : le TRI n'est pas interprétable et sature à la borne de calcul
+    // (cf. bisectionIRR) — on ne l'expose pas comme une valeur métier.
+    return { ...row, triSiReventeAnnee: apportInitial <= 0 ? null : tri }
   })
 }
 

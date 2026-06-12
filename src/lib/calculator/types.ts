@@ -284,7 +284,15 @@ export interface EligibilityResult {
   avertissements: string[]  // messages des conditions à vérifier
   /** false si au moins une condition bloquante — empêche la génération du rapport complet */
   canGenerate: boolean
-  /** Avantage fiscal théorique (si toutes les conditions étaient remplies) */
+  /** Avantage fiscal théorique CUMULÉ SUR LA DURÉE D'ENGAGEMENT, calculé "hors-sol" en
+   *  supposant que toutes les conditions d'éligibilité du dispositif sont remplies —
+   *  indépendant des paramètres réellement saisis (zone, plafonds appliqués, etc.).
+   *  À NE PAS CONFONDRE avec summary.avantageTheorique (cumul sur la durée de DÉTENTION,
+   *  calculé à partir des paramètres effectivement saisis : peut valoir 0 si le moteur
+   *  détermine qu'aucune réduction ne s'applique avec ces paramètres, même si l'audit
+   *  d'éligibilité estime ce que serait l'avantage "si toutes les conditions étaient
+   *  remplies"). Les deux montants représentent des hypothèses différentes et peuvent
+   *  légitimement diverger. */
   avantageTheorique: number
   /** Avantage réellement utilisable (limité par IR disponible + plafond niches) */
   avantageUtilisable: number
@@ -356,7 +364,9 @@ export interface YearlyRow {
   valeurEstimeeBien: number
   patrimoineNet: number
   produitNetReventePotentiel: number
-  triSiReventeAnnee: number
+  /** null si triNonSignificatif (surfinancement) : le TRI par horizon de revente n'est
+   *  pas interprétable (flux non conventionnels, calcul saturé à la borne 500 %). */
+  triSiReventeAnnee: number | null
 }
 
 export type NiveauIndicateur = 'bon' | 'moyen' | 'mauvais'
@@ -386,9 +396,12 @@ export interface SummaryKPIs {
   effortEpargne: number       // |cashflow négatif mensuel moyen|
   prixMaximum: number
   dependanceRevente: boolean   // TRI négatif sans revente
-  triSansRevente: number       // TRI calculé hors produit de revente
+  triSansRevente: number | null // TRI calculé hors produit de revente ; null si triNonSignificatif
   scoreRisqueDpe: number       // 0-100
-  // Avantage fiscal agrégé sur la durée de détention
+  // Avantage fiscal agrégé sur la durée de DÉTENTION, calculé à partir des paramètres
+  // effectivement saisis (zone, plafonds, etc.) — peut différer de
+  // eligibilite.avantageTheorique (cumul sur la durée d'ENGAGEMENT, "si toutes les
+  // conditions d'éligibilité étaient remplies", indépendant des paramètres saisis).
   avantageTheorique: number    // cumul réductions d'impôt théoriques (hors plafonnement)
   avantageAbsorbableSiEligible: number // cumul qui serait absorbé par l'IR du ménage si le dispositif était intégré au rapport
   avantageIntegreRapport: number       // cumul effectivement intégré au cash-flow/TRI/VAN de ce rapport (0 si non intégré)
@@ -420,7 +433,7 @@ export interface ComparaisonRegime {
   label: string
   impotsCumules20ans: number
   cashflowMensuelMoyen: number
-  tri: number
+  tri: number | null  // null si triNonSignificatif (surfinancement)
   van: number
   rendementNetNet: number
   verdict: 'optimal' | 'bon' | 'correct' | 'défavorable'
@@ -464,7 +477,7 @@ export interface ScenarioResult {
   rendementNetNet: number
   cashflowMensuel: number
   cashflowMensuelMoyen?: number
-  tri: number
+  tri: number | null  // null si triNonSignificatif (surfinancement)
   van: number
   patrimoineFinal: number
 }
@@ -488,16 +501,16 @@ export interface AIInterpretation {
 
 export interface SensibiliteRow {
   variable: string
-  moins10: number   // TRI
-  central: number
-  plus10: number
+  moins10: number | null   // TRI ; null si triNonSignificatif (surfinancement)
+  central: number | null
+  plus10: number | null
 }
 
 export interface StressTest {
   label: string
   description: string
   impact: string
-  valeur: number
+  valeur: number | null  // null si TRI non significatif (surfinancement) pour les chocs exprimés en TRI
   unite: string
   severite: 'faible' | 'modere' | 'severe'
 }
@@ -514,11 +527,11 @@ export interface PointMort {
 /** Comparaison des 3 scénarios avantage fiscal (demande point 6 du document) */
 export interface ScenariosAvantage {
   /** Scénario A — aucun avantage fiscal (base) */
-  horsAvantage: { tri: number; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
+  horsAvantage: { tri: number | null; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
   /** Scénario B — avantage théorique complet (sans plafonnement IR/niches) */
-  avantageTheorique: { tri: number; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
+  avantageTheorique: { tri: number | null; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
   /** Scénario C — avantage réellement utilisable (plafonné par IR disponible et niches) */
-  avantageUtilisable: { tri: number; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
+  avantageUtilisable: { tri: number | null; van: number; cashflowMensuelMoyen: number; impotsCumules: number }
 }
 
 export interface ProjectAnalysis {
@@ -547,4 +560,7 @@ export interface ProjectAnalysis {
   avantageIntegreDansTRI: boolean
   /** true si la simulation tourne en mode indicatif (avantage sous réserve) */
   modeIndicatif: boolean
+  /** Mode réellement appliqué pour l'intégration de l'avantage fiscal : 'valide' si
+   *  éligibilité confirmée (prévaut sur modeIndicatif), sinon 'indicatif' ou 'prudent'. */
+  simulationMode: 'prudent' | 'indicatif' | 'valide'
 }

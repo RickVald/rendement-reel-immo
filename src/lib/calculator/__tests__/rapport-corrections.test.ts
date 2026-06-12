@@ -87,7 +87,7 @@ console.log('\nTest 3 — Sensibilité prix de revente → TRI / VAN')
   const a = analyser(input)
   const row = a.sensibilite?.find(r => r.variable === 'Prix de revente')
   assert(!!row, 'ligne de sensibilité "Prix de revente" présente')
-  if (row) {
+  if (row && row.moins10 != null && row.central != null && row.plus10 != null) {
     assert(row.moins10 < row.central, 'TRI(revente -10 %) < TRI central', `${row.moins10} < ${row.central}`)
     assert(row.plus10 > row.central, 'TRI(revente +10 %) > TRI central', `${row.plus10} > ${row.central}`)
   }

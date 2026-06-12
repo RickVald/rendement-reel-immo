@@ -14,6 +14,15 @@ import { DISPOSITIF_REGIMES_COMPATIBLES } from './dispositifs'
 import { fmtEur } from './format'
 import { calculerEligibilite } from './eligibilite'
 
+/**
+ * TRI non significatif (surfinancement, apport <= 0) : le flux à t=0 n'est pas une
+ * sortie d'argent, le TRI sature à la borne de calcul de bisectionIRR (5 = 500 %)
+ * et n'est pas interprétable. On ne l'expose alors jamais comme valeur métier.
+ */
+function triOuNull(apport: number, tri: number): number | null {
+  return apport <= 0 ? null : tri
+}
+
 /** Ordre de préférence pour le critère 'simplicite' : régimes micro en premier */
 const SIMPLICITE_ORDER: RegimeFiscal[] = [
   'micro_foncier', 'lmnp_micro_bic', 'reel_foncier', 'sci_ir', 'lmnp_reel', 'sci_is',
@@ -239,7 +248,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     effortEpargne: Math.round(effortEpargne),
     prixMaximum: prixMaxResult.prixMaximum,
     dependanceRevente,
-    triSansRevente,
+    triSansRevente: triOuNull(apportInitial, triSansRevente),
     scoreRisqueDpe,
     avantageTheorique: Math.round(rows.reduce((s, r) => s + r.avantageTheorique, 0)),
     avantageAbsorbableSiEligible: Math.round(rows.reduce((s, r) => s + r.avantageAbsorbableSiEligible, 0)),
@@ -271,7 +280,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     const rendementNetNet2 = rendementNet2 - avgImpots2 / ct2
     return {
       ...summary,
-      tri: tri2,
+      tri: triOuNull(apportInitial, tri2),
       van: van2,
       cashflowMensuelMoyen: Math.round(cf2),
       rendementBrut: rendementBrut2,
@@ -329,22 +338,34 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     // Scénario C : avantage utilisable — avec les vraies données IR/niches (= simulation principale)
     return {
       horsAvantage: {
-        tri: triHors, van: Math.round(vanHors),
+        tri: triOuNull(apportInitial, triHors), van: Math.round(vanHors),
         cashflowMensuelMoyen: Math.round(rowsHors.reduce((s, r) => s + r.cashflowAnnuel, 0) / rowsHors.length / 12),
         impotsCumules: Math.round(rowsHors.reduce((s, r) => s + r.impots, 0)),
       },
       avantageTheorique: {
-        tri: triTheo, van: Math.round(vanTheo),
+        tri: triOuNull(apportInitial, triTheo), van: Math.round(vanTheo),
         cashflowMensuelMoyen: Math.round(rowsTheo.reduce((s, r) => s + r.cashflowAnnuel, 0) / rowsTheo.length / 12),
         impotsCumules: Math.round(rowsTheo.reduce((s, r) => s + r.impots, 0)),
       },
       avantageUtilisable: {
-        tri, van: Math.round(van),
+        tri: triOuNull(apportInitial, tri), van: Math.round(van),
         cashflowMensuelMoyen: summary.cashflowMensuelMoyen,
         impotsCumules: Math.round(rows.reduce((s, r) => s + r.impots, 0)),
       },
     }
   })()
+
+  // Jeanbrun : l'avantage théorique (jeanbrunAmortTheorique × TMI, par année) suppose
+  // une imputation intégrale sur le revenu global. Or le déficit foncier imputable est
+  // plafonné à 10 700 €/an (art. 156 CGI) — l'excédent est reporté et peut ne pas être
+  // consommé sur la durée de détention. Le montant réellement "intégré" au TRI/VAN/CF de
+  // ce rapport est donc l'écart d'impôts cumulés entre les scénarios "hors avantage" et
+  // "avantage utilisable" (scerariosAvantage), pas l'avantage théorique brut.
+  if (input.fiscalite.dispositif === 'jeanbrun' && scerariosAvantage && integrerAvantage) {
+    const avantageReellementIntegre = scerariosAvantage.horsAvantage.impotsCumules - scerariosAvantage.avantageUtilisable.impotsCumules
+    summary.avantageIntegreRapport = Math.max(0, Math.round(avantageReellementIntegre))
+    summary.avantagePerdou = Math.max(0, summary.avantageTheorique - summary.avantageIntegreRapport)
+  }
 
   const analysis = {
     input,
@@ -366,6 +387,11 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     scerariosAvantage,
     avantageIntegreDansTRI: integrerAvantage,
     modeIndicatif,
+    // simulationMode : reflète le mode réellement appliqué pour l'intégration de l'avantage
+    // fiscal, distinct de modeIndicatif (qui n'est que le paramètre d'entrée
+    // input.revente.modeSimulationAvantage et peut rester 'indicatif' même une fois
+    // l'éligibilité validée).
+    simulationMode: (eligibiliteMain?.status === 'eligible' ? 'valide' : modeIndicatif ? 'indicatif' : 'prudent') as 'prudent' | 'indicatif' | 'valide',
   }
 
   // 18. Statut global — un projet dont les contrôles de cohérence internes
@@ -446,14 +472,21 @@ function calculerComparaisonsRegimes(
     })
   }
 
-  // Marquer le meilleur régime (TRI max)
-  const bestTri = Math.max(...results.map(r => r.tri))
-  const worstTri = Math.min(...results.map(r => r.tri))
+  // Marquer le meilleur régime (TRI max), sur la base des valeurs brutes (avant masquage)
+  const rawTris = results.map(r => r.tri as number)
+  const bestTri = Math.max(...rawTris)
+  const worstTri = Math.min(...rawTris)
   results.forEach(r => {
-    if (r.tri === bestTri) r.verdict = 'optimal'
-    else if (r.tri >= bestTri - 0.01) r.verdict = 'bon'
-    else if (r.tri <= worstTri + 0.005) r.verdict = 'défavorable'
+    const t = r.tri as number
+    if (t === bestTri) r.verdict = 'optimal'
+    else if (t >= bestTri - 0.01) r.verdict = 'bon'
+    else if (t <= worstTri + 0.005) r.verdict = 'défavorable'
   })
+
+  // TRI non significatif (surfinancement) : ne jamais exposer la borne de calcul 5
+  if (apportInitial <= 0) {
+    results.forEach(r => { r.tri = null })
+  }
 
   return results
 }
@@ -551,6 +584,12 @@ function calculerSensibilite(
     })
   }
 
+  // TRI non significatif (surfinancement, apport <= 0) : aucune valeur de TRI n'est
+  // interprétable, y compris pour les variantes ±10 % (mêmes flux non conventionnels).
+  if (apportInitial <= 0) {
+    return rowsSensibilite.map(row => ({ variable: row.variable, moins10: null, central: null, plus10: null }))
+  }
+
   return rowsSensibilite
 }
 
@@ -621,8 +660,10 @@ function calculerStressTests(
     {
       label: 'Travaux supplémentaires +15 000 €',
       description: 'Dépassement budget travaux (DPE, copropriété), sans valeur ajoutée à la revente',
-      impact: `TRI : ${(((summary.tri ?? 0)) * 100).toFixed(2)} % -> ${(triTravaux * 100).toFixed(2)} %`,
-      valeur: triTravaux,
+      impact: summary.triNonSignificatif || ap2 <= 0
+        ? 'TRI non significatif (surfinancement) — impact non interprétable'
+        : `TRI : ${(((summary.tri ?? 0)) * 100).toFixed(2)} % -> ${(triTravaux * 100).toFixed(2)} %`,
+      valeur: triOuNull(ap2, triTravaux),
       unite: 'TRI',
       severite: triTravaux < 0 ? 'severe' : triTravaux < 0.03 ? 'modere' : 'faible',
     },
@@ -692,8 +733,10 @@ function calculerStressTests(
       return [{
         label: `Rupture d'engagement (année ${anneeRupture}/${engagementAns})`,
         description: `Revente ou changement d'usage avant la fin des ${engagementAns} ans d'engagement ${dispositif}`,
-        impact: `Reprise fiscale estimée ${fmtInt(repriseEstimee)} € — TRI chute à ${(triRupture * 100).toFixed(2)} %`,
-        valeur: triRupture,
+        impact: apportInitial <= 0
+          ? 'TRI non significatif (surfinancement) — impact non interprétable'
+          : `Reprise fiscale estimée ${fmtInt(repriseEstimee)} € — TRI chute à ${(triRupture * 100).toFixed(2)} %`,
+        valeur: triOuNull(apportInitial, triRupture),
         unite: 'TRI avec reprise',
         severite: (triRupture < 0 ? 'severe' : triRupture < 0.02 ? 'modere' : 'faible') as 'severe' | 'modere' | 'faible',
       }]
@@ -863,14 +906,16 @@ function calculerScoreRobustesse(
 
   // Sensibilité au loyer (15 pts) — écart entre scénario -10% et central
   const sensLoyer = sensibilite.find(s => s.variable === 'Loyer mensuel')
-  const ecartLoyer = sensLoyer ? Math.abs(sensLoyer.moins10 - sensLoyer.central) : 0.03
+  const ecartLoyer = sensLoyer && sensLoyer.moins10 != null && sensLoyer.central != null
+    ? Math.abs(sensLoyer.moins10 - sensLoyer.central) : 0.03
   const scoreSensLoyer = ecartLoyer < 0.01 ? 15 : ecartLoyer < 0.02 ? 10 : ecartLoyer < 0.04 ? 5 : 0
 
   // Sensibilité aux travaux (15 pts) — basée sur le stress test "Travaux
   // supplémentaires +15 000 €" (dépassement de budget pur surcoût), qui
   // s'applique dans tous les cas, y compris quand travauxInitiaux = 0.
   const stressTravaux = stressTests.find(s => s.label === 'Travaux supplémentaires +15 000 €')
-  const ecartTravaux = stressTravaux ? Math.max(0, (summary.tri ?? 0) - stressTravaux.valeur) : 0.02
+  const ecartTravaux = stressTravaux && stressTravaux.valeur != null
+    ? Math.max(0, (summary.tri ?? 0) - stressTravaux.valeur) : 0.02
   const scoreSensTravaux = ecartTravaux < 0.005 ? 15 : ecartTravaux < 0.01 ? 10 : ecartTravaux < 0.02 ? 5 : 0
 
   // Risque DPE (15 pts)

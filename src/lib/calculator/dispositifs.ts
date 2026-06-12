@@ -175,8 +175,9 @@ function calculerMonumentsHistoriques(
  * Le déficit foncier généré est imputable sur le revenu global jusqu'à 10 700 €/an.
  * Engagement de location : 9 ans minimum.
  *
- * IMPORTANT : à la revente, les amortissements déduits sont réintégrés dans le
- * prix d'acquisition pour le calcul de la plus-value (art. 150 VB III CGI).
+ * IMPORTANT : à la revente, l'amortissement Jeanbrun (déficit foncier, art. 31 CGI)
+ * n'est pas réintégré dans le prix de revient fiscal — régime distinct du LMNP réel
+ * (art. 150 VB III CGI) et de la SCI à l'IS. Voir page « Produit net de cession ».
  *
  * NOTE MODÉLISATION : on calcule une économie fiscale annuelle approchée =
  *   min(amortissementAnnuel, plafondAnnuel) × TMI
@@ -428,7 +429,7 @@ export function getSynthèseDispositif(
           { titre: 'Acquisitions éligibles', valeur: '21/02/2026 – 31/12/2028' },
         ],
         alertes: [
-          `Les amortissements déduits sont réintégrés dans le prix d'acquisition lors du calcul de plus-value (art. 150 VB III CGI) — impact fiscal à la revente.`,
+          `Le déficit foncier (amortissement Jeanbrun) déduit pendant la détention n'est pas réintégré dans le prix de revient fiscal à la revente — régime distinct du LMNP réel et de la SCI à l'IS (voir page « Produit net de cession »).`,
           params.jeanbrun_typeBien === 'ancien'
             ? `Pour l'ancien, les travaux doivent représenter ≥ 30 % du prix d'acquisition et permettre d'atteindre la classe DPE A ou B.`
             : `Le logement neuf doit être conforme à la réglementation RE2020.`,
