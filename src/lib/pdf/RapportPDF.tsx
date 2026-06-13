@@ -561,10 +561,10 @@ export function RapportPDF({
                 <View style={[S.card, { marginTop: 10 }]}>
                   <Text style={S.cardTitle}>Seuils de viabilité (point mort)</Text>
                   <HypRow label="Loyer pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois`} />
-                  <HypRow label="Prix max pour TRI >= 4 %" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && (summary.tri ?? 0) < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
-                  <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
+                  <HypRow label="Prix max pour TRI >= 4 %" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (pointMort.prixMaxPourTri4pct ?? 0) >= input.acquisition.prixAchat * 0.99 && (summary.tri ?? 0) < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                  <HypRow label="Prix max pour CF neutre" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (pointMort.prixMaxPourCashflowNeutre ?? 0) >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   <HypRow label="Travaux sup. max supportables" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (summary.tri ?? 0) < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
-                  <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
+                  <HypRow label="Produit net cession min (VAN = 0)" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : eur(pointMort.reventeMinPourVanPositive)} />
                   <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                 </View>
               )}
@@ -2113,28 +2113,37 @@ export function RapportPDF({
                 </View>
 
                 {/* Résumé TRI compact */}
-                <View style={{ padding: 6, backgroundColor: COLORS.slate50, borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200, flexDirection: 'row', gap: 16 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Entrée t=0</Text>
-                    <Text style={{ fontSize: 7, color: COLORS.red }}>- {eur(summary.cashTotalNecessaire)}</Text>
-                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Apport initial</Text>
+                {triNonSignificatif ? (
+                  <View style={{ padding: 6, backgroundColor: '#f8fafc', borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200, borderLeftWidth: 3, borderLeftColor: COLORS.slate400 }}>
+                    <Text style={{ fontSize: 7, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate500, marginBottom: 2 }}>N/A — financement à corriger</Text>
+                    <Text style={{ fontSize: 6.5, color: COLORS.slate500 }}>
+                      Plan de financement en surfinancement (cash nécessaire négatif, {eur(summary.cashTotalNecessaire)}) : le résumé entrée/flux/TRI n&apos;est pas interprétable tant que le financement n&apos;est pas corrigé.
+                    </Text>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Flux annuels</Text>
-                    <Text style={{ fontSize: 7, color: summary.cashflowMensuelMoyen >= 0 ? COLORS.emeraldDark : COLORS.red }}>{sign(summary.cashflowMensuelMoyen * 12)} /an (moy.)</Text>
-                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>CF exploitation sur {duree} ans</Text>
+                ) : (
+                  <View style={{ padding: 6, backgroundColor: COLORS.slate50, borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200, flexDirection: 'row', gap: 16 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Entrée t=0</Text>
+                      <Text style={{ fontSize: 7, color: COLORS.red }}>- {eur(summary.cashTotalNecessaire)}</Text>
+                      <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Apport initial</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Flux annuels</Text>
+                      <Text style={{ fontSize: 7, color: summary.cashflowMensuelMoyen >= 0 ? COLORS.emeraldDark : COLORS.red }}>{sign(summary.cashflowMensuelMoyen * 12)} /an (moy.)</Text>
+                      <Text style={{ fontSize: 6, color: COLORS.slate400 }}>CF exploitation sur {duree} ans</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Revente an {duree}</Text>
+                      <Text style={{ fontSize: 7, color: COLORS.emeraldDark }}>+ {eur(produitNet)}</Text>
+                      <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Produit net cession</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>TRI calculé</Text>
+                      <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: (summary.tri ?? 0) >= 0.04 ? COLORS.emeraldDark : (summary.tri ?? 0) >= 0 ? COLORS.amber : COLORS.red }}>{triLabel}</Text>
+                      <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Voir page Audit pour le détail</Text>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>Revente an {duree}</Text>
-                    <Text style={{ fontSize: 7, color: COLORS.emeraldDark }}>+ {eur(produitNet)}</Text>
-                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Produit net cession</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 6.5, color: COLORS.slate600, fontFamily: 'Arial', fontWeight: 'bold', marginBottom: 2 }}>TRI calculé</Text>
-                    <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: triNonSignificatif ? COLORS.slate400 : (summary.tri ?? 0) >= 0.04 ? COLORS.emeraldDark : (summary.tri ?? 0) >= 0 ? COLORS.amber : COLORS.red }}>{triLabel}</Text>
-                    <Text style={{ fontSize: 6, color: COLORS.slate400 }}>Voir page Audit pour le détail</Text>
-                  </View>
-                </View>
+                )}
               </View>
             )
           })()}
@@ -2342,12 +2351,12 @@ export function RapportPDF({
                 <View style={{ flexDirection: 'row', gap: 16 }}>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Loyer minimum pour CF neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois (actuel : ${eur(input.location.loyerMensuelHC)}/mois)`} />
-                    <HypRow label="Prix max pour TRI >= 4 %" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : pointMort.prixMaxPourTri4pct >= input.acquisition.prixAchat * 0.99 && (summary.tri ?? 0) < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
-                    <HypRow label="Prix max pour CF neutre" value={pointMort.prixMaxPourCashflowNeutre >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
+                    <HypRow label="Prix max pour TRI >= 4 %" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (pointMort.prixMaxPourTri4pct ?? 0) >= input.acquisition.prixAchat * 0.99 && (summary.tri ?? 0) < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                    <HypRow label="Prix max pour CF neutre" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (pointMort.prixMaxPourCashflowNeutre ?? 0) >= input.acquisition.prixAchat * 0.99 && summary.cashflowMensuelMoyen < 0 ? 'Non atteignable' : eur(pointMort.prixMaxPourCashflowNeutre)} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <HypRow label="Travaux max (sans dégrader le TRI)" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : (summary.tri ?? 0) < 0.04 ? 'Non applicable — le projet est déjà sous le seuil de rentabilité cible (TRI < 4 %)' : eur(pointMort.travauxMaxSupportables)} />
-                    <HypRow label="Produit net cession min (VAN = 0)" value={eur(pointMort.reventeMinPourVanPositive)} />
+                    <HypRow label="Produit net cession min (VAN = 0)" value={triNonSignificatif ? 'Non applicable — TRI non significatif / financement à corriger' : eur(pointMort.reventeMinPourVanPositive)} />
                     <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
                   </View>
                 </View>

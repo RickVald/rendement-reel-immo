@@ -356,14 +356,14 @@ export const S = StyleSheet.create({
   hypLabel: {
     fontSize: 7.5,
     color: COLORS.slate500,
-    flex: 1,
+    flex: 1.2,
     paddingRight: 6,
   },
   hypValue: {
     fontSize: 7.5,
     fontFamily: 'Arial',
     color: COLORS.slate800,
-    flexShrink: 0,
+    flex: 1,
     textAlign: 'right',
   },
 

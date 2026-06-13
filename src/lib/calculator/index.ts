@@ -376,7 +376,14 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     : prixMaxResult
 
   const pointMortFinal: PointMort | undefined = summary.triNonSignificatif && pointMort
-    ? { ...pointMort, nonInterpretable: true }
+    ? {
+        ...pointMort,
+        prixMaxPourTri4pct: null,
+        prixMaxPourCashflowNeutre: null,
+        travauxMaxSupportables: null,
+        reventeMinPourVanPositive: null,
+        nonInterpretable: true,
+      }
     : pointMort
 
   const analysis = {

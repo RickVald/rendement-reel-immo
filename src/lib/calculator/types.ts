@@ -519,12 +519,12 @@ export interface StressTest {
 
 export interface PointMort {
   loyerPourCashflowNeutre: number
-  prixMaxPourTri4pct: number
-  prixMaxPourCashflowNeutre: number
-  travauxMaxSupportables: number
-  reventeMinPourVanPositive: number
+  prixMaxPourTri4pct: number | null
+  prixMaxPourCashflowNeutre: number | null
+  travauxMaxSupportables: number | null
+  reventeMinPourVanPositive: number | null
   dureeDetentionOptimale: number
-  /** true si triNonSignificatif (surfinancement) : seuils non interprétables (valeurs ci-dessus à ignorer côté API/exports) */
+  /** true si triNonSignificatif (surfinancement) : seuils ci-dessus à null, non interprétables */
   nonInterpretable?: boolean
 }
 
