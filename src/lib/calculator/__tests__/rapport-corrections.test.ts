@@ -135,7 +135,7 @@ console.log('\nTest 5 — Prix d\'achat sous le prix cible (marge de sécurité 
   }
   const a = analyser(input)
   const texteVerdict = [...a.verdict.alertes, ...a.verdict.recommandations].join(' ')
-  assert(a.summary.prixMaximum > input.acquisition.prixAchat, 'marge de sécurité positive (prix cible > prix d\'achat)', `prixMaximum=${a.summary.prixMaximum} prixAchat=${input.acquisition.prixAchat}`)
+  assert((a.summary.prixMaximum ?? 0) > input.acquisition.prixAchat, 'marge de sécurité positive (prix cible > prix d\'achat)', `prixMaximum=${a.summary.prixMaximum} prixAchat=${input.acquisition.prixAchat}`)
   assert(!texteVerdict.toLowerCase().includes('décote nécessaire'), 'pas de mention "décote nécessaire" quand la marge est positive')
 }
 

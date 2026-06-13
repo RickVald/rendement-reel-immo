@@ -282,7 +282,7 @@ export function getSynthèseDispositif(
         ],
         alertes: [
           `Loyer plafonné selon la zone Denormandie (vérifier le plafond local).`,
-          `Les travaux doivent représenter ≥ 25 % du prix total d'acquisition.`,
+          `Les travaux doivent représenter >= 25 % du prix total d'acquisition.`,
           `Ressources du locataire plafonnées (mêmes plafonds que Pinel).`,
           !params.denormandie_villeEligible ? `Vérifiez l'éligibilité de la commune (liste ACV + ORT sur servicepublic.fr).` : '',
         ].filter(Boolean),

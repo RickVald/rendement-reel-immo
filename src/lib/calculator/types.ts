@@ -394,7 +394,7 @@ export interface SummaryKPIs {
   triDisplay: string           // valeur affichable : pourcentage formaté, ou "Non significatif" si triNonSignificatif
   van: number
   effortEpargne: number       // |cashflow négatif mensuel moyen|
-  prixMaximum: number
+  prixMaximum: number | null    // null si triNonSignificatif (non interprétable en surfinancement)
   dependanceRevente: boolean   // TRI négatif sans revente
   triSansRevente: number | null // TRI calculé hors produit de revente ; null si triNonSignificatif
   scoreRisqueDpe: number       // 0-100
@@ -488,6 +488,8 @@ export interface PrixMaxResult {
   negociationEuros: number
   negociationPct: number
   objectifCible: string
+  /** true si triNonSignificatif (surfinancement) : prix cible non interprétable (valeurs ci-dessus à ignorer côté API/exports) */
+  nonInterpretable?: boolean
 }
 
 export interface AIInterpretation {
@@ -522,6 +524,8 @@ export interface PointMort {
   travauxMaxSupportables: number
   reventeMinPourVanPositive: number
   dureeDetentionOptimale: number
+  /** true si triNonSignificatif (surfinancement) : seuils non interprétables (valeurs ci-dessus à ignorer côté API/exports) */
+  nonInterpretable?: boolean
 }
 
 /** Comparaison des 3 scénarios avantage fiscal (demande point 6 du document) */

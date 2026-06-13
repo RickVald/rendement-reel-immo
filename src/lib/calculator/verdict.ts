@@ -84,7 +84,7 @@ export function genererVerdict(kpis: SummaryKPIs, input: ProjectInput): Verdict 
   // Recommandations
   if (score >= 70)
     recommandations.push(`Ce projet présente de bons fondamentaux. Vérifiez les hypothèses de revalorisation${input.bien.copropriete ? ' et les charges de copropriété' : ''} sur les 5 prochaines années.`)
-  if (kpis.prixMaximum < input.acquisition.prixAchat)
+  if (kpis.prixMaximum != null && kpis.prixMaximum < input.acquisition.prixAchat)
     recommandations.push(`Le prix cible calculé selon l'objectif de simulation est ${eur(kpis.prixMaximum)}, soit ${eur(input.acquisition.prixAchat - kpis.prixMaximum)} de négociation à obtenir (${pct((input.acquisition.prixAchat - kpis.prixMaximum) / input.acquisition.prixAchat)}).`)
   if (input.bien.dpe === 'E')
     recommandations.push(`DPE E — ce bien sera soumis à obligations de rénovation en 2034. Anticipez le coût des travaux dans votre stratégie.`)
@@ -154,7 +154,13 @@ export function finaliserVerdict(
   scoreFiabilite: number,
   erreursBloquantes: string[]
 ): Verdict {
-  const recommandations = [...verdict.recommandations]
+  // Si le projet est non arbitrable, le prix cible calculé sur des hypothèses à
+  // corriger n'est pas exploitable : on retire la recommandation correspondante
+  // pour ne pas contredire le bloc "N/A — hypothèses à corriger" de la page 2.
+  let recommandations = [...verdict.recommandations]
+  if (erreursBloquantes.length > 0) {
+    recommandations = recommandations.filter(r => !r.startsWith('Le prix cible calculé'))
+  }
   if (scoreFiabilite < 70) {
     recommandations.push(`Fiabilité documentaire moyenne (${scoreFiabilite}/100) — la décision reste conditionnée à la validation des justificatifs (devis, relevés, avis d'imposition) avant signature.`)
   }

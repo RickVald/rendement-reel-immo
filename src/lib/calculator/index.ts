@@ -1,6 +1,6 @@
 import type {
   ProjectInput, ProjectAnalysis, SummaryKPIs, IndicateurResume,
-  ComparaisonRegime, SensibiliteRow, StressTest, PointMort, RegimeFiscal,
+  ComparaisonRegime, SensibiliteRow, StressTest, PointMort, PrixMaxResult, RegimeFiscal,
   ScoreRobustesse, NiveauConfiance, ScenariosAvantage
 } from './types'
 import { calculerCredit } from './credit'
@@ -246,7 +246,7 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     triDisplay: apportInitial <= 0 ? 'Non significatif' : `${(tri * 100).toFixed(2)} %`,
     van,
     effortEpargne: Math.round(effortEpargne),
-    prixMaximum: prixMaxResult.prixMaximum,
+    prixMaximum: apportInitial <= 0 ? null : prixMaxResult.prixMaximum,
     dependanceRevente,
     triSansRevente: triOuNull(apportInitial, triSansRevente),
     scoreRisqueDpe,
@@ -367,6 +367,18 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     summary.avantagePerdou = Math.max(0, summary.avantageTheorique - summary.avantageIntegreRapport)
   }
 
+  // Surfinancement (apportInitial <= 0) : TRI non significatif => les seuils dérivés
+  // (prix cible, décote, point mort) ne sont pas interprétables non plus. On signale
+  // ces objets via nonInterpretable plutôt que d'exposer des valeurs numériques
+  // trompeuses (issues de la borne de calcul) côté API/exports partenaires.
+  const prixMaxFinal: PrixMaxResult = summary.triNonSignificatif
+    ? { ...prixMaxResult, nonInterpretable: true }
+    : prixMaxResult
+
+  const pointMortFinal: PointMort | undefined = summary.triNonSignificatif && pointMort
+    ? { ...pointMort, nonInterpretable: true }
+    : pointMort
+
   const analysis = {
     input,
     creditSchedule,
@@ -374,12 +386,12 @@ export function analyser(rawInput: ProjectInput): ProjectAnalysis {
     verdict,
     yearlyTable: rows,
     scenarios,
-    prixMax: prixMaxResult,
+    prixMax: prixMaxFinal,
     indicateurs,
     comparaisonsRegimes,
     sensibilite,
     stressTests,
-    pointMort,
+    pointMort: pointMortFinal,
     scoreRobustesse,
     niveauxConfiance,
     regimeAutoSelectionne,

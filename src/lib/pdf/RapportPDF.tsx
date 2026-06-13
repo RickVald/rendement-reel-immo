@@ -313,15 +313,24 @@ export function RapportPDF({
             </View>
             <View style={S.col}>
               <Text style={S.subTitle}>Prix cible selon objectif de simulation</Text>
-              <View style={[S.card, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe', marginBottom: 10 }]}>
-                <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: '#1e3a8a', marginBottom: 4 }}>{eur(prixMax.prixMaximum)}</Text>
-                <Text style={{ fontSize: 8, color: '#3730a3' }}>Pour atteindre : {prixMax.objectifCible}</Text>
-                <Text style={{ fontSize: 8, color: '#6b7280', marginTop: 4 }}>
-                  {prixMax.negociationEuros > 0
-                    ? `Décote nécessaire : ${eur(prixMax.negociationEuros)} (${pct(prixMax.negociationPct, 1)} du prix demandé)`
-                    : `Marge de sécurité : ${eur(Math.abs(prixMax.negociationEuros))} (${pct(Math.abs(prixMax.negociationPct), 1)} au-dessus du prix demandé)`}
-                </Text>
-              </View>
+              {verdict.label === "Non arbitrable en l'état" ? (
+                <View style={[S.card, { backgroundColor: '#f8fafc', borderColor: COLORS.slate200, marginBottom: 10 }]}>
+                  <Text style={{ fontSize: 9, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.slate500, marginBottom: 4 }}>N/A — hypothèses à corriger avant calcul du prix cible</Text>
+                  <Text style={{ fontSize: 7, color: COLORS.slate400 }}>
+                    Le projet est jugé non arbitrable en l&apos;état (voir erreurs bloquantes ci-dessus). Un prix cible ou une décote calculés sur ces hypothèses ne seraient pas exploitables.
+                  </Text>
+                </View>
+              ) : (
+                <View style={[S.card, { backgroundColor: '#eff6ff', borderColor: '#bfdbfe', marginBottom: 10 }]}>
+                  <Text style={{ fontSize: 18, fontFamily: 'Arial', fontWeight: 'bold', color: '#1e3a8a', marginBottom: 4 }}>{eur(prixMax.prixMaximum)}</Text>
+                  <Text style={{ fontSize: 8, color: '#3730a3' }}>Pour atteindre : {prixMax.objectifCible}</Text>
+                  <Text style={{ fontSize: 8, color: '#6b7280', marginTop: 4 }}>
+                    {prixMax.negociationEuros > 0
+                      ? `Décote nécessaire : ${eur(prixMax.negociationEuros)} (${pct(prixMax.negociationPct, 1)} du prix demandé)`
+                      : `Marge de sécurité : ${eur(Math.abs(prixMax.negociationEuros))} (${pct(Math.abs(prixMax.negociationPct), 1)} au-dessus du prix demandé)`}
+                  </Text>
+                </View>
+              )}
 
               <Text style={S.subTitle}>Verdict en une phrase</Text>
               <View style={[S.card, { backgroundColor: vc.bg, borderColor: vc.border }]}>
@@ -394,11 +403,15 @@ export function RapportPDF({
               },
               {
                 arg: `"Prix de marché : ${eur(input.acquisition.prixAchat)}"`,
-                reel: `Prix cible pour objectif rentabilité : ${eur(prixMax.prixMaximum)}`,
-                ecart: prixMax.negociationPct > 0
-                  ? `Décote nécessaire : ${pct(prixMax.negociationPct, 1)}`
-                  : `Marge de sécurité : +${pct(Math.abs(prixMax.negociationPct), 1)}`,
-                bad: prixMax.negociationPct > 0.05,
+                reel: verdict.label === "Non arbitrable en l'état"
+                  ? 'Prix cible : N/A — hypothèses à corriger avant calcul'
+                  : `Prix cible pour objectif rentabilité : ${eur(prixMax.prixMaximum)}`,
+                ecart: verdict.label === "Non arbitrable en l'état"
+                  ? 'Non calculable en l\'état'
+                  : prixMax.negociationPct > 0
+                    ? `Décote nécessaire : ${pct(prixMax.negociationPct, 1)}`
+                    : `Marge de sécurité : +${pct(Math.abs(prixMax.negociationPct), 1)}`,
+                bad: verdict.label === "Non arbitrable en l'état" ? false : prixMax.negociationPct > 0.05,
               },
               {
                 arg: `"TRI immobilier attractif"`,
