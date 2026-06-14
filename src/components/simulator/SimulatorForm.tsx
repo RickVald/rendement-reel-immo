@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { StepIndicator } from './StepIndicator'
 import { LeadGateModal } from './LeadGateModal'
+import { TypeAnalyseStep, type TypeAnalyse } from './TypeAnalyseStep'
+import { ComingSoonAnalyse } from './ComingSoonAnalyse'
 import { Step1, StepPF, Step2, Step3, Step4, Step5, Step6, Step7, Step8 } from './steps'
 import { DEFAULT_INPUT } from '@/data/defaults'
 import { QA_SCENARIOS, applyScenario } from '@/data/qa-scenarios'
@@ -23,6 +25,7 @@ const STEP_TITLES = [
 
 export function SimulatorForm() {
   const router = useRouter()
+  const [typeAnalyse, setTypeAnalyse] = useState<TypeAnalyse | null>(null)
   const [step, setStep] = useState(1)
   const [data, setData] = useState<ProjectInput>(DEFAULT_INPUT)
   const [loading, setLoading] = useState(false)
@@ -208,21 +211,31 @@ export function SimulatorForm() {
       )}
 
       {/* Step indicator */}
-      <div className="mb-8">
-        <StepIndicator current={step} />
-      </div>
+      {typeAnalyse === 'achat' && (
+        <div className="mb-8">
+          <StepIndicator current={step} />
+        </div>
+      )}
 
       {/* Card */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {/* Card header */}
-        <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
-          <h2 className="font-bold text-slate-900">{currentTitle.title}</h2>
-          <p className="text-sm text-slate-500 mt-0.5">{currentTitle.sub}</p>
-        </div>
+        {typeAnalyse === 'achat' && (
+          <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
+            <h2 className="font-bold text-slate-900">{currentTitle.title}</h2>
+            <p className="text-sm text-slate-500 mt-0.5">{currentTitle.sub}</p>
+          </div>
+        )}
 
         {/* Card body */}
         <div className="px-6 py-6">
-          <CurrentStep {...stepProps} />
+          {typeAnalyse === null ? (
+            <TypeAnalyseStep onSelect={setTypeAnalyse} />
+          ) : typeAnalyse === 'achat' ? (
+            <CurrentStep {...stepProps} />
+          ) : (
+            <ComingSoonAnalyse type={typeAnalyse} onBack={() => setTypeAnalyse(null)} />
+          )}
         </div>
 
         {/* Error */}
@@ -233,51 +246,53 @@ export function SimulatorForm() {
         )}
 
         {/* Navigation */}
-        <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={step === 1}
-            className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            ← Précédent
-          </button>
+        {typeAnalyse === 'achat' && (
+          <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={step === 1}
+              className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Précédent
+            </button>
 
-          <div className="text-xs text-slate-400 whitespace-nowrap shrink-0">
-            {step} / 9
+            <div className="text-xs text-slate-400 whitespace-nowrap shrink-0">
+              {step} / 9
+            </div>
+
+            {step < 9 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-6 py-2 rounded-lg text-sm transition-colors"
+              >
+                Suivant →
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAnalyzeClick}
+                disabled={loading}
+                className={clsx(
+                  'font-bold px-6 py-2 rounded-lg text-sm transition-all',
+                  loading
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-white'
+                )}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="inline-block w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                    Calcul en cours...
+                  </span>
+                ) : (
+                  '🔍 Analyser mon projet'
+                )}
+              </button>
+            )}
           </div>
-
-          {step < 9 ? (
-            <button
-              type="button"
-              onClick={handleNext}
-              className="bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-6 py-2 rounded-lg text-sm transition-colors"
-            >
-              Suivant →
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleAnalyzeClick}
-              disabled={loading}
-              className={clsx(
-                'font-bold px-6 py-2 rounded-lg text-sm transition-all',
-                loading
-                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-white'
-              )}
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <span className="inline-block w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
-                  Calcul en cours...
-                </span>
-              ) : (
-                '🔍 Analyser mon projet'
-              )}
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Disclaimer */}
