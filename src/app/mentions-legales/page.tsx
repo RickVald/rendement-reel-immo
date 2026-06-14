@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { LegalPage, LegalSection } from '@/components/ui/LegalPage'
+import { LegalPage, LegalSection, ToComplete } from '@/components/ui/LegalPage'
 
 export const metadata: Metadata = {
   title: 'Mentions légales',
@@ -20,6 +20,7 @@ export default function MentionsLegalesPage() {
           <li>Adresse du siège : Moulin de Carmenais, 56120 Saint-Servant</li>
           <li>SIREN : 883 055 857</li>
           <li>Immatriculation : RCS Vannes</li>
+          <li>TVA intracommunautaire : <ToComplete>numéro de TVA intracommunautaire ou mention &laquo; TVA non applicable, art. 293 B du CGI &raquo; si franchise en base</ToComplete></li>
           <li>Email de contact : remy@rendementreelimmo.fr</li>
         </ul>
       </LegalSection>
@@ -68,6 +69,15 @@ export default function MentionsLegalesPage() {
           de la connaissance client, de l&apos;adéquation de la recommandation et du respect de ses obligations
           réglementaires. L&apos;éditeur ne saurait être tenu responsable des décisions prises sur la base des
           rapports générés.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="Médiateur de la consommation">
+        <p>
+          Conformément aux articles L.616-1 et R.616-1 du Code de la consommation, en cas de litige avec un
+          consommateur n&apos;ayant pu être résolu directement auprès de l&apos;éditeur, le consommateur peut
+          recourir gratuitement au service de médiation suivant :{' '}
+          <ToComplete>nom, adresse postale et site web du médiateur de la consommation désigné</ToComplete>.
         </p>
       </LegalSection>
 

@@ -19,6 +19,27 @@ export default function PolitiqueConfidentialitePage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Catégories de données traitées">
+        <p>
+          Selon votre usage du Service, nous pouvons traiter les catégories de données suivantes :
+        </p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Données d&apos;identité et de compte : nom, email, mot de passe (haché), société le cas échéant ;</li>
+          <li>Données de paiement : traitées par notre prestataire Stripe (voir ci-dessous), nous ne stockons pas vos coordonnées bancaires ;</li>
+          <li>Données de simulation immobilière : caractéristiques du bien, ville, surface, DPE, charges, copropriété ;</li>
+          <li>Données financières et patrimoniales saisies : prix d&apos;acquisition, apport, emprunt, taux, durée, loyers, revenus fonciers, tranche marginale d&apos;imposition (TMI), régime fiscal ;</li>
+          <li>Rapports PDF générés et scénarios enregistrés, lorsque vous créez un compte ;</li>
+          <li>Logs techniques : adresse IP, journaux de connexion et d&apos;erreurs, à des fins de sécurité et de débogage ;</li>
+          <li>Cookies et données de mesure d&apos;audience, le cas échéant (voir la page <Link href="/cookies" className="text-[#0B1B2B] underline">cookies</Link>).</li>
+        </ul>
+        <p>
+          Les données de simulation et patrimoniales saisies peuvent révéler des éléments sur votre situation
+          financière personnelle. Sans constituer des « données sensibles » au sens du RGPD, elles sont
+          traitées avec un niveau de protection renforcé (limitation des accès, minimisation, durées de
+          conservation encadrées).
+        </p>
+      </LegalSection>
+
       <LegalSection title="Données traitées par le simulateur">
         <p>
           Les informations saisies dans le simulateur (caractéristiques du bien, financement, fiscalité,
@@ -64,6 +85,25 @@ export default function PolitiqueConfidentialitePage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Sous-traitants et destinataires">
+        <p>
+          Pour fournir le Service, nous faisons appel aux catégories de sous-traitants suivantes :
+        </p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Hébergement du site et des applications : Vercel Inc. (États-Unis) ;</li>
+          <li>Base de données (compte, scénarios, rapports, CRM) : Neon, hébergement Union européenne ;</li>
+          <li>Paiement : Stripe ;</li>
+          <li>Envoi d&apos;emails transactionnels et notifications : Brevo ;</li>
+          <li>Génération de l&apos;interprétation en langage clair des rapports (le cas échéant) : Anthropic (intelligence artificielle), sur la base d&apos;un résumé anonymisé des résultats, sans donnée d&apos;identification ;</li>
+          <li>Mesure d&apos;audience : aucune à ce jour, voir la page <Link href="/cookies" className="text-[#0B1B2B] underline">cookies</Link>.</li>
+        </ul>
+        <p>
+          Certains de ces prestataires peuvent être situés hors de l&apos;Union européenne (notamment
+          États-Unis). Dans ce cas, le transfert repose sur des garanties appropriées (clauses contractuelles
+          types de la Commission européenne ou mécanisme de certification équivalent).
+        </p>
+      </LegalSection>
+
       <LegalSection title="Cookies et mesure d'audience">
         <p>
           Le site n&apos;utilise pas, à ce jour, de cookies de suivi publicitaire ou de profilage. Une solution
@@ -73,20 +113,38 @@ export default function PolitiqueConfidentialitePage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="Base légale et finalités">
+      <LegalSection title="Finalités et bases légales">
+        <p>Vos données sont traitées pour les finalités suivantes, sur les bases légales indiquées :</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Exécution du service demandé (génération de rapports de simulation)</li>
-          <li>Réponse aux demandes de démonstration et de contact (intérêt légitime / mesures précontractuelles)</li>
-          <li>Amélioration du produit (statistiques agrégées et anonymisées)</li>
+          <li>Création et gestion de votre compte, fourniture du simulateur, génération des rapports PDF, sauvegarde de vos scénarios — exécution du contrat ;</li>
+          <li>Facturation et obligations comptables liées aux paiements — obligation légale ;</li>
+          <li>Réponse aux demandes de démonstration et de contact, suivi commercial — intérêt légitime / mesures précontractuelles ;</li>
+          <li>Sécurité du Service, prévention de la fraude et des abus, support technique — intérêt légitime ;</li>
+          <li>Amélioration du moteur de calcul et du produit (statistiques agrégées et anonymisées) — intérêt légitime ;</li>
+          <li>Mise en relation avec un partenaire professionnel, newsletter, prospection commerciale non nécessaire à l&apos;exécution du Service — consentement (« opt-in »), révocable à tout moment.</li>
         </ul>
       </LegalSection>
 
       <LegalSection title="Durée de conservation">
         <p>
           Les données saisies dans le simulateur (sans coordonnées) ne sont pas conservées au-delà de la
-          session nécessaire au calcul et à la génération du rapport. Les données issues des formulaires
-          (résultats, démo) et enregistrées dans le CRM sont conservées le temps de la relation commerciale,
-          dans la limite de 3 ans à compter du dernier contact, puis supprimées ou anonymisées.
+          session nécessaire au calcul et à la génération du rapport.
+        </p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Compte client : pendant toute la durée de vie du compte, puis suppression ou anonymisation dans un délai de 3 ans après la dernière activité ;</li>
+          <li>Rapports PDF générés et scénarios enregistrés : conservés tant que votre compte est actif, supprimables à tout moment depuis votre espace ou sur demande ;</li>
+          <li>Factures et données de facturation : durée légale de conservation comptable (10 ans) ;</li>
+          <li>Données issues des formulaires (résultats, démo) enregistrées dans le CRM : conservées le temps de la relation commerciale, dans la limite de 3 ans à compter du dernier contact, puis supprimées ou anonymisées ;</li>
+          <li>Logs techniques : quelques mois, à des fins de sécurité et de débogage.</li>
+        </ul>
+      </LegalSection>
+
+      <LegalSection title="Suppression des rapports et des scénarios">
+        <p>
+          Vous pouvez supprimer vos scénarios et rapports depuis votre espace ou sur demande à
+          remy@rendementreelimmo.fr. Cette suppression peut ne pas affecter les données que nous devons
+          conserver pour répondre à des obligations légales, comptables ou probatoires (notamment les
+          informations relatives à une commande facturée).
         </p>
       </LegalSection>
 

@@ -75,9 +75,12 @@ function PaidPlanCard({ plan }: { plan: PaidPlan }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showEmail, setShowEmail] = useState(false)
+  const [consentSimulation, setConsentSimulation] = useState(false)
+  const [consentRetractation, setConsentRetractation] = useState(false)
 
   const handleCheckout = async () => {
     if (!email.trim() || !email.includes('@')) { setError('Indiquez un email valide.'); return }
+    if (!consentSimulation || !consentRetractation) { setError('Merci de cocher les deux cases ci-dessus pour continuer.'); return }
     setLoading(true)
     setError(null)
     try {
@@ -136,15 +139,40 @@ function PaidPlanCard({ plan }: { plan: PaidPlan }) {
               plan.highlight ? 'bg-white/10 border-white/20 text-white placeholder:text-slate-400' : 'border-slate-200 text-[#0B1B2B]'
             )}
           />
+          <label className={clsx('flex items-start gap-2 text-xs', plan.highlight ? 'text-slate-300' : 'text-slate-500')}>
+            <input
+              type="checkbox"
+              checked={consentSimulation}
+              onChange={e => setConsentSimulation(e.target.checked)}
+              className="mt-0.5 shrink-0"
+            />
+            <span>
+              Je reconnais que le rapport est une simulation indicative fondée sur les données que j&apos;ai saisies,
+              qu&apos;il ne constitue pas un conseil personnalisé, et que les résultats doivent être vérifiés avant
+              toute décision.
+            </span>
+          </label>
+          <label className={clsx('flex items-start gap-2 text-xs', plan.highlight ? 'text-slate-300' : 'text-slate-500')}>
+            <input
+              type="checkbox"
+              checked={consentRetractation}
+              onChange={e => setConsentRetractation(e.target.checked)}
+              className="mt-0.5 shrink-0"
+            />
+            <span>
+              Je demande l&apos;exécution immédiate du service et reconnais renoncer à mon droit de rétractation
+              une fois le rapport généré.
+            </span>
+          </label>
           {error && <p className="text-xs text-red-400">{error}</p>}
           <button
             type="button"
             onClick={handleCheckout}
-            disabled={loading}
+            disabled={loading || !consentSimulation || !consentRetractation}
             className={clsx(
               'w-full text-center font-semibold px-6 py-3 rounded-lg text-sm transition-colors',
               plan.highlight ? 'bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B]' : 'bg-[#0B1B2B] hover:bg-[#162840] text-white',
-              loading && 'opacity-60 cursor-not-allowed'
+              (loading || !consentSimulation || !consentRetractation) && 'opacity-60 cursor-not-allowed'
             )}
           >
             {loading ? '...' : 'Payer en ligne'}

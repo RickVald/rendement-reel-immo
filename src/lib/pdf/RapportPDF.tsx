@@ -214,9 +214,10 @@ export function RapportPDF({
             <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Durée d'analyse : {input.revente.dureeDetentionAns} ans</Text>
           </View>
           <Text style={S.coverDisclaimer}>
-            Ce rapport est une simulation indicative basée sur les données saisies. Il ne constitue pas un conseil en investissement,
-            un conseil fiscal ou une recommandation personnalisée. Les projections reposent sur des hypothèses et ne garantissent
-            pas les performances futures. Réservé à l'usage du professionnel destinataire.
+            Ce rapport est une simulation automatisée indicative. Il ne constitue ni une expertise immobilière, ni un conseil fiscal,
+            juridique, patrimonial ou financier. Les résultats dépendent exclusivement des données saisies et des hypothèses retenues
+            et ne garantissent pas les performances futures. Toute décision d'achat, de vente, de financement ou de montage fiscal doit
+            être validée par les professionnels compétents. Réservé à l'usage du professionnel destinataire.
           </Text>
         </View>
       </Page>
@@ -1209,6 +1210,7 @@ export function RapportPDF({
               <View style={{ marginTop: 8, padding: 8, backgroundColor: COLORS.slate50, borderRadius: 4, borderWidth: 1, borderColor: COLORS.slate200 }}>
                 <Text style={{ fontSize: 6.5, color: COLORS.slate500 }}>
                   Cette page est fournie à titre informatif. Les conditions d'éligibilité, plafonds et modalités d'application de ce dispositif doivent être confirmés par un conseiller fiscal ou un notaire. Les règles fiscales peuvent évoluer.
+                  Les dispositifs fiscaux affichés sont simulés sous réserve d'éligibilité effective, de justificatifs, de non-cumul, de plafonds applicables et de validation par un professionnel compétent. Un avantage fiscal affiché comme &quot;théorique&quot; ou &quot;sous réserve&quot; ne doit pas être considéré comme acquis.
                 </Text>
               </View>
             </View>
