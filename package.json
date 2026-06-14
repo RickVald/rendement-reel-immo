@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:calculator": "tsx src/lib/calculator/__tests__/rapport-corrections.test.ts",
+    "test:coherence": "tsx src/lib/calculator/__tests__/coherence.test.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

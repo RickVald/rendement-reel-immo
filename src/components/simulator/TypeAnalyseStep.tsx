@@ -18,9 +18,9 @@ const OPTIONS: { value: TypeAnalyse; title: string; desc: string; available: boo
   },
   {
     value: 'audit_global',
-    title: 'Je veux un audit patrimonial / immobilier global',
-    desc: 'Vue d’ensemble de votre parc immobilier et de votre stratégie patrimoniale.',
-    available: false,
+    title: 'Je veux un bilan de cohérence de ma situation patrimoniale',
+    desc: 'Vue d’ensemble indicative de votre situation financière et immobilière au regard de vos objectifs, avec points d’attention et orientation éventuelle vers un professionnel.',
+    available: true,
   },
 ]
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { clsx } from 'clsx'
 import type { ProjectInput, ProjectInputDetenu } from '@/lib/calculator/types'
+import type { ProjectInputBilan } from '@/lib/calculator/types-bilan'
 
 type Profil = 'particulier' | 'pro'
 
@@ -16,15 +17,21 @@ interface LeadGateModalProps {
   onUnlockParticulier: () => void
   /** Appelé pour les emails de test internes — lance le calcul et affiche le rapport complet (sans paiement). */
   onUnlockComplet: () => void
-  input: ProjectInput | ProjectInputDetenu
+  input: ProjectInput | ProjectInputDetenu | ProjectInputBilan
+  /** Active le mode "bilan de cohérence patrimoniale" : consentements RGPD additionnels. */
+  bilanMode?: boolean
+  /** Appelé avec le nom saisi, après acceptation du consentement bilan (avant l'appel onUnlock*). */
+  onNomSaisi?: (nom: string) => void
 }
 
-export function LeadGateModal({ open, onClose, onUnlockParticulier, onUnlockComplet, input }: LeadGateModalProps) {
+export function LeadGateModal({ open, onClose, onUnlockParticulier, onUnlockComplet, input, bilanMode = false, onNomSaisi }: LeadGateModalProps) {
   const [profil, setProfil] = useState<Profil>('particulier')
   const [nom, setNom] = useState('')
   const [email, setEmail] = useState('')
   const [telephone, setTelephone] = useState('')
   const [societe, setSociete] = useState('')
+  const [consentBilan, setConsentBilan] = useState(false)
+  const [consentCgp, setConsentCgp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<Profil | null>(null)
@@ -34,6 +41,9 @@ export function LeadGateModal({ open, onClose, onUnlockParticulier, onUnlockComp
   const handleSubmit = async () => {
     if (!nom.trim()) { setError('Indiquez votre nom.'); return }
     if (!email.trim() || !email.includes('@')) { setError('Indiquez un email valide.'); return }
+    if (bilanMode && !consentBilan) { setError('Veuillez accepter l\'utilisation de vos données pour générer ce bilan.'); return }
+
+    onNomSaisi?.(nom.trim())
 
     if (TEST_EMAILS.includes(email.trim().toLowerCase())) {
       onUnlockComplet()
@@ -46,7 +56,7 @@ export function LeadGateModal({ open, onClose, onUnlockParticulier, onUnlockComp
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profil, nom, email, telephone, societe, input }),
+        body: JSON.stringify({ profil, nom, email, telephone, societe, input, ...(bilanMode ? { consentBilan, consentCgp } : {}) }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -168,6 +178,19 @@ export function LeadGateModal({ open, onClose, onUnlockParticulier, onUnlockComp
                   </div>
                 )}
               </div>
+
+              {bilanMode && (
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={consentBilan} onChange={e => setConsentBilan(e.target.checked)} className="mt-0.5 w-3.5 h-3.5 accent-emerald-600" />
+                    <span>J&apos;accepte que mes données soient utilisées pour générer ce bilan indicatif et être recontacté(e) à ce sujet.</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={consentCgp} onChange={e => setConsentCgp(e.target.checked)} className="mt-0.5 w-3.5 h-3.5 accent-emerald-600" />
+                    <span>J&apos;accepte d&apos;être mis(e) en relation avec un professionnel (conseiller en gestion de patrimoine) si une orientation est suggérée par le bilan.</span>
+                  </label>
+                </div>
+              )}
 
               {error && <p className="text-xs text-red-600">{error}</p>}
 
