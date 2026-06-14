@@ -185,7 +185,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
       </Page>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          PAGE 3 — DÉTAIL ANNUEL + FISCALITÉ DE CESSION + RECOMMANDATIONS
+          PAGE 3 — DÉTAIL ANNUEL + FISCALITÉ DE CESSION + LECTURE DE LA SIMULATION
       ══════════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={S.page}>
         <PageHeader section="Détail du scénario Conserver" meta={meta} />
@@ -273,7 +273,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
             <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 12 }}>{scenarioVendre.detailPlusValue.note}</Text>
           )}
 
-          <Text style={S.sectionTitle}>Recommandations</Text>
+          <Text style={S.sectionTitle}>Lecture de la simulation</Text>
           <View style={S.card}>
             {verdict.recommandations.map((r, i) => (
               <View key={i} style={S.listItem}>

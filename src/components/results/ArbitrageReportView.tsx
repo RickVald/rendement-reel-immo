@@ -264,8 +264,8 @@ function ArbitrageReport({ analysis, onRestart }: { analysis: ArbitrageAnalysis;
           )}
         </Card>
 
-        {/* 5. Recommandations & disclaimer */}
-        <Card title="Recommandations">
+        {/* 5. Lecture de la simulation & disclaimer */}
+        <Card title="Lecture de la simulation">
           <ul className="space-y-2 text-sm text-slate-700 list-disc list-inside">
             {verdict.recommandations.map((r, i) => <li key={i}>{r}</li>)}
           </ul>

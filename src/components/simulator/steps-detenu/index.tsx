@@ -36,9 +36,6 @@ export function StepBienDetenu({ data, onChange }: SPD) {
 
       <Section title="Caractéristiques">
         <Grid2>
-          <Select label="DPE actuel" value={b.dpe} onChange={e => set({ dpe: e.target.value as typeof b.dpe })}
-            options={['A','B','C','D','E','F','G','inconnu'].map(v => ({ value: v, label: `DPE ${v}` }))}
-          />
           <Select label="État général" value={b.etat} onChange={e => set({ etat: e.target.value as typeof b.etat })}
             options={[
               { value: 'neuf', label: 'Neuf' },
@@ -47,12 +44,13 @@ export function StepBienDetenu({ data, onChange }: SPD) {
               { value: 'travaux_lourds', label: 'Travaux lourds' },
             ]}
           />
-        </Grid2>
-        <Grid2>
           <Input label="Année de construction" type="number" value={b.anneeConstruction}
             onChange={e => set({ anneeConstruction: +e.target.value })} />
-          <Toggle label="En copropriété" checked={b.copropriete} onChange={v => set({ copropriete: v })} />
         </Grid2>
+        <Toggle label="En copropriété" checked={b.copropriete} onChange={v => set({ copropriete: v })} />
+        <p className="text-xs text-slate-400">
+          Le DPE actuel du bien sera renseigné à l&apos;étape &quot;Performance actuelle&quot;.
+        </p>
       </Section>
 
       <Section title="Mode de détention">
@@ -100,7 +98,8 @@ export function StepHistorique({ data, onChange }: SPD) {
       <Section title="Acquisition initiale">
         <Grid2>
           <Input label="Date d'achat" type="date" value={h.dateAchat}
-            onChange={e => set({ dateAchat: e.target.value })} />
+            onChange={e => set({ dateAchat: e.target.value })}
+            hint="Si elle n'est pas renseignée, la fiscalité de cession ne sera pas calculée (affichée comme non applicable)." />
           <Input label="Prix d'achat initial" type="number" value={h.prixAchatInitial}
             onChange={e => set({ prixAchatInitial: +e.target.value })} suffix="€" />
         </Grid2>
