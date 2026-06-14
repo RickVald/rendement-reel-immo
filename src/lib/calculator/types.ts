@@ -256,6 +256,123 @@ export interface ProjectInput {
   revente: ReventeInput
 }
 
+// ─── PARCOURS B — BIEN DÉJÀ DÉTENU (arbitrage Conserver / Vendre) ─────────────
+
+/** Type de prêt en cours sur le bien. */
+export type TypePret = 'amortissable' | 'in_fine' | 'differe' | 'relais'
+
+/** Type de garantie du prêt en cours. */
+export type GarantiePret = 'hypotheque' | 'caution' | 'ppd' | 'autre'
+
+export interface PretEnCoursInput {
+  /** true si le bien est encore financé par un crédit en cours. */
+  pretEnCours: boolean
+  capitalRestantDu: number
+  mensualiteActuelle: number
+  tauxNominal: number              // ex: 0.037 = 3.7%
+  tauxAssurance: number            // ex: 0.002 = 0.2%
+  dureeRestanteMois: number
+  dateFinPret?: string             // ISO yyyy-mm-dd
+  typePret: TypePret
+  /** Remboursement anticipé total possible en cas de revente. */
+  remboursementAnticipePossible: boolean
+  /** Indemnité de remboursement anticipé (IRA), en euros, estimée ou contractuelle. */
+  indemniteRemboursementAnticipe?: number
+  garantie?: GarantiePret
+  /** L'utilisateur envisage-t-il une renégociation plutôt qu'une vente ? */
+  renegociationEnvisagee?: boolean
+}
+
+export interface HistoriqueAcquisitionInput {
+  dateAchat: string                // ISO yyyy-mm-dd
+  prixAchatInitial: number
+  fraisInitiaux: number            // frais de notaire, agence, garantie… à l'acquisition
+  travauxDepuisAcquisition: number // cumul des travaux réalisés depuis l'achat
+  /** Cumul des amortissements déjà déduits (LMNP réel) — réduit le stock amortissable
+   *  restant et augmente la plus-value imposable en cas de cession en LMNP. */
+  amortissementsDejaPratiques: number
+  /** Stock de déficit foncier en report, non encore imputé. */
+  deficitsFonciersReportables: number
+  /** Durée de détention écoulée, en années — recalculée à partir de dateAchat
+   *  si non renseignée, conservée saisissable pour les cas particuliers (donation, etc.). */
+  dureeDetentionActuelleAns?: number
+}
+
+export type SourceValeurMarche = 'estimation_perso' | 'agence' | 'notaire' | 'observatoire'
+export type FiabiliteValeurMarche = 'haute' | 'moyenne' | 'faible'
+
+export interface ValeurActuelleInput {
+  valeurMarcheEstimee: number
+  sourceValeur: SourceValeurMarche
+  fiabiliteValeur: FiabiliteValeurMarche
+  fraisVentePct: number             // ex: 0.07
+  dateVenteEnvisagee?: string        // ISO yyyy-mm-dd
+  /** Description libre du réemploi du produit net de vente (autre achat, placement…). */
+  reemploiPrevu?: string
+}
+
+export interface PerformanceActuelleInput {
+  loyerActuelMensuel: number
+  tauxVacanceReel: number            // ex: 0.05
+  impayesAnnuelsReels?: number
+  taxeFonciereReelle: number
+  chargesCoproReellesAnnuelles: number
+  assurancePnoReelleAnnuelle?: number
+  fraisGestionReelsAnnuels?: number
+  dpeActuel: Dpe
+}
+
+export type TypeSupportAlternatif = 'fonds_euros' | 'assurance_vie' | 'etf_pea' | 'scpi' | 'autre'
+export type NiveauRisqueAlternatif = 'faible' | 'modere' | 'eleve'
+
+export interface AlternativeReemploiInput {
+  typeSupport: TypeSupportAlternatif
+  rendementAnnuelAttendu: number     // ex: 0.04
+  fiscaliteSupport?: string          // ex: "PFU 30%", "exonéré après 8 ans"…
+  horizonAns: number
+  niveauRisque: NiveauRisqueAlternatif
+}
+
+export type ObjectifPatrimonialPrincipal =
+  | 'maximiser_rendement'
+  | 'reduire_risque'
+  | 'transmission'
+  | 'liquidite'
+  | 'autre'
+
+export interface ObjectifPatrimonialInput {
+  objectifPrincipal: ObjectifPatrimonialPrincipal
+  horizonSouhaiteAns?: number
+  commentaireLibre?: string
+}
+
+/**
+ * Entrées du Parcours B — utilisateur possédant déjà le bien et cherchant à
+ * savoir s'il doit le conserver ou le vendre.
+ *
+ * Réutilise les blocs communs avec le Parcours A (`bien`, `location`,
+ * `charges`, `travauxFuturs`, `fiscalite`) et y ajoute les blocs propres à la
+ * situation d'un bien déjà détenu (historique, prêt en cours, valeur actuelle,
+ * performance réelle, alternative de réemploi, objectif patrimonial).
+ *
+ * Pas de bloc `acquisition` (remplacé par `historique`) ni `revente` au sens
+ * du Parcours A (remplacé par `valeurActuelle`, qui porte sur un scénario de
+ * cession immédiate plutôt que sur une projection à N années).
+ */
+export interface ProjectInputDetenu {
+  bien: BienInput
+  location: LocationInput
+  charges: ChargesInput
+  travauxFuturs: TravauxFutursInput
+  fiscalite: FiscaliteInput
+  historique: HistoriqueAcquisitionInput
+  pretEnCours: PretEnCoursInput
+  valeurActuelle: ValeurActuelleInput
+  performanceActuelle: PerformanceActuelleInput
+  alternativeReemploi: AlternativeReemploiInput
+  objectifPatrimonial: ObjectifPatrimonialInput
+}
+
 // ─── ELIGIBILITE ─────────────────────────────────────────────────────────────
 
 /** Statut d'éligibilité pour un dispositif fiscal donné */
