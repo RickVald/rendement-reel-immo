@@ -1,7 +1,7 @@
 'use client'
 import { clsx } from 'clsx'
 
-const STEPS = [
+const STEPS_ACHAT = [
   { n: 1, label: 'Bien' },
   { n: 2, label: 'Profil fiscal' },
   { n: 3, label: 'Acquisition' },
@@ -13,7 +13,8 @@ const STEPS = [
   { n: 9, label: 'Revente' },
 ]
 
-export function StepIndicator({ current }: { current: number }) {
+export function StepIndicator({ current, steps }: { current: number; steps?: { n: number; label: string }[] }) {
+  const STEPS = steps ?? STEPS_ACHAT
   return (
     <div className="w-full">
       {/* Mobile: progress bar */}

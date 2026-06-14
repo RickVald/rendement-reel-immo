@@ -6,6 +6,7 @@ import { StepIndicator } from './StepIndicator'
 import { LeadGateModal } from './LeadGateModal'
 import { TypeAnalyseStep, type TypeAnalyse } from './TypeAnalyseStep'
 import { ComingSoonAnalyse } from './ComingSoonAnalyse'
+import { DetenuFlow } from './DetenuFlow'
 import { Step1, StepPF, Step2, Step3, Step4, Step5, Step6, Step7, Step8 } from './steps'
 import { DEFAULT_INPUT } from '@/data/defaults'
 import { QA_SCENARIOS, applyScenario } from '@/data/qa-scenarios'
@@ -210,6 +211,10 @@ export function SimulatorForm() {
         </div>
       )}
 
+      {typeAnalyse === 'detenu' ? (
+        <DetenuFlow onBack={() => setTypeAnalyse(null)} />
+      ) : (
+      <>
       {/* Step indicator */}
       {typeAnalyse === 'achat' && (
         <div className="mb-8">
@@ -313,6 +318,8 @@ export function SimulatorForm() {
         }}
         input={data}
       />
+      </>
+      )}
     </div>
   )
 }
