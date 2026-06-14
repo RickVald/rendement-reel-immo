@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { clsx } from 'clsx'
 import type { ArbitrageAnalysis } from '@/lib/calculator/types'
 
 // ─── Formatters (dupliqués depuis ResultsView — fichier non modifié) ──────────
@@ -64,18 +65,56 @@ function ArbitrageReport({ analysis, onRestart }: { analysis: ArbitrageAnalysis;
   const { input, horizonAns, equiteActuelle, scenarioConserver, scenarioVendre, verdict } = analysis
   const c = COULEUR_MAP[verdict.couleur]
   const ville = input.bien.ville || 'votre bien'
+  const [pdfLoading, setPdfLoading] = useState(false)
+
+  const downloadPdf = useCallback(async () => {
+    setPdfLoading(true)
+    try {
+      const res = await fetch('/api/rapport-pdf-detenu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analysis),
+      })
+      if (!res.ok) throw new Error('Erreur serveur')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `conserver-ou-vendre-${input.bien.ville ?? 'bien'}-${new Date().toISOString().split('T')[0]}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error(e)
+      alert('Erreur lors de la génération du PDF. Veuillez réessayer.')
+    } finally {
+      setPdfLoading(false)
+    }
+  }, [analysis, input.bien.ville])
 
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4">
       <div className="max-w-3xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">
-            Conserver ou vendre — {ville}
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Analyse projetée sur {horizonAns} ans, comparée à un réinvestissement dans{' '}
-            {ALTERNATIVE_LABELS[input.alternativeReemploi.typeSupport] ?? "l'alternative déclarée"}.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">
+              Conserver ou vendre — {ville}
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Analyse projetée sur {horizonAns} ans, comparée à un réinvestissement dans{' '}
+              {ALTERNATIVE_LABELS[input.alternativeReemploi.typeSupport] ?? "l'alternative déclarée"}.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={downloadPdf}
+            disabled={pdfLoading}
+            className={clsx(
+              'shrink-0 font-semibold px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap',
+              pdfLoading ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-[#0B1B2B] hover:bg-[#162840] text-white'
+            )}
+          >
+            {pdfLoading ? 'Génération...' : '📄 Télécharger le rapport PDF'}
+          </button>
         </div>
 
         {/* 1. Bandeau verdict */}
