@@ -37,7 +37,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
   const villeFormatee = input.bien.ville?.trim()
     ? input.bien.ville.trim().split(/(\s|-)/).map(w => /[\s-]/.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join('')
     : input.bien.ville
-  const meta = `${TYPE_LABELS[input.bien.type] ?? input.bien.type} · ${villeFormatee ?? '—'} · DPE ${input.bien.dpe}`
+  const meta = `${TYPE_LABELS[input.bien.type] ?? input.bien.type} · ${villeFormatee ?? '—'} · DPE ${input.performanceActuelle.dpeActuel}`
   const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
   const alternativeLabel = ALTERNATIVE_LABELS[input.alternativeReemploi.typeSupport] ?? "l'alternative déclarée"
   const dernier = scenarioConserver.rows[scenarioConserver.rows.length - 1]
@@ -62,9 +62,9 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
 
           <View style={{ flexDirection: 'row', gap: 24, marginBottom: 24 }}>
             <View><Text style={S.coverMeta}>Bien analysé</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{TYPE_LABELS[input.bien.type] ?? input.bien.type}</Text></View>
-            <View><Text style={S.coverMeta}>Localisation</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{villeFormatee || '—'} ({input.bien.codePostal})</Text></View>
+            <View><Text style={S.coverMeta}>Localisation</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{villeFormatee && input.bien.codePostal ? `${villeFormatee} (${input.bien.codePostal})` : villeFormatee || input.bien.codePostal || 'Non renseignée'}</Text></View>
             <View><Text style={S.coverMeta}>Surface</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{input.bien.surface} m²</Text></View>
-            <View><Text style={S.coverMeta}>DPE</Text><Text style={[S.coverMeta, S.coverMetaVal]}>Classe {input.bien.dpe}</Text></View>
+            <View><Text style={S.coverMeta}>DPE</Text><Text style={[S.coverMeta, S.coverMetaVal]}>Classe {input.performanceActuelle.dpeActuel}</Text></View>
           </View>
 
           <View style={{ flexDirection: 'row', gap: 24, marginBottom: 32 }}>
@@ -139,14 +139,15 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               <Text style={[S.tableCell, S.tableCellGray]}>—</Text>
             </View>
             <View style={[S.tableRow, S.tableRowTotal]}>
-              <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>Patrimoine final projeté ({horizonAns} ans)</Text>
+              <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>Patrimoine final après cession fiscalisée ({horizonAns} ans)</Text>
               <Text style={[S.tableCell, S.tableCellBold]}>{eur(scenarioConserver.patrimoineFinal)}</Text>
               <Text style={[S.tableCell, S.tableCellBold]}>{eur(scenarioVendre.patrimoineFinal)}</Text>
             </View>
           </View>
           <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 16 }}>
-            « Conserver » = cash-flows cumulés + produit net de revente à l'horizon de {horizonAns} ans.{'\n'}
-            « Vendre » = produit net de cession aujourd'hui, capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an sur {horizonAns} ans.
+            « Conserver » = cash-flows cumulés + produit net de revente à l'horizon de {horizonAns} ans, après fiscalité de cession.{'\n'}
+            « Vendre » = produit net de cession aujourd'hui (après fiscalité de cession), capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an sur {horizonAns} ans.{'\n'}
+            Ces montants diffèrent du « Patrimoine net final » de la page suivante, qui est la valeur nette du bien avant fiscalité de cession.
           </Text>
 
           <Text style={S.sectionTitle}>Projection — scénario Conserver</Text>
@@ -171,7 +172,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               <Text style={[S.kpiValue, S.kpiNeutral]}>{eur(scenarioConserver.produitNetReventeHorizon)}</Text>
             </View>
             <View style={S.kpiCard}>
-              <Text style={S.kpiLabel}>Patrimoine net final</Text>
+              <Text style={S.kpiLabel}>Valeur nette du bien avant fiscalité de cession</Text>
               <Text style={[S.kpiValue, S.kpiNeutral]}>{eur(dernier.patrimoineNet)}</Text>
             </View>
             <View style={S.kpiCard}>
@@ -211,53 +212,64 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           </View>
 
           <Text style={S.sectionTitle}>Fiscalité de cession — si vente aujourd'hui</Text>
-          <View style={S.table}>
-            <View style={S.tableRow}>
-              <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Prix de vente estimé</Text>
-              <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.prixRevente)}</Text>
+          {!scenarioVendre.dateAcquisitionConnue ? (
+            <View style={S.card}>
+              <Text style={S.listText}>
+                N/A — date d'acquisition à renseigner. La fiscalité de plus-value (impôt sur le revenu et prélèvements
+                sociaux) ne peut pas être calculée sans la date d'acquisition du bien. Le produit net de cession affiché
+                ci-dessous et le « patrimoine final après cession fiscalisée » de la page précédente ne tiennent donc
+                pas compte de cette fiscalité.
+              </Text>
             </View>
-            <View style={[S.tableRow, S.tableRowAlt]}>
-              <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Frais de vente</Text>
-              <Text style={S.tableCell}>- {eur(scenarioVendre.detailPlusValue.fraisRevente)}</Text>
-            </View>
-            <View style={S.tableRow}>
-              <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Prix de revient fiscal</Text>
-              <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.prixRevientFiscal)}</Text>
-            </View>
-            {scenarioVendre.detailPlusValue.amortissementsReintegres > 0 && (
-              <View style={[S.tableRow, S.tableRowAlt]}>
-                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Amortissements réintégrés</Text>
-                <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.amortissementsReintegres)}</Text>
-              </View>
-            )}
-            <View style={S.tableRow}>
-              <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Plus-value brute</Text>
-              <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.plusValueBrute)}</Text>
-            </View>
-            <View style={[S.tableRow, S.tableRowAlt]}>
-              <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Impôt sur le revenu (plus-value)</Text>
-              <Text style={S.tableCell}>- {eur(scenarioVendre.detailPlusValue.ir)}</Text>
-            </View>
-            <View style={S.tableRow}>
-              <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Prélèvements sociaux</Text>
-              <Text style={S.tableCell}>- {eur(scenarioVendre.detailPlusValue.ps)}</Text>
-            </View>
-            <View style={[S.tableRow, S.tableRowAlt]}>
-              <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Capital restant dû (prêt en cours)</Text>
-              <Text style={S.tableCell}>- {eur(scenarioVendre.capitalRestantDuSolde)}</Text>
-            </View>
-            {scenarioVendre.ira > 0 && (
+          ) : (
+            <View style={S.table}>
               <View style={S.tableRow}>
-                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Indemnité de remboursement anticipé</Text>
-                <Text style={S.tableCell}>- {eur(scenarioVendre.ira)}</Text>
+                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Prix de vente estimé</Text>
+                <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.prixRevente)}</Text>
               </View>
-            )}
-            <View style={[S.tableRow, S.tableRowTotal]}>
-              <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>Produit net de cession</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{eur(scenarioVendre.produitNetVenteAujourdhui)}</Text>
+              <View style={[S.tableRow, S.tableRowAlt]}>
+                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Frais de vente</Text>
+                <Text style={S.tableCell}>- {eur(scenarioVendre.detailPlusValue.fraisRevente)}</Text>
+              </View>
+              <View style={S.tableRow}>
+                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Prix de revient fiscal</Text>
+                <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.prixRevientFiscal)}</Text>
+              </View>
+              {scenarioVendre.detailPlusValue.amortissementsReintegres > 0 && (
+                <View style={[S.tableRow, S.tableRowAlt]}>
+                  <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Amortissements réintégrés</Text>
+                  <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.amortissementsReintegres)}</Text>
+                </View>
+              )}
+              <View style={S.tableRow}>
+                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Plus-value brute</Text>
+                <Text style={S.tableCell}>{eur(scenarioVendre.detailPlusValue.plusValueBrute)}</Text>
+              </View>
+              <View style={[S.tableRow, S.tableRowAlt]}>
+                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Impôt sur le revenu (plus-value)</Text>
+                <Text style={S.tableCell}>- {eur(scenarioVendre.detailPlusValue.ir)}</Text>
+              </View>
+              <View style={S.tableRow}>
+                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Prélèvements sociaux</Text>
+                <Text style={S.tableCell}>- {eur(scenarioVendre.detailPlusValue.ps)}</Text>
+              </View>
+              <View style={[S.tableRow, S.tableRowAlt]}>
+                <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Capital restant dû (prêt en cours)</Text>
+                <Text style={S.tableCell}>- {eur(scenarioVendre.capitalRestantDuSolde)}</Text>
+              </View>
+              {scenarioVendre.ira > 0 && (
+                <View style={S.tableRow}>
+                  <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Indemnité de remboursement anticipé</Text>
+                  <Text style={S.tableCell}>- {eur(scenarioVendre.ira)}</Text>
+                </View>
+              )}
+              <View style={[S.tableRow, S.tableRowTotal]}>
+                <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>Produit net de cession</Text>
+                <Text style={[S.tableCell, S.tableCellBold]}>{eur(scenarioVendre.produitNetVenteAujourdhui)}</Text>
+              </View>
             </View>
-          </View>
-          {scenarioVendre.detailPlusValue.note && (
+          )}
+          {scenarioVendre.dateAcquisitionConnue && scenarioVendre.detailPlusValue.note && (
             <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 12 }}>{scenarioVendre.detailPlusValue.note}</Text>
           )}
 

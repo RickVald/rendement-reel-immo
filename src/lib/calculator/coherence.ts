@@ -35,6 +35,7 @@ const PILIER_LABELS: Record<NomPilier, string> = {
 }
 
 const pct1 = (x: number) => `${Math.round(x * 100)} %`
+const eur0 = (x: number) => `${Math.round(x).toLocaleString('fr-FR')} €`
 
 function couleurPourStatut(statut: StatutPilier, criticite: CriticitePilier): CouleurPilier {
   switch (statut) {
@@ -224,6 +225,21 @@ function diagnostiquerDette(input: ProjectInputBilan, synthese: SyntheseGlobaleB
       donneesUtilisees,
       ['Revenus mensuels nets du foyer'],
       []
+    )
+  }
+
+  if (synthese.resteAVivre <= 0) {
+    alertes.push(
+      `Le reste à vivre estimé (revenus mensuels nets diminués des charges fixes, mensualités de crédits et impôts mensuels) est négatif ou nul (${eur0(synthese.resteAVivre)}) : incohérence entre les revenus déclarés et le total des charges et mensualités déclarées.`
+    )
+    return makePilier(
+      'dette',
+      'incoherence_detectee',
+      'high',
+      `Le reste à vivre estimé (revenus mensuels nets moins charges fixes, mensualités de crédits et impôts mensuels) est négatif ou nul (${eur0(synthese.resteAVivre)}).`,
+      donneesUtilisees,
+      pointsAVerifier,
+      alertes
     )
   }
 

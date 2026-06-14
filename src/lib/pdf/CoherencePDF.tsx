@@ -171,22 +171,22 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
             <View style={S.tableRow}>
               <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Immobilier</Text>
               <Text style={S.tableCell}>{eur(synthese.patrimoineImmobilierBrut)}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{pct(repartition.immobilierPct, 0)}</Text>
+              <Text style={[S.tableCell, S.tableCellBold]}>{synthese.patrimoineBrut === 0 ? '—' : pct(repartition.immobilierPct, 0)}</Text>
             </View>
             <View style={[S.tableRow, S.tableRowAlt]}>
               <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Financier</Text>
               <Text style={S.tableCell}>{eur(synthese.patrimoineFinancierBrut)}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{pct(repartition.financierPct, 0)}</Text>
+              <Text style={[S.tableCell, S.tableCellBold]}>{synthese.patrimoineBrut === 0 ? '—' : pct(repartition.financierPct, 0)}</Text>
             </View>
             <View style={S.tableRow}>
               <Text style={[S.tableCell, S.tableCellLeft, { flex: 2 }]}>Liquidités</Text>
               <Text style={S.tableCell}>{eur(synthese.liquidites)}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>{pct(repartition.liquiditesPct, 0)}</Text>
+              <Text style={[S.tableCell, S.tableCellBold]}>{synthese.patrimoineBrut === 0 ? '—' : pct(repartition.liquiditesPct, 0)}</Text>
             </View>
             <View style={[S.tableRow, S.tableRowTotal]}>
               <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>Patrimoine brut total</Text>
               <Text style={[S.tableCell, S.tableCellBold]}>{eur(synthese.patrimoineBrut)}</Text>
-              <Text style={[S.tableCell, S.tableCellBold]}>100 %</Text>
+              <Text style={[S.tableCell, S.tableCellBold]}>{synthese.patrimoineBrut === 0 ? '—' : '100 %'}</Text>
             </View>
           </View>
 

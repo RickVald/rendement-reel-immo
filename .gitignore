@@ -46,3 +46,7 @@ next-env.d.ts
 /audit-pack/
 /audit-pack.zip
 /pdfshots/
+
+# audit pack parcours B & C (généré localement via scripts/generate-audit-pack-bc.ts)
+/audit-pack-bc/
+/audit-pack-bc.zip

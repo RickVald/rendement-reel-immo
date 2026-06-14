@@ -139,7 +139,9 @@ function construireScenarioVendre(input: ProjectInputDetenu, horizonAns: number)
   const dureeDetentionActuelle = calculerDureeDetentionActuelle(historique)
   const fraisAcquisitionBOFIP = historique.fraisInitiaux + historique.travauxDepuisAcquisition
 
-  const detailPlusValue = calculerDetailPlusValue(
+  const dateAcquisitionConnue = !!historique.dateAchat || historique.dureeDetentionActuelleAns != null
+
+  let detailPlusValue = calculerDetailPlusValue(
     historique.prixAchatInitial,
     valeurActuelle.valeurMarcheEstimee,
     fraisAcquisitionBOFIP,
@@ -149,6 +151,19 @@ function construireScenarioVendre(input: ProjectInputDetenu, horizonAns: number)
     historique.amortissementsDejaPratiques,
     fiscalite.regime,
   )
+
+  if (!dateAcquisitionConnue) {
+    detailPlusValue = {
+      ...detailPlusValue,
+      plusValueBrute: 0,
+      pvImposableIR: 0,
+      pvImposablePS: 0,
+      ir: 0,
+      ps: 0,
+      total: 0,
+      note: "Date d'acquisition non renseignée : fiscalité de cession non calculable (N/A).",
+    }
+  }
 
   const capitalRestantDuSolde = pretEnCours.pretEnCours ? pretEnCours.capitalRestantDu : 0
 
@@ -177,6 +192,7 @@ function construireScenarioVendre(input: ProjectInputDetenu, horizonAns: number)
     capitalRestantDuSolde,
     rendementNetAttendu,
     patrimoineFinal,
+    dateAcquisitionConnue,
   }
 }
 
@@ -230,6 +246,11 @@ function construireVerdict(
   const alertes: string[] = []
   if (dpeRisque) {
     alertes.push(`DPE ${performanceActuelle.dpeActuel} : bien difficile à louer en l'état (gel des loyers, interdiction de location à venir).`)
+    alertes.push(
+      `Le scénario Conserver suppose la perception des loyers actuels sur l'ensemble de l'horizon de ${horizonAns} ans. ` +
+      `Avec un DPE ${performanceActuelle.dpeActuel}, cette hypothèse est optimiste tant que des travaux de rénovation énergétique, ` +
+      'une dérogation ou une nouvelle mise en location ne sont pas confirmés : ce scénario doit être considéré comme un majorant.'
+    )
   }
   if (input.valeurActuelle.fiabiliteValeur === 'faible') {
     alertes.push('Estimation de valeur de marché peu fiable — arbitrage à confirmer par une expertise.')
@@ -239,6 +260,12 @@ function construireVerdict(
   }
   if (equiteActuelle <= 0) {
     alertes.push('Situation de surfinancement (équité actuelle nulle ou négative) — le TRI du scénario Conserver n\'est pas interprétable.')
+  }
+  if (alternativeReemploi.rendementAnnuelAttendu > 0.06) {
+    alertes.push(
+      `Le rendement attendu de l'alternative de réemploi (${Math.round(alternativeReemploi.rendementAnnuelAttendu * 100)} %/an) est élevé ` +
+      'et pèse fortement sur ce verdict — cette hypothèse doit être justifiée et confirmée avant toute décision.'
+    )
   }
 
   const recommandations: string[] = []

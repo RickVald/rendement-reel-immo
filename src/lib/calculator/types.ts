@@ -707,6 +707,8 @@ export interface ScenarioVendre {
   rendementNetAttendu: number
   /** = produitNetVenteAujourdhui * (1 + rendementNetAttendu) ^ horizonAns */
   patrimoineFinal: number
+  /** false si historique.dateAchat est vide et dureeDetentionActuelleAns non renseignée : la fiscalité de cession est alors neutralisée. */
+  dateAcquisitionConnue: boolean
 }
 
 export type VerdictArbitrageLabel = 'Conserver' | 'Vendre' | 'Arbitrage à approfondir'
