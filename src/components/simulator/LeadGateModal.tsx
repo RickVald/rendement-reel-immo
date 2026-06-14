@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { clsx } from 'clsx'
-import type { ProjectInput } from '@/lib/calculator/types'
+import type { ProjectInput, ProjectInputDetenu } from '@/lib/calculator/types'
 
 type Profil = 'particulier' | 'pro'
 
@@ -16,7 +16,7 @@ interface LeadGateModalProps {
   onUnlockParticulier: () => void
   /** Appelé pour les emails de test internes — lance le calcul et affiche le rapport complet (sans paiement). */
   onUnlockComplet: () => void
-  input: ProjectInput
+  input: ProjectInput | ProjectInputDetenu
 }
 
 export function LeadGateModal({ open, onClose, onUnlockParticulier, onUnlockComplet, input }: LeadGateModalProps) {

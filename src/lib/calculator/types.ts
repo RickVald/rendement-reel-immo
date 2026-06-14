@@ -685,3 +685,45 @@ export interface ProjectAnalysis {
    *  éligibilité confirmée (prévaut sur modeIndicatif), sinon 'indicatif' ou 'prudent'. */
   simulationMode: 'prudent' | 'indicatif' | 'valide'
 }
+
+// ─── PARCOURS B — MOTEUR D'ARBITRAGE CONSERVER / VENDRE ──────────────────────
+
+export interface ScenarioConserver {
+  rows: YearlyRow[]
+  horizonAns: number
+  tri: number | null
+  van: number
+  produitNetReventeHorizon: number
+  cashflowCumuleHorizon: number
+  /** = produitNetReventeHorizon + cashflowCumuleHorizon */
+  patrimoineFinal: number
+}
+
+export interface ScenarioVendre {
+  produitNetVenteAujourdhui: number
+  detailPlusValue: import('./fiscalite').DetailPlusValue
+  ira: number
+  capitalRestantDuSolde: number
+  rendementNetAttendu: number
+  /** = produitNetVenteAujourdhui * (1 + rendementNetAttendu) ^ horizonAns */
+  patrimoineFinal: number
+}
+
+export type VerdictArbitrageLabel = 'Conserver' | 'Vendre' | 'Arbitrage à approfondir'
+
+export interface VerdictArbitrage {
+  label: VerdictArbitrageLabel
+  couleur: 'emerald' | 'yellow' | 'orange' | 'red' | 'gray'
+  ecartPatrimoineFinalPct: number
+  alertes: string[]
+  recommandations: string[]
+}
+
+export interface ArbitrageAnalysis {
+  input: ProjectInputDetenu
+  horizonAns: number
+  equiteActuelle: number
+  scenarioConserver: ScenarioConserver
+  scenarioVendre: ScenarioVendre
+  verdict: VerdictArbitrage
+}

@@ -5,6 +5,13 @@ import type { ProjectInput } from '@/lib/calculator/types'
 
 export const dynamic = 'force-dynamic'
 
+/** Reprend les seuls champs utilisés ci-dessous pour la notification — commun aux
+ *  Parcours A (`ProjectInput`) et B (`ProjectInputDetenu`). */
+interface LeadInputShape {
+  bien?: Partial<ProjectInput['bien']>
+  acquisition?: Partial<ProjectInput['acquisition']>
+}
+
 interface LeadPayload {
   profil: 'particulier' | 'pro'
   nom: string
@@ -14,7 +21,7 @@ interface LeadPayload {
   metier?: string
   volume?: string
   besoin?: string
-  input?: Partial<ProjectInput>
+  input?: LeadInputShape
 }
 
 const fmtEur = (n?: number) => (typeof n === 'number' ? `${Math.round(n).toLocaleString('fr-FR')} €` : '—')

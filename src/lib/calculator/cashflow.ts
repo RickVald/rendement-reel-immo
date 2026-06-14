@@ -18,6 +18,9 @@ export function genererTableauAnnuel(
   /** Si false : l'avantage fiscal du dispositif n'est pas intégré dans le cash-flow
    *  (statut d'éligibilité insuffisant — inéligible ou à vérifier). */
   integrerAvantage: boolean = true,
+  /** Amortissements immo déjà pratiqués avant le début de la projection (Parcours B —
+   *  bien déjà détenu), intégrés au prix de revient fiscal de la revente projetée. */
+  amortissementsInitiauxImmo: number = 0,
 ): YearlyRow[] {
   const { location, charges, travauxFuturs, fiscalite, revente, financement } = input
   const rows: YearlyRow[] = []
@@ -48,7 +51,7 @@ export function genererTableauAnnuel(
   // LMNP réel : suivi des amortissements reportés et cumulés utilisés
   let amortissementsReportesLMNP = 0
   let amortissementsCumulesUtilises = 0       // total (immo + mobilier) — pour info
-  let amortissementsCumulesUtilisesImmo = 0   // immo uniquement — pour prix de revient fiscal PV (LF 2025)
+  let amortissementsCumulesUtilisesImmo = amortissementsInitiauxImmo   // immo uniquement — pour prix de revient fiscal PV (LF 2025)
   // Jeanbrun : amortissements cumulés déduits (pour PV réintégration — même méca que LMNP réel)
   let jeanbrunAmortCumul = 0
 

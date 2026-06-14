@@ -14,7 +14,7 @@ const OPTIONS: { value: TypeAnalyse; title: string; desc: string; available: boo
     value: 'detenu',
     title: 'Je possède déjà ce bien et je veux savoir s’il faut le conserver ou le vendre',
     desc: 'Arbitrage patrimonial : rendement réel sur le capital immobilisé, produit net vendeur, comparaison avec une alternative de placement.',
-    available: false,
+    available: true,
   },
   {
     value: 'audit_global',

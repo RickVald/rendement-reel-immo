@@ -1,7 +1,9 @@
 'use client'
 import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { clsx } from 'clsx'
 import { StepIndicator } from './StepIndicator'
+import { LeadGateModal } from './LeadGateModal'
 import {
   StepBienDetenu, StepHistorique, StepPretEnCours,
   StepPerformanceActuelle, StepValeurActuelle, StepAlternativeObjectif,
@@ -21,11 +23,12 @@ const STEP_TITLES = [
 ]
 
 export function DetenuFlow({ onBack }: { onBack: () => void }) {
+  const router = useRouter()
   const [step, setStep] = useState(1)
   const [data, setData] = useState<ProjectInputDetenu>(DEFAULT_INPUT_DETENU)
-  const [nom, setNom] = useState('')
-  const [email, setEmail] = useState('')
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [gateOpen, setGateOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const topRef = useRef<HTMLDivElement>(null)
 
   const scrollToTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -56,28 +59,22 @@ export function DetenuFlow({ onBack }: { onBack: () => void }) {
   const handleNext = () => { if (step < TOTAL) setStep(s => s + 1); scrollToTop() }
   const handleBack = () => { if (step > 1) setStep(s => s - 1); scrollToTop() }
 
-  const handleSubmit = async () => {
-    if (!email.trim() || !email.includes('@')) {
-      setStatus('error')
-      return
-    }
-    setStatus('loading')
+  const handleAnalyze = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const res = await fetch('/api/leads', {
+      const res = await fetch('/api/analyze-detenu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profil: 'particulier',
-          nom: nom.trim() || 'Analyse Conserver/Vendre',
-          email: email.trim(),
-          besoin: 'Demande d\'analyse Conserver/Vendre — bien déjà détenu',
-          input: data,
-        }),
+        body: JSON.stringify(data),
       })
-      if (!res.ok) throw new Error()
-      setStatus('done')
-    } catch {
-      setStatus('error')
+      if (!res.ok) throw new Error(await res.text())
+      const analysis = await res.json()
+      sessionStorage.setItem('rri_analysis_detenu', JSON.stringify(analysis))
+      router.push('/resultats-detenu')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erreur inattendue')
+      setLoading(false)
     }
   }
 
@@ -106,49 +103,22 @@ export function DetenuFlow({ onBack }: { onBack: () => void }) {
           ) : (
             <div className="space-y-5 text-center py-4">
               <div>
-                <span className="inline-block text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full mb-3">
-                  Analyse en cours de finalisation
-                </span>
                 <h2 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Merci pour ces informations</h2>
                 <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-                  Le moteur de calcul de l&apos;arbitrage Conserver/Vendre est en cours de finalisation.
-                  Laissez vos coordonnées : dès qu&apos;il sera disponible, nous générerons votre rapport
-                  d&apos;aide à la décision à partir des informations que vous venez de saisir.
+                  Nous avons tout ce qu&apos;il faut pour comparer la conservation de votre bien à sa
+                  vente immédiate, réinvestie dans l&apos;alternative que vous avez indiquée.
                 </p>
               </div>
-
-              {status === 'done' ? (
-                <p className="text-sm text-emerald-600 font-medium">Merci ! Nous vous tiendrons informé dès que votre rapport sera disponible.</p>
-              ) : (
-                <div className="max-w-sm mx-auto space-y-2">
-                  <input
-                    type="text"
-                    value={nom}
-                    onChange={e => setNom(e.target.value)}
-                    placeholder="Votre nom (facultatif)"
-                    className="w-full text-sm rounded-lg px-3 py-2 border border-slate-200"
-                  />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="Votre email"
-                    className="w-full text-sm rounded-lg px-3 py-2 border border-slate-200"
-                  />
-                  {status === 'error' && <p className="text-xs text-red-500">Indiquez un email valide.</p>}
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={status === 'loading'}
-                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-6 py-2 rounded-lg text-sm transition-colors disabled:opacity-60"
-                  >
-                    {status === 'loading' ? '...' : 'Être prévenu(e) et recevoir mon rapport'}
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mx-6 mb-4 bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
         <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
           <button
@@ -172,7 +142,24 @@ export function DetenuFlow({ onBack }: { onBack: () => void }) {
               Suivant →
             </button>
           ) : (
-            <div className="w-24" />
+            <button
+              type="button"
+              onClick={() => setGateOpen(true)}
+              disabled={loading}
+              className={clsx(
+                'font-bold px-6 py-2 rounded-lg text-sm transition-all',
+                loading ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-emerald-500 hover:bg-emerald-400 text-white'
+              )}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                  Calcul en cours...
+                </span>
+              ) : (
+                '🔍 Analyser : Conserver ou Vendre ?'
+              )}
+            </button>
           )}
         </div>
       </div>
@@ -180,6 +167,20 @@ export function DetenuFlow({ onBack }: { onBack: () => void }) {
       <p className="text-xs text-slate-400 text-center mt-4">
         Simulation indicative. Ne constitue pas un conseil en investissement ni un conseil fiscal.
       </p>
+
+      <LeadGateModal
+        open={gateOpen}
+        onClose={() => setGateOpen(false)}
+        onUnlockParticulier={() => {
+          setGateOpen(false)
+          handleAnalyze()
+        }}
+        onUnlockComplet={() => {
+          setGateOpen(false)
+          handleAnalyze()
+        }}
+        input={data}
+      />
     </div>
   )
 }
