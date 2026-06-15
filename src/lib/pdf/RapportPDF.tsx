@@ -24,7 +24,7 @@ import { S, COLORS, verdictColors } from './styles'
 import {
   fmt, eur, pct, sign, sanitize,
   CashflowChart, PatrimoineChart, ScenarioBarChart,
-  ScoreBar, HypRow, PageHeader, PageFooter,
+  ScoreBar, HypRow, PageHeader, PageFooter, BrandSeal, CoverSummary,
   WaterfallRendement, ComparaisonPlacementsChart,
 } from './helpers'
 import { calculerDetailPlusValue } from '@/lib/calculator/fiscalite'
@@ -150,30 +150,34 @@ export function RapportPDF({
           PAGE 1 — COUVERTURE
       ══════════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={S.coverPage}>
+        <View style={S.coverAccentBar} />
         <View style={S.coverTop}>
-          <Text style={S.coverBrand}>Rendement Réel Immo · Rapport d'arbitrage patrimonial</Text>
+          <View style={S.coverHeaderRow}>
+            <BrandSeal size={34} />
+            <Text style={S.coverBrand}>Rendement Réel Immo · Rapport d'arbitrage patrimonial</Text>
+          </View>
 
           <Text style={S.coverTitle}>Dossier d'arbitrage{'\n'}financier</Text>
           <Text style={S.coverSubtitle}>Investissement locatif — Analyse complète sur {input.revente.dureeDetentionAns} ans</Text>
 
           <View style={S.coverSeparator} />
 
-          <View style={{ flexDirection: 'row', gap: 24, marginBottom: 24 }}>
-            <View><Text style={S.coverMeta}>Bien analysé</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{TYPE_LABELS[input.bien.type] ?? input.bien.type}</Text></View>
-            <View><Text style={S.coverMeta}>Localisation</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{villeFormatee} ({input.bien.codePostal})</Text></View>
-            <View><Text style={S.coverMeta}>Surface</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{input.bien.surface} m²</Text></View>
-            <View><Text style={S.coverMeta}>DPE</Text><Text style={[S.coverMeta, S.coverMetaVal, isFG ? { color: '#ef4444' } : {}]}>Classe {input.bien.dpe}</Text></View>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Bien analysé</Text><Text style={S.coverMetaCardValue}>{TYPE_LABELS[input.bien.type] ?? input.bien.type}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Localisation</Text><Text style={S.coverMetaCardValue}>{villeFormatee} ({input.bien.codePostal})</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Surface</Text><Text style={S.coverMetaCardValue}>{input.bien.surface} m²</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>DPE</Text><Text style={[S.coverMetaCardValue, isFG ? { color: '#ef4444' } : {}]}>Classe {input.bien.dpe}</Text></View>
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 24, marginBottom: 32 }}>
-            <View><Text style={S.coverMeta}>Prix d'achat</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(input.acquisition.prixAchat)}</Text></View>
-            <View><Text style={S.coverMeta}>Coût total acquisition</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(summary.coutTotalAcquisition)}</Text></View>
-            <View><Text style={S.coverMeta}>Cash total nécessaire</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(summary.cashTotalNecessaire)}</Text></View>
-            <View>
-              <Text style={S.coverMeta}>Régime fiscal</Text>
-              <Text style={[S.coverMeta, S.coverMetaVal]}>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 28 }}>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Prix d'achat</Text><Text style={S.coverMetaCardValue}>{eur(input.acquisition.prixAchat)}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Coût total acquisition</Text><Text style={S.coverMetaCardValue}>{eur(summary.coutTotalAcquisition)}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Cash total nécessaire</Text><Text style={S.coverMetaCardValue}>{eur(summary.cashTotalNecessaire)}</Text></View>
+            <View style={S.coverMetaCard}>
+              <Text style={S.coverMetaCardLabel}>Régime fiscal</Text>
+              <Text style={S.coverMetaCardValue}>
                 {REGIME_SHORT[input.fiscalite.regime] ?? input.fiscalite.regime}
-                {regimeAutoSelectionne ? ' ★ auto-sélectionné' : ''}
+                {regimeAutoSelectionne ? ' ★ auto' : ''}
               </Text>
             </View>
           </View>
@@ -206,11 +210,22 @@ export function RapportPDF({
               </Text>
             </View>
           </View>
+
+          <CoverSummary items={[
+            'Synthèse exécutive et décision investisseur',
+            'Projection financière sur la durée de détention',
+            'Régimes fiscaux et stratégie envisagée',
+            'Fiscalité de la revente et produit net de cession',
+            'Sensibilité, stress tests et analyse IA',
+          ]} />
         </View>
 
         <View style={S.coverBottom}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Généré le {dateStr}</Text>
+          <View style={[S.coverBottomRow, { justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <BrandSeal size={14} />
+              <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Généré le {dateStr}</Text>
+            </View>
             <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Durée d'analyse : {input.revente.dureeDetentionAns} ans</Text>
           </View>
           <Text style={S.coverDisclaimer}>
@@ -230,7 +245,7 @@ export function RapportPDF({
         <View style={S.body}>
 
           {/* Verdict banner */}
-          <View style={[S.verdictBanner, { backgroundColor: vc.bg, borderWidth: 2, borderColor: vc.border, marginBottom: 16 }]}>
+          <View style={[S.verdictBanner, { backgroundColor: vc.bg, borderWidth: 2, borderColor: vc.border, marginBottom: 10 }]}>
             <View style={{ flex: 1 }}>
               <Text style={[S.verdictLabel, { color: vc.text, fontSize: 14 }]}>{verdict.label}</Text>
               <Text style={{ fontSize: 8, color: vc.text, marginTop: 4, opacity: 0.8 }}>
@@ -244,7 +259,7 @@ export function RapportPDF({
 
           {/* Bloc "Points de fragilité à intégrer dans la décision" (CDC §6.2) */}
           {verdict.alertes.length > 0 && (
-            <View style={{ marginBottom: 16, padding: 8, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red }}>
+            <View style={{ marginBottom: 10, padding: 8, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red }}>
               <Text style={{ fontSize: 9, fontFamily: 'Arial', fontWeight: 'bold', color: '#7f1d1d', marginBottom: 4 }}>
                 Points de fragilité à intégrer dans la décision
               </Text>
@@ -259,7 +274,7 @@ export function RapportPDF({
 
           {/* Tableau Q/R décisionnel */}
           <Text style={S.sectionTitle}>Checklist de viabilité</Text>
-          <View style={[S.table, { marginBottom: 16 }]}>
+          <View style={[S.table, { marginBottom: 10 }]}>
             <View style={S.tableHeader}>
               <Text style={[S.tableHeaderCell, { flex: 3 }]}>Question d'investisseur</Text>
               <Text style={[S.tableHeaderCell, { flex: 2 }]}>Réponse</Text>
@@ -284,14 +299,14 @@ export function RapportPDF({
               </View>
             ))}
           </View>
-          <View style={{ marginTop: 6, marginBottom: 10, padding: 6, backgroundColor: COLORS.slate50, borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.indigo }}>
+          <View style={{ marginTop: 4, marginBottom: 4, padding: 5, backgroundColor: COLORS.slate50, borderRadius: 4, borderLeftWidth: 3, borderLeftColor: COLORS.indigo }}>
             <Text style={{ fontSize: 6.5, color: COLORS.slate600, lineHeight: 1.5 }}>
               {'Note méthodologique — Le rendement net-net mesure l\'exploitation locative annuelle (loyers – charges – impôts sur revenus). Il ne reflète pas la rentabilité globale du projet, qui intègre également l\'apport initial, les remboursements de crédit, la revente et la fiscalité de cession. Le TRI est l\'indicateur principal de la rentabilité patrimoniale globale, car il agrège l\'ensemble de ces flux sur la durée de détention.'}
             </Text>
           </View>
 
           {/* KPIs résumé en 2 colonnes */}
-          <View style={[S.row2, { marginBottom: 16 }]}>
+          <View style={[S.row2, { marginBottom: 0 }]}>
             <View style={S.col}>
               <Text style={S.subTitle}>Indicateurs financiers clés</Text>
               {[
@@ -310,6 +325,20 @@ export function RapportPDF({
                   * Cash total nécessaire {eur(summary.cashTotalNecessaire)} (≤ 0 €) : le projet est financé à 100 % ou sur-financé.
                   Le TRI classique n&apos;est pas interprétable dans ce cas (flux non conventionnels) et n&apos;est donc pas affiché.
                 </Text>
+              )}
+
+              {verdict.recommandations.length > 0 && (
+                <View>
+                  <Text style={[S.subTitle, { marginTop: 8 }]}>Leviers d'amélioration</Text>
+                  <View style={S.card}>
+                    {verdict.recommandations.slice(0, 3).map((r, i) => (
+                      <View key={i} style={S.listItem} wrap={false}>
+                        <Text style={S.listBullet}>-</Text>
+                        <Text style={S.listText}>{r}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
               )}
             </View>
             <View style={S.col}>
@@ -345,19 +374,6 @@ export function RapportPDF({
                 </Text>
               </View>
 
-              {verdict.recommandations.length > 0 && (
-                <View wrap={false}>
-                  <Text style={[S.subTitle, { marginTop: 8 }]}>Leviers d'amélioration</Text>
-                  <View style={S.card}>
-                    {verdict.recommandations.slice(0, 3).map((r, i) => (
-                      <View key={i} style={S.listItem} wrap={false}>
-                        <Text style={S.listBullet}>-</Text>
-                        <Text style={S.listText}>{r}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
             </View>
           </View>
 
@@ -722,7 +738,7 @@ export function RapportPDF({
           </Text>
           <CashflowChart rows={yearlyTable} />
 
-          <View style={{ height: 14 }} />
+          <View style={{ height: 6 }} />
 
           <Text style={S.sectionTitle}>Évolution du patrimoine net</Text>
           <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 6 }}>
@@ -730,7 +746,7 @@ export function RapportPDF({
           </Text>
           <PatrimoineChart rows={yearlyTable} />
 
-          <View style={{ height: 14 }} />
+          <View style={{ height: 6 }} />
 
           <Text style={S.sectionTitle}>Comparaison scénarios pessimiste / central / optimiste <Text style={{ fontSize: 6, fontFamily: 'Arial', fontWeight: 'normal', color: COLORS.slate400 }}>(net-net = exploitation annuelle ; TRI = sensible à la revente finale)</Text></Text>
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>

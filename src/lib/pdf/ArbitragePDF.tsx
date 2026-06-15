@@ -16,7 +16,7 @@ Font.registerHyphenationCallback((word: string) => [word])
 
 import type { ArbitrageAnalysis } from '@/lib/calculator/types'
 import { S, COLORS, verdictColors } from './styles'
-import { fmt, eur, pct, sign, PatrimoineChart, CashflowChart, PageHeader, PageFooter } from './helpers'
+import { fmt, eur, pct, sign, PatrimoineChart, CashflowChart, PageHeader, PageFooter, BrandSeal, CoverSummary } from './helpers'
 
 const TYPE_LABELS: Record<string, string> = {
   appartement: 'Appartement', maison: 'Maison', studio: 'Studio',
@@ -53,24 +53,28 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           PAGE 1 — COUVERTURE + VERDICT
       ══════════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={S.coverPage}>
+        <View style={S.coverAccentBar} />
         <View style={S.coverTop}>
-          <Text style={S.coverBrand}>Rendement Réel Immo · Arbitrage patrimonial</Text>
+          <View style={S.coverHeaderRow}>
+            <BrandSeal size={34} />
+            <Text style={S.coverBrand}>Rendement Réel Immo · Arbitrage patrimonial</Text>
+          </View>
           <Text style={S.coverTitle}>Conserver{'\n'}ou vendre ?</Text>
           <Text style={S.coverSubtitle}>{villeFormatee || 'Votre bien'} — projection sur {horizonAns} ans</Text>
 
           <View style={S.coverSeparator} />
 
-          <View style={{ flexDirection: 'row', gap: 24, marginBottom: 24 }}>
-            <View><Text style={S.coverMeta}>Bien analysé</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{TYPE_LABELS[input.bien.type] ?? input.bien.type}</Text></View>
-            <View><Text style={S.coverMeta}>Localisation</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{villeFormatee && input.bien.codePostal ? `${villeFormatee} (${input.bien.codePostal})` : villeFormatee || input.bien.codePostal || 'Non renseignée'}</Text></View>
-            <View><Text style={S.coverMeta}>Surface</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{input.bien.surface} m²</Text></View>
-            <View><Text style={S.coverMeta}>DPE</Text><Text style={[S.coverMeta, S.coverMetaVal]}>Classe {input.performanceActuelle.dpeActuel}</Text></View>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Bien analysé</Text><Text style={S.coverMetaCardValue}>{TYPE_LABELS[input.bien.type] ?? input.bien.type}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Localisation</Text><Text style={S.coverMetaCardValue}>{villeFormatee && input.bien.codePostal ? `${villeFormatee} (${input.bien.codePostal})` : villeFormatee || input.bien.codePostal || 'Non renseignée'}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Surface</Text><Text style={S.coverMetaCardValue}>{input.bien.surface} m²</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>DPE</Text><Text style={S.coverMetaCardValue}>Classe {input.performanceActuelle.dpeActuel}</Text></View>
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 24, marginBottom: 32 }}>
-            <View><Text style={S.coverMeta}>Équité actuelle</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(equiteActuelle)}</Text></View>
-            <View><Text style={S.coverMeta}>Valeur de marché estimée</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{eur(input.valeurActuelle.valeurMarcheEstimee)}</Text></View>
-            <View><Text style={S.coverMeta}>Alternative de réemploi</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{alternativeLabel}</Text></View>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 28 }}>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Équité actuelle</Text><Text style={S.coverMetaCardValue}>{eur(equiteActuelle)}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Valeur de marché estimée</Text><Text style={S.coverMetaCardValue}>{eur(input.valeurActuelle.valeurMarcheEstimee)}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Alternative de réemploi</Text><Text style={S.coverMetaCardValue}>{alternativeLabel}</Text></View>
           </View>
 
           {/* Verdict */}
@@ -93,11 +97,19 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               </View>
             )}
           </View>
+
+          <CoverSummary items={[
+            'Comparaison des scénarios Conserver / Vendre',
+            'Détail du scénario Conserver',
+          ]} />
         </View>
 
         <View style={S.coverBottom}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Généré le {dateStr}</Text>
+          <View style={[S.coverBottomRow, { justifyContent: 'space-between' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <BrandSeal size={14} />
+              <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Généré le {dateStr}</Text>
+            </View>
             <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Horizon d'analyse : {horizonAns} ans</Text>
           </View>
           <Text style={S.coverDisclaimer}>
@@ -172,11 +184,11 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           <View style={S.row2}>
             <View style={S.col}>
               <Text style={S.subTitle}>Cash-flow annuel et cumulé</Text>
-              <CashflowChart rows={scenarioConserver.rows} />
+              <CashflowChart rows={scenarioConserver.rows} width={250} />
             </View>
             <View style={S.col}>
               <Text style={S.subTitle}>Évolution du patrimoine</Text>
-              <PatrimoineChart rows={scenarioConserver.rows} />
+              <PatrimoineChart rows={scenarioConserver.rows} width={250} />
             </View>
           </View>
 

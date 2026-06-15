@@ -45,24 +45,34 @@ export const S = StyleSheet.create({
     flexDirection: 'column',
     justifyContent: 'space-between',
   },
+  coverAccentBar: {
+    height: 5,
+    backgroundColor: COLORS.gold,
+  },
   coverTop: {
     paddingHorizontal: 48,
-    paddingTop: 56,
+    paddingTop: 40,
     flex: 1,
+  },
+  coverHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 36,
   },
   coverBrand: {
     fontSize: 8,
     color: COLORS.gold,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    marginBottom: 32,
   },
   coverTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontFamily: 'Arial',
+    fontWeight: 'bold',
     color: COLORS.white,
-    lineHeight: 1.3,
-    marginBottom: 8,
+    lineHeight: 1.25,
+    marginBottom: 10,
   },
   coverSubtitle: {
     fontSize: 13,
@@ -79,10 +89,69 @@ export const S = StyleSheet.create({
     color: COLORS.white,
     fontFamily: 'Arial',
   },
+  coverMetaCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: COLORS.navyLight,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  coverMetaCardLabel: {
+    fontSize: 7.5,
+    color: COLORS.slate300,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  coverMetaCardValue: {
+    fontSize: 11,
+    fontFamily: 'Arial',
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
   coverSeparator: {
     height: 1,
-    backgroundColor: COLORS.navyLight,
+    backgroundColor: COLORS.gold,
+    opacity: 0.25,
     marginVertical: 24,
+  },
+  coverSummary: {
+    marginTop: 14,
+  },
+  coverSummaryTitle: {
+    fontSize: 8,
+    color: COLORS.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  coverSummaryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 5,
+  },
+  coverSummaryNum: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: COLORS.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  coverSummaryNumText: {
+    fontSize: 7,
+    fontFamily: 'Arial',
+    fontWeight: 'bold',
+    color: COLORS.gold,
+  },
+  coverSummaryText: {
+    fontSize: 8.5,
+    color: COLORS.slate300,
+    flex: 1,
   },
   coverVerdictBox: {
     borderRadius: 8,
@@ -102,9 +171,15 @@ export const S = StyleSheet.create({
   coverBottom: {
     paddingHorizontal: 48,
     paddingBottom: 32,
-    paddingTop: 24,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.navyLight,
+  },
+  coverBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   coverDisclaimer: {
     fontSize: 7,
@@ -349,7 +424,7 @@ export const S = StyleSheet.create({
   hypRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 2,
+    paddingVertical: 1,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.slate100,
   },
@@ -392,7 +467,7 @@ export const S = StyleSheet.create({
 
   // ── Verdict banner ────────────────────────────────────────────────────────
   verdictBanner: {
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 14,
     marginBottom: 16,
     flexDirection: 'row',

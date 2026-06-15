@@ -15,7 +15,7 @@ Font.registerHyphenationCallback((word: string) => [word])
 
 import type { CoherenceAnalysis, StatutPilier, ObjectifType, Priorite, Horizon } from '@/lib/calculator/types-bilan'
 import { S, COLORS, verdictColors } from './styles'
-import { fmt, eur, pct, sanitize, PageHeader, PageFooter, HypRow } from './helpers'
+import { fmt, eur, pct, sanitize, PageHeader, PageFooter, HypRow, BrandSeal, CoverSummary } from './helpers'
 
 const OBJECTIF_LABELS: Record<ObjectifType, string> = {
   acheter_residence_principale: 'Acheter ma résidence principale',
@@ -76,17 +76,21 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
           PAGE 1 — COUVERTURE
       ══════════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={S.coverPage}>
+        <View style={S.coverAccentBar} />
         <View style={S.coverTop}>
-          <Text style={S.coverBrand}>Rendement Réel Immo · Bilan patrimonial</Text>
+          <View style={S.coverHeaderRow}>
+            <BrandSeal size={34} />
+            <Text style={S.coverBrand}>Rendement Réel Immo · Bilan patrimonial</Text>
+          </View>
           <Text style={S.coverTitle}>Bilan de{'\n'}cohérence patrimoniale</Text>
           <Text style={S.coverSubtitle}>{titreBilan}</Text>
 
           <View style={S.coverSeparator} />
 
-          <View style={{ flexDirection: 'row', gap: 24, marginBottom: 24 }}>
-            <View><Text style={S.coverMeta}>Date du bilan</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{dateStr}</Text></View>
-            <View><Text style={S.coverMeta}>Version du moteur</Text><Text style={[S.coverMeta, S.coverMetaVal]}>{version}</Text></View>
-            <View><Text style={S.coverMeta}>Nature du document</Text><Text style={[S.coverMeta, S.coverMetaVal]}>Bilan indicatif, données déclarées</Text></View>
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 28 }}>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Date du bilan</Text><Text style={S.coverMetaCardValue}>{dateStr}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Version du moteur</Text><Text style={S.coverMetaCardValue}>{version}</Text></View>
+            <View style={S.coverMetaCard}><Text style={S.coverMetaCardLabel}>Nature du document</Text><Text style={S.coverMetaCardValue}>Bilan indicatif, données déclarées</Text></View>
           </View>
 
           <View style={[S.verdictBanner, { backgroundColor: vc.bg, borderWidth: 2, borderColor: vc.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
@@ -95,10 +99,20 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
               {verdictGlobal.nbCoherents} pilier(s) cohérent(s) · {verdictGlobal.nbAVerifier} à vérifier · {verdictGlobal.nbIncoherences} incohérence(s) détectée(s) · {verdictGlobal.nbDonneesInsuffisantes} avec données insuffisantes
             </Text>
           </View>
+
+          <CoverSummary items={[
+            'Synthèse globale et vos objectifs patrimoniaux',
+            'Analyse par pilier',
+            'Points d\'attention',
+            'Annexes',
+          ]} />
         </View>
 
         <View style={S.coverBottom}>
-          <Text style={{ fontSize: 8, color: COLORS.slate400, marginBottom: 8 }}>Généré le {dateStr}</Text>
+          <View style={[S.coverBottomRow, { justifyContent: 'flex-start' }]}>
+            <BrandSeal size={14} />
+            <Text style={{ fontSize: 8, color: COLORS.slate400 }}>Généré le {dateStr}</Text>
+          </View>
           <Text style={S.coverDisclaimer}>{DISCLAIMER_TEXT}</Text>
         </View>
       </Page>
