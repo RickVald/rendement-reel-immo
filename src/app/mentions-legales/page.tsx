@@ -76,8 +76,11 @@ export default function MentionsLegalesPage() {
         <p>
           Conformément aux articles L.616-1 et R.616-1 du Code de la consommation, en cas de litige avec un
           consommateur n&apos;ayant pu être résolu directement auprès de l&apos;éditeur, le consommateur peut
-          recourir gratuitement au service de médiation suivant :{' '}
-          <ToComplete>nom, adresse postale et site web du médiateur de la consommation désigné</ToComplete>.
+          recourir gratuitement au service de médiation suivant : CNPM &mdash; Médiation de la Consommation,
+          27 avenue de la Libération, 42400 Saint-Chamond,{' '}
+          <a href="https://cnpm-mediation-consommation.eu" target="_blank" rel="noreferrer" className="text-[#0B1B2B] underline">
+            cnpm-mediation-consommation.eu
+          </a>.
         </p>
       </LegalSection>
 

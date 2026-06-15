@@ -317,13 +317,14 @@ export const LEAD_B2C_STATUS_COLORS: Record<LeadB2CStatus, string> = {
   EXPIRE: 'bg-slate-100 text-slate-500',
 }
 
-export type LeadB2CSource = 'SIMULATEUR' | 'SEO' | 'ADS' | 'REFERRAL'
+export type LeadB2CSource = 'SIMULATEUR' | 'SEO' | 'ADS' | 'REFERRAL' | 'EXEMPLE_RAPPORT'
 
 export const LEAD_B2C_SOURCE_LABELS: Record<LeadB2CSource, string> = {
   SIMULATEUR: 'Simulateur',
   SEO: 'SEO',
   ADS: 'Publicité',
   REFERRAL: 'Parrainage',
+  EXEMPLE_RAPPORT: 'Rapport d\'exemple',
 }
 
 export type BesoinType = 'CGP' | 'COURTIER' | 'CHASSEUR' | 'FISCALITE' | 'GESTION_LOCATIVE'

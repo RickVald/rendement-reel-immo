@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { sendEmail, getLeadNotificationRecipients } from '@/lib/email/brevo'
 import type { ProjectInput } from '@/lib/calculator/types'
+import { LeadB2CSource } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +23,7 @@ interface LeadPayload {
   volume?: string
   besoin?: string
   input?: LeadInputShape
+  source?: LeadB2CSource
 }
 
 const fmtEur = (n?: number) => (typeof n === 'number' ? `${Math.round(n).toLocaleString('fr-FR')} €` : '—')
@@ -43,6 +45,9 @@ export async function POST(req: Request) {
   const volume = String(body.volume ?? '').trim() || undefined
   const besoin = String(body.besoin ?? '').trim() || undefined
   const input = body.input
+  const source: LeadB2CSource = body.source && Object.values(LeadB2CSource).includes(body.source)
+    ? body.source
+    : LeadB2CSource.SIMULATEUR
 
   if (!nom) return NextResponse.json({ error: 'Le nom est requis.' }, { status: 400 })
   if (!email || !email.includes('@')) return NextResponse.json({ error: 'Email invalide.' }, { status: 400 })
@@ -61,17 +66,21 @@ export async function POST(req: Request) {
           ville,
           budget,
           typeBien,
-          source: 'SIMULATEUR',
+          source,
           statut: 'NOUVEAU',
           scoreLead: 50,
         },
       })
 
+      const origine = source === LeadB2CSource.EXEMPLE_RAPPORT
+        ? 'téléchargement du rapport d\'exemple'
+        : 'simulateur'
+
       await sendEmail({
         to: getLeadNotificationRecipients(),
         subject: `Nouveau lead particulier — ${nom}`,
         html: `
-          <h2>Nouveau lead via le simulateur (particulier)</h2>
+          <h2>Nouveau lead via le ${origine} (particulier)</h2>
           <p><strong>Nom :</strong> ${nom}</p>
           <p><strong>Email :</strong> ${email}</p>
           <p><strong>Téléphone :</strong> ${telephone ?? '—'}</p>

@@ -48,12 +48,12 @@ export default function WhiteLabelPage() {
             <span className="text-xs text-slate-300 tracking-wide">Réseaux · Cabinets · Plateformes</span>
           </div>
           <h1 className="font-playfair text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            Votre propre outil d&apos;arbitrage immobilier,<br />pour équiper tout votre réseau
+            Équipez vos conseillers d&apos;une méthodologie<br />d&apos;arbitrage immobilier déployée sous votre marque
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed mb-10 max-w-xl mx-auto">
-            Déployez Rendement Réel Immo sous votre marque pour équiper vos conseillers et homogénéiser
-            les recommandations d&apos;arbitrage immobilier — logo, coordonnées et mentions personnalisées
-            sur chaque rapport remis à vos clients.
+            Une méthodologie d&apos;arbitrage homogène et documentée, le même moteur de calcul pour tous vos
+            conseillers, et un rapport client à votre marque — logo, coordonnées et mentions personnalisées
+            sur chaque PDF remis à vos clients.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/cgp-arbitrage-immobilier#demo"

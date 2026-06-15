@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import type { Metadata } from 'next'
+import { DownloadGate } from '@/components/exemple-rapport/DownloadGate'
 
 export const metadata: Metadata = {
   title: 'Exemple de rapport',
@@ -8,7 +9,6 @@ export const metadata: Metadata = {
 }
 
 const IconArrow = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-const IconDownload = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
 
 const CAPTURES = [
   { src: '/exemples/captures/cover.png', title: 'Page de garde', desc: 'Verdict global, score sur 100 et chiffres clés du dossier en un coup d\'œil.' },
@@ -40,10 +40,7 @@ export default function ExempleRapportPage() {
             dispositifs, stress tests et audit de cohérence — basé sur des données fictives.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="/exemples/rapport-exemple-anonymise.pdf" download
-              className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
-              Télécharger le PDF d&apos;exemple <IconDownload />
-            </a>
+            <DownloadGate />
             <Link href="/professionnels#demo"
               className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
               Demander une démo pro

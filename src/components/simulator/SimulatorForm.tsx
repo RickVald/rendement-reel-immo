@@ -165,8 +165,8 @@ export function SimulatorForm() {
       }
     : typeAnalyse === 'audit_global'
     ? {
-        eyebrow: 'Bilan de cohérence patrimoniale — gratuit',
-        title: 'Faites le point sur la cohérence de votre situation patrimoniale',
+        eyebrow: 'Préparer un rendez-vous — gratuit',
+        title: 'Préparez votre rendez-vous avec un professionnel',
         sub: 'Profil, objectifs, patrimoine, dettes, protection, transmission · Points d\'attention indicatifs',
       }
     : {

@@ -18,8 +18,8 @@ const OPTIONS: { value: TypeAnalyse; title: string; desc: string; available: boo
   },
   {
     value: 'audit_global',
-    title: 'Je veux un bilan de cohérence de ma situation patrimoniale',
-    desc: 'Vue d’ensemble indicative de votre situation financière et immobilière au regard de vos objectifs, avec points d’attention et orientation éventuelle vers un professionnel.',
+    title: 'Je veux préparer un rendez-vous avec un professionnel',
+    desc: 'Un état des lieux indicatif de votre situation financière et immobilière au regard de vos objectifs, avec points d’attention — pour arriver préparé(e) chez un CGP ou un conseiller.',
     available: true,
   },
 ]

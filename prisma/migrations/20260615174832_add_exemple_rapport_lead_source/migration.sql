@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "LeadB2CSource" ADD VALUE 'EXEMPLE_RAPPORT';
