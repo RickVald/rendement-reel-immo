@@ -1,6 +1,7 @@
 import type {
   ProjectInput, ProjectInputDetenu, ArbitrageAnalysis,
   ScenarioConserver, ScenarioVendre, VerdictArbitrage,
+  LocationInput, ChargesInput,
 } from './types'
 import { calculerCredit } from './credit'
 import { calculerCoutTotal, genererTableauAnnuel } from './cashflow'
@@ -12,6 +13,37 @@ const REVALO_BIEN_DEFAULT = 0.015
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, v))
+}
+
+/**
+ * P0 : pour le scénario "conserver", la projection doit refléter la performance locative
+ * actuelle déclarée par l'utilisateur (performanceActuelle), pas le bloc location/charges
+ * legacy (qui peut être resté aux valeurs par défaut du formulaire).
+ */
+function construireLocationEtCharges(input: ProjectInputDetenu): { location: LocationInput; charges: ChargesInput } {
+  const { performanceActuelle, location, charges, bien } = input
+  const loyersTheoriquesAn = performanceActuelle.loyerActuelMensuel * 12
+
+  const locationAdaptee: LocationInput = {
+    ...location,
+    loyerMensuelHC: performanceActuelle.loyerActuelMensuel,
+    vacanceLocativeMois: clamp(performanceActuelle.tauxVacanceReel, 0, 1) * 12,
+    tauxImpayes: loyersTheoriquesAn > 0 && performanceActuelle.impayesAnnuelsReels != null
+      ? clamp(performanceActuelle.impayesAnnuelsReels / loyersTheoriquesAn, 0, 1)
+      : location.tauxImpayes,
+    assurancePnoAnnuelle: performanceActuelle.assurancePnoReelleAnnuelle ?? location.assurancePnoAnnuelle,
+    fraisGestionPct: loyersTheoriquesAn > 0 && performanceActuelle.fraisGestionReelsAnnuels != null
+      ? clamp(performanceActuelle.fraisGestionReelsAnnuels / loyersTheoriquesAn, 0, 1)
+      : location.fraisGestionPct,
+  }
+
+  const chargesAdaptees: ChargesInput = {
+    ...charges,
+    taxeFonciere: performanceActuelle.taxeFonciereReelle,
+    chargesCoproAnnuelles: bien.copropriete ? performanceActuelle.chargesCoproReellesAnnuelles : charges.chargesCoproAnnuelles,
+  }
+
+  return { location: locationAdaptee, charges: chargesAdaptees }
 }
 
 /** Adapte les entrées du Parcours B au format ProjectInput attendu par le moteur Parcours A. */
@@ -62,12 +94,14 @@ function construireInputAdapte(input: ProjectInputDetenu, horizonAns: number): P
     modeSimulationAvantage: 'prudent',
   }
 
+  const { location, charges } = construireLocationEtCharges(input)
+
   return {
     bien: input.bien,
     acquisition,
     financement,
-    location: input.location,
-    charges: input.charges,
+    location,
+    charges,
     travauxFuturs: input.travauxFuturs,
     fiscalite: { ...fiscalite, deficitFoncierDisponible: historique.deficitsFonciersReportables },
     revente,
@@ -304,6 +338,22 @@ function construireVerdict(
   }
   if (equiteActuelle <= 0) {
     alertes.push('Situation de surfinancement (équité actuelle nulle ou négative) — le TRI du scénario Conserver n\'est pas interprétable.')
+  }
+  // P0 : la mensualité actuellement déclarée par l'utilisateur n'est pas utilisée pour le
+  // cash-flow (recalculée à partir du capital restant dû / taux / durée) — on alerte si
+  // l'écart entre les deux est significatif, signe d'une incohérence dans les données du prêt.
+  if (input.pretEnCours.pretEnCours && scenarioConserver.rows.length > 0) {
+    const mensualiteDeclareeAnnuelle = input.pretEnCours.mensualiteActuelle * 12
+    const mensualiteRecalculeeAnnuelle = scenarioConserver.rows[0].mensualitesAnnuelles
+    const ecart = Math.abs(mensualiteRecalculeeAnnuelle - mensualiteDeclareeAnnuelle)
+    if (mensualiteDeclareeAnnuelle > 0 && ecart / mensualiteDeclareeAnnuelle > 0.10) {
+      alertes.push(
+        `Écart entre la mensualité de prêt déclarée (${Math.round(input.pretEnCours.mensualiteActuelle).toLocaleString('fr-FR')} €/mois) ` +
+        `et la mensualité recalculée à partir du capital restant dû, du taux et de la durée restante ` +
+        `(${Math.round(mensualiteRecalculeeAnnuelle / 12).toLocaleString('fr-FR')} €/mois). ` +
+        'Vérifiez ces informations sur votre tableau d\'amortissement, le cash-flow du scénario Conserver est calculé sur la mensualité recalculée.'
+      )
+    }
   }
   if (alternativeReemploi.rendementAnnuelAttendu > 0.06) {
     alertes.push(
