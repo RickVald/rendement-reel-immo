@@ -1,9 +1,8 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { B2CPricing } from '@/components/pricing/B2CPricing'
 
 export const metadata: Metadata = {
-  title: 'Tarifs',
+  title: 'Tarifs pour professionnels',
   description: 'Tarifs Rendement Réel Immo : Starter, Pro, Marque blanche et offre pilote pour CGP, chasseurs immobiliers, courtiers et cabinets patrimoniaux.',
 }
 
@@ -68,9 +67,9 @@ export default function TarifsPage() {
           style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#C9A96E] to-transparent opacity-40" />
         <div className="relative max-w-3xl mx-auto px-6 py-20 md:py-24 text-center">
-          <h1 className="font-playfair text-4xl md:text-5xl font-bold mb-4 leading-tight">Tarifs</h1>
+          <h1 className="font-playfair text-4xl md:text-5xl font-bold mb-4 leading-tight">Tarifs pour cabinets et professionnels</h1>
           <p className="text-slate-400 text-lg leading-relaxed">
-            Des formules simples, pensées pour un usage professionnel régulier.
+            Des formules simples, pensées pour débloquer des arbitrages clients en usage régulier.
           </p>
           <Link href="/exemple-rapport"
             className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mt-6 transition-colors">
@@ -89,7 +88,7 @@ export default function TarifsPage() {
                 <strong>99 € HT / mois</strong> pendant 2 mois, puis <strong>299 € HT / mois</strong> si vous continuez.
               </p>
             </div>
-            <Link href="/professionnels#demo"
+            <Link href="/cgp-arbitrage-immobilier#demo"
               className="shrink-0 inline-flex items-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors whitespace-nowrap">
               Réserver une démo <IconArrow />
             </Link>
@@ -118,9 +117,6 @@ export default function TarifsPage() {
           </div>
         </div>
       </section>
-
-      {/* ── B2C ──────────────────────────────────────────────────────── */}
-      <B2CPricing />
 
       {/* ── PLANS ────────────────────────────────────────────────────── */}
       <section className="py-20 md:py-28">
@@ -155,7 +151,7 @@ export default function TarifsPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/professionnels#demo"
+              <Link href="/cgp-arbitrage-immobilier#demo"
                 className={`text-center font-semibold px-6 py-3 rounded-lg text-sm transition-colors ${plan.highlight
                   ? 'bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B]'
                   : 'bg-[#0B1B2B] hover:bg-[#162840] text-white'}`}>
@@ -163,6 +159,18 @@ export default function TarifsPage() {
               </Link>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── LIEN PARTICULIERS ────────────────────────────────────────── */}
+      <section className="pb-4">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <p className="text-sm text-slate-500">
+            Vous êtes un particulier souhaitant analyser votre propre projet ?{' '}
+            <Link href="/tarifs-particuliers" className="text-[#0B1B2B] font-semibold underline decoration-[#C9A96E] decoration-2 underline-offset-4">
+              Voir les tarifs particuliers
+            </Link>
+          </p>
         </div>
       </section>
 

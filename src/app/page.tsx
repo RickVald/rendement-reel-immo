@@ -137,25 +137,24 @@ export default function Home() {
               </div>
 
               <h1 className="font-playfair text-4xl md:text-5xl lg:text-[3.25rem] leading-[1.15] font-bold mb-6">
-                Faites accepter à vos clients<br />
-                <em className="text-slate-400 not-italic">les arbitrages immobiliers que les chiffres imposent.</em>
+                Débloquez les arbitrages immobiliers<br />
+                <em className="text-slate-400 not-italic">que vos clients repoussent.</em>
               </h1>
 
               <p className="text-slate-400 text-lg leading-relaxed mb-8 max-w-lg">
-                Vos clients détiennent des biens dont la rentabilité réelle s&apos;est dégradée, mais qu&apos;ils
-                refusent de vendre « sur la base d&apos;un ressenti ». Rendement Réel Immo identifie les biens
-                sous-performants, compare conservation, optimisation et cession, et produit un rapport à vos
-                couleurs qui objective le débat avec votre client.
+                Objectivez conservation, optimisation ou cession avec un rapport chiffré, daté et signé par
+                votre cabinet. Rendement Réel Immo identifie les biens sous-performants du parc de votre client,
+                compare les scénarios et documente l&apos;arbitrage avant le rendez-vous.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <Link href="/professionnels#demo"
+                <Link href="/cgp-arbitrage-immobilier#demo"
                   className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
-                  Demander une démo pro <IconArrow />
+                  Auditer un bien client bloqué <IconArrow />
                 </Link>
                 <Link href="/cgp-arbitrage-immobilier"
                   className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-400 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
-                  Le cas du client qui refuse de vendre
+                  Voir comment débloquer un arbitrage
                 </Link>
               </div>
 
@@ -189,12 +188,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── AUDIT DE PARC IMMOBILIER EXISTANT ────────────────────────── */}
+      {/* ── DEUX CAS D'USAGE ──────────────────────────────────────────── */}
       <section className="py-20 md:py-28 border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-14">
+            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Deux situations, un seul outil</p>
+            <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] leading-tight max-w-2xl mx-auto">
+              Débloquez les arbitrages immobiliers que vos clients repoussent
+            </h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="border border-slate-200 rounded-2xl p-8">
+              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Cas 1 — Avant achat</p>
+              <h3 className="font-playfair text-2xl font-bold text-[#0B1B2B] mb-3 leading-snug">
+                Éviter une mauvaise opération
+              </h3>
+              <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                Objectivez la rentabilité réelle d&apos;un projet avant signature, calculez le prix cible de
+                négociation et anticipez le risque DPE — pour ne pas valider une opération sur la base d&apos;un
+                rendement brut affiché.
+              </p>
+              <Link href="/simulateur"
+                className="inline-flex items-center gap-2 text-[#0B1B2B] font-semibold text-sm hover:text-[#C9A96E] transition-colors">
+                Tester un projet d&apos;achat <IconArrow />
+              </Link>
+            </div>
+            <div className="bg-[#0B1B2B] text-white rounded-2xl p-8 relative overflow-hidden">
+              <div className="absolute top-5 right-5 bg-[#C9A96E] text-[#0B1B2B] text-[10px] font-bold px-3 py-1 rounded-full">
+                Cas premium CGP
+              </div>
+              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Cas 2 — Bien déjà détenu</p>
+              <h3 className="font-playfair text-2xl font-bold mb-3 leading-snug">
+                Débloquer un arbitrage que le client repousse
+              </h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                Le cas le plus différenciant : auditer un bien que votre client détient depuis des années,
+                comparer conservation, optimisation et cession, et documenter la décision pour faire avancer
+                un rendez-vous qui tournait en rond.
+              </p>
+              <Link href="/cgp-arbitrage-immobilier"
+                className="inline-flex items-center gap-2 text-[#C9A96E] font-semibold text-sm hover:text-[#d4b87a] transition-colors">
+                Voir la page dédiée CGP <IconArrow />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── AUDIT DE PARC IMMOBILIER EXISTANT ────────────────────────── */}
+      <section className="py-20 md:py-28 border-b border-slate-200 bg-[#F8F7F4]">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
-              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le cas le plus fréquent</p>
+              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le cas premium, en détail</p>
               <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-6 leading-tight">
                 Vos clients gardent des biens<br />qui ne performent plus
               </h2>
@@ -219,7 +265,7 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <div className="bg-[#F8F7F4] rounded-2xl p-8 border border-slate-200">
+            <div className="bg-white rounded-2xl p-8 border border-slate-200">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Identifiez les biens à...</p>
               <ul className="space-y-4">
                 {[
@@ -228,7 +274,7 @@ export default function Home() {
                   { label: 'Refinancer ou réallouer', desc: "Le capital immobilisé pourrait produire un meilleur rendement ailleurs." },
                   { label: 'Arbitrer (revente)', desc: 'La rentabilité réelle ne justifie plus la détention — un scénario de cession est documenté.' },
                 ].map((item) => (
-                  <li key={item.label} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-slate-200">
+                  <li key={item.label} className="flex items-start gap-3 bg-[#F8F7F4] rounded-xl p-4 border border-slate-200">
                     <span className="text-[#C9A96E] shrink-0 mt-0.5"><IconCheck /></span>
                     <div>
                       <p className="font-semibold text-[#0B1B2B] text-sm mb-1">{item.label}</p>
@@ -354,7 +400,7 @@ export default function Home() {
           <div className="mb-14">
             <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Ce que vous obtenez</p>
             <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] max-w-xl leading-tight">
-              Une contre-analyse complète,<br />pas un calculateur de base
+              Transformez une intuition de conseil<br />en preuve client
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
@@ -451,7 +497,7 @@ export default function Home() {
           <div className="mb-14 max-w-2xl">
             <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le simulateur</p>
             <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-4 leading-tight">
-              Un moteur d&apos;audit complet,<br />pas un simple calculateur
+              De &laquo; je pense qu&apos;il faut arbitrer &raquo;<br />à &laquo; voici les chiffres qui le montrent &raquo;
             </h2>
             <p className="text-slate-500 leading-relaxed">
               Le parcours de saisie couvre désormais le profil fiscal, les principaux dispositifs, l&apos;audit
@@ -510,15 +556,15 @@ export default function Home() {
         <div className="relative max-w-3xl mx-auto px-6 text-center">
           <div className="inline-block w-12 h-px bg-[#C9A96E] mb-8" />
           <h2 className="font-playfair text-4xl md:text-5xl font-bold mb-5 leading-tight">
-            Avant de signer,<br />vérifiez les chiffres.
+            Débloquez l&apos;arbitrage<br />que votre client repousse.
           </h2>
           <p className="text-slate-400 mb-10 text-lg max-w-md mx-auto leading-relaxed">
-            Rapport d&apos;arbitrage complet, personnalisable.<br />Demandez une démo ou testez le simulateur.
+            Rapport d&apos;arbitrage complet, personnalisable.<br />Auditez un bien client ou testez le simulateur.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/professionnels#demo"
+            <Link href="/cgp-arbitrage-immobilier#demo"
               className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-10 py-4 rounded-lg text-base transition-colors shadow-lg shadow-[#C9A96E]/20">
-              Demander une démo pro <IconArrow />
+              Auditer un bien client bloqué <IconArrow />
             </Link>
             <Link href="/simulateur"
               className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-10 py-4 rounded-lg transition-colors text-base">

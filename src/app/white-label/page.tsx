@@ -3,11 +3,19 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Marque blanche',
-  description: 'Diffusez Rendement Réel Immo sous votre propre marque : logo, couleurs, coordonnées et mentions personnalisées sur chaque rapport client.',
+  description: 'Déployez votre propre outil d\'arbitrage immobilier pour équiper vos conseillers et homogénéiser les recommandations — logo, couleurs et mentions personnalisées sur chaque rapport.',
 }
 
 const IconArrow = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
 const IconCheck = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+
+const BENEFICES_STRATEGIQUES = [
+  { title: 'Homogénéiser les pratiques', desc: 'Tous vos conseillers utilisent la même méthodologie de calcul et le même format de rapport, quel que soit le dossier ou l\'agence.' },
+  { title: 'Sécuriser le discours conseiller', desc: 'Chaque recommandation d\'arbitrage s\'appuie sur un rapport chiffré, daté et documenté — pas sur l\'appréciation individuelle d\'un conseiller.' },
+  { title: 'Générer des rapports clients cohérents', desc: 'Même structure, même rigueur, mêmes hypothèses par défaut — quel que soit le conseiller qui produit le rapport.' },
+  { title: 'Un outil propriétaire pour votre réseau', desc: 'Rendement Réel Immo devient votre outil, à votre marque — un atout pour recruter et fidéliser vos conseillers.' },
+  { title: 'Mieux convertir les arbitrages', desc: 'Un rapport chiffré, daté et signé par votre cabinet débloque davantage de décisions client que des chiffres approximatifs donnés en rendez-vous.' },
+]
 
 const FEATURES = [
   { title: 'Logo & identité', desc: 'Votre logo, vos couleurs et le nom de votre cabinet sur chaque rapport.' },
@@ -40,16 +48,17 @@ export default function WhiteLabelPage() {
             <span className="text-xs text-slate-300 tracking-wide">Réseaux · Cabinets · Plateformes</span>
           </div>
           <h1 className="font-playfair text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            Votre propre outil d&apos;audit immobilier,<br />à vos couleurs
+            Votre propre outil d&apos;arbitrage immobilier,<br />pour équiper tout votre réseau
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed mb-10 max-w-xl mx-auto">
-            Diffusez Rendement Réel Immo sous votre marque : logo, coordonnées, couleurs et mentions
-            personnalisées sur chaque rapport remis à vos clients.
+            Déployez Rendement Réel Immo sous votre marque pour équiper vos conseillers et homogénéiser
+            les recommandations d&apos;arbitrage immobilier — logo, coordonnées et mentions personnalisées
+            sur chaque rapport remis à vos clients.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/professionnels#demo"
+            <Link href="/cgp-arbitrage-immobilier#demo"
               className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
-              Demander une démo pro <IconArrow />
+              Auditer un bien client bloqué <IconArrow />
             </Link>
             <Link href="/tarifs"
               className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
@@ -60,6 +69,24 @@ export default function WhiteLabelPage() {
             className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mt-6 transition-colors">
             Voir un rapport exemple <IconArrow />
           </Link>
+        </div>
+      </section>
+
+      {/* ── BÉNÉFICES STRATÉGIQUES ───────────────────────────────────── */}
+      <section className="py-20 md:py-28 border-b border-slate-200">
+        <div className="max-w-5xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Pourquoi la marque blanche</p>
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-12 leading-tight max-w-2xl">
+            Équipez vos conseillers d&apos;un outil qui débloque plus d&apos;arbitrages
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            {BENEFICES_STRATEGIQUES.map((b, i) => (
+              <div key={b.title} className={`bg-[#F8F7F4] rounded-2xl p-6 border border-slate-200 ${i === 4 ? 'md:col-span-2' : ''}`}>
+                <h3 className="font-playfair text-lg font-bold text-[#0B1B2B] mb-2">{b.title}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">{b.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -108,9 +135,9 @@ export default function WhiteLabelPage() {
             Chaque déploiement en marque blanche est configuré selon votre volume, votre identité visuelle
             et vos besoins d&apos;intégration.
           </p>
-          <Link href="/professionnels#demo"
+          <Link href="/cgp-arbitrage-immobilier#demo"
             className="inline-flex items-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors">
-            Demander une démo pro <IconArrow />
+            Auditer un bien client bloqué <IconArrow />
           </Link>
         </div>
       </section>

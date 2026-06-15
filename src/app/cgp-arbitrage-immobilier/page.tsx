@@ -114,8 +114,15 @@ const OBJECTIONS = [
 
 const EXEMPLE_AVANT = [
   { label: 'Discours du client', val: '« Ce studio me rapporte 480 €/mois, je le garde. »' },
-  { label: 'Détenu depuis', val: '12 ans' },
+  { label: 'Détenu depuis', val: '12 ans, refus d\'arbitrage depuis 3 ans' },
   { label: 'Rendement perçu', val: 'Brut, jamais recalculé' },
+]
+
+const EXEMPLE_PENDANT = [
+  { label: 'Le cabinet génère', val: 'Le rapport Rendement Réel Immo sur ce bien détenu' },
+  { label: 'En rendez-vous', val: 'Présentation du rendement net-net réel et du cash-flow, chiffres à l\'appui' },
+  { label: 'Fiscalité de la cession', val: 'Chiffrée précisément — la plus-value devient une donnée, plus une crainte' },
+  { label: 'Scénarios comparés', val: 'Conserver / optimiser / céder + réemploi, présentés côte à côte' },
 ]
 
 const EXEMPLE_APRES = [
@@ -152,7 +159,7 @@ export default function CgpArbitrageImmobilierPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="#demo"
               className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
-              Demander une démo pro <IconArrow />
+              Auditer un bien client bloqué <IconArrow />
             </Link>
             <Link href="/exemple-rapport"
               className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
@@ -260,16 +267,20 @@ export default function CgpArbitrageImmobilierPage() {
         </div>
       </section>
 
-      {/* ── EXEMPLE ANONYMISÉ AVANT / APRÈS ──────────────────────────── */}
+      {/* ── EXEMPLE ANONYMISÉ AVANT / PENDANT / APRÈS ────────────────── */}
       <section className="bg-[#F8F7F4] py-20 md:py-28 border-y border-slate-200">
-        <div className="max-w-5xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-6">
           <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4 text-center">Exemple anonymisé</p>
-          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-12 text-center leading-tight">
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-4 text-center leading-tight">
             Un studio détenu depuis 12 ans
           </h2>
-          <div className="grid md:grid-cols-2 gap-6">
+          <p className="text-slate-500 leading-relaxed mb-12 max-w-2xl mx-auto text-center">
+            Le changement ne se voit pas seulement dans les chiffres — il se voit dans la dynamique du
+            rendez-vous client.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white rounded-2xl p-8 border border-slate-200">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Avant — le discours du client</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Avant — le client refuse depuis 3 ans</p>
               <div className="space-y-4">
                 {EXEMPLE_AVANT.map((e) => (
                   <div key={e.label}>
@@ -279,13 +290,24 @@ export default function CgpArbitrageImmobilierPage() {
                 ))}
               </div>
             </div>
+            <div className="bg-white rounded-2xl p-8 border border-slate-200">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Pendant — le cabinet reprend la main</p>
+              <div className="space-y-4">
+                {EXEMPLE_PENDANT.map((e) => (
+                  <div key={e.label}>
+                    <p className="text-xs text-slate-400 mb-1">{e.label}</p>
+                    <p className="text-sm font-semibold text-slate-700 leading-snug">{e.val}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="bg-white rounded-2xl p-8 border-2 border-[#C9A96E]">
-              <p className="text-xs font-semibold text-[#C9A96E] uppercase tracking-widest mb-5">Après — le rapport Rendement Réel Immo</p>
+              <p className="text-xs font-semibold text-[#C9A96E] uppercase tracking-widest mb-5">Après — la décision, en connaissance de cause</p>
               <div className="space-y-4">
                 {EXEMPLE_APRES.map((e) => (
-                  <div key={e.label} className="flex justify-between items-center">
+                  <div key={e.label} className="flex justify-between items-center gap-2">
                     <span className="text-sm text-slate-500">{e.label}</span>
-                    <span className="font-mono font-bold text-[#0B1B2B]">{e.val}</span>
+                    <span className="font-mono font-bold text-[#0B1B2B] text-right">{e.val}</span>
                   </div>
                 ))}
               </div>

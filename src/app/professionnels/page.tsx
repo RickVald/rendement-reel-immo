@@ -13,7 +13,7 @@ const IconCheck = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="no
 
 /* ── Data ───────────────────────────────────────────────────────────── */
 const CIBLES = [
-  { cible: 'CGP', benefice: 'Documenter les arbitrages immobiliers de vos clients.' },
+  { cible: 'CGP', benefice: 'Documenter les arbitrages immobiliers de vos clients.', href: '/cgp-arbitrage-immobilier' },
   { cible: 'Chasseurs immobiliers', benefice: 'Justifier les biens proposés — ou les écarter avec des chiffres.' },
   { cible: 'Courtiers', benefice: 'Montrer l\'effort d\'épargne réel et la soutenabilité du projet.' },
   { cible: 'Experts-comptables LMNP', benefice: 'Objectiver les régimes et les hypothèses fiscales.' },
@@ -77,6 +77,18 @@ export default function ProfessionnelsPage() {
   return (
     <main className="min-h-screen bg-white">
 
+      {/* ── BANDEAU CGP ──────────────────────────────────────────────── */}
+      <section className="bg-[#F8F7F4] border-b border-slate-200 py-3">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <p className="text-sm text-slate-600">
+            Vous êtes CGP ou cabinet patrimonial ?{' '}
+            <Link href="/cgp-arbitrage-immobilier" className="text-[#0B1B2B] font-semibold underline decoration-[#C9A96E] decoration-2 underline-offset-4">
+              Voir la page dédiée — débloquer un arbitrage client
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* ── HERO ─────────────────────────────────────────────────────── */}
       <section className="bg-[#0B1B2B] text-white overflow-hidden relative">
         <div className="absolute inset-0 opacity-[0.03]"
@@ -86,7 +98,7 @@ export default function ProfessionnelsPage() {
         <div className="relative max-w-4xl mx-auto px-6 py-20 md:py-28 text-center">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]"/>
-            <span className="text-xs text-slate-300 tracking-wide">CGP · Chasseurs immobiliers · Courtiers · Cabinets patrimoniaux</span>
+            <span className="text-xs text-slate-300 tracking-wide">Chasseurs immobiliers · Courtiers · Experts-comptables LMNP</span>
           </div>
           <h1 className="font-playfair text-4xl md:text-5xl leading-[1.15] font-bold mb-6">
             Le moteur d&apos;audit immobilier<br />pour vos clients investisseurs
@@ -185,7 +197,17 @@ export default function ProfessionnelsPage() {
                 {CIBLES.map((c, i) => (
                   <tr key={c.cible} className={i % 2 === 0 ? 'bg-white' : 'bg-[#F8F7F4]'}>
                     <td className="px-6 py-4 font-semibold text-[#0B1B2B] border-t border-slate-100 whitespace-nowrap">{c.cible}</td>
-                    <td className="px-6 py-4 text-slate-600 border-t border-slate-100">{c.benefice}</td>
+                    <td className="px-6 py-4 text-slate-600 border-t border-slate-100">
+                      {c.benefice}
+                      {c.href && (
+                        <>
+                          {' '}
+                          <Link href={c.href} className="text-[#0B1B2B] font-semibold underline decoration-[#C9A96E] decoration-2 underline-offset-4 whitespace-nowrap">
+                            Page dédiée &rarr;
+                          </Link>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
