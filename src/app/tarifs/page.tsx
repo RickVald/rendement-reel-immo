@@ -85,7 +85,8 @@ export default function TarifsPage() {
             <div>
               <p className="text-xs font-semibold text-[#C9A96E] uppercase tracking-widest mb-1">Offre pilote fondateur</p>
               <p className="text-[#0B1B2B] font-medium">
-                <strong>99 € HT / mois</strong> pendant 2 mois, puis <strong>299 € HT / mois</strong> si vous continuez.
+                <strong>99 € HT / mois</strong> pendant 2 mois, puis bascule vers l&apos;offre <strong>Pro</strong> à{' '}
+                <strong>299 € HT / mois</strong> (au lieu de 399 €) — tarif fondateur réservé aux premiers cabinets.
               </p>
             </div>
             <Link href="/cgp-arbitrage-immobilier#demo"

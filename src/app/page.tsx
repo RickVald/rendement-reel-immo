@@ -62,25 +62,28 @@ function MiniReport() {
       <div className="relative bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden w-[300px]">
         {/* Header carte */}
         <div className="bg-[#0B1B2B] px-5 py-4">
-          <div className="text-[10px] tracking-[0.15em] uppercase text-slate-400 mb-1">Rapport d&apos;analyse</div>
-          <div className="text-white text-sm font-semibold">Appartement · Lyon 6e</div>
-          <div className="text-slate-400 text-xs mt-0.5">Simulation sur 15 ans · LMNP réel</div>
+          <div className="text-[10px] tracking-[0.15em] uppercase text-slate-400 mb-1">Rapport d&apos;arbitrage</div>
+          <div className="text-white text-sm font-semibold">Appartement détenu · Rennes (35)</div>
+          <div className="text-slate-400 text-xs mt-0.5">Conserver ou vendre ? · Horizon 10 ans</div>
         </div>
 
         {/* Verdict */}
-        <div className="px-5 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"/>
-          <span className="text-xs font-semibold text-amber-800">Acceptable — sous conditions de négociation</span>
+        <div className="px-5 py-3 bg-emerald-50 border-b border-emerald-100">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"/>
+            <span className="text-xs font-semibold text-emerald-800">Scénario le plus favorable : vendre et réallouer</span>
+          </div>
+          <div className="text-[10px] text-emerald-700 pl-4">Sous réserve de validation des hypothèses</div>
         </div>
 
         {/* Métriques */}
         <div className="px-5 py-4 space-y-3">
           {[
-            { label: 'Rendement brut', val: '5,8 %', color: 'text-slate-700' },
-            { label: 'Rendement net-net', val: '3,2 %', color: 'text-amber-600' },
-            { label: 'Cash-flow moyen', val: '−210 €/mois', color: 'text-red-500' },
-            { label: 'TRI projet', val: '4,1 %', color: 'text-emerald-600' },
-            { label: 'VAN (4 % réf.)', val: '+8 400 €', color: 'text-emerald-600' },
+            { label: 'Équité actuelle', val: '170 000 €', color: 'text-slate-700' },
+            { label: 'Valeur de marché', val: '240 000 €', color: 'text-slate-700' },
+            { label: 'Rendement net-net réel', val: '1,0 %', color: 'text-amber-600' },
+            { label: 'Cash-flow réel', val: '−400 €/mois', color: 'text-red-500' },
+            { label: 'Alternative (assurance-vie)', val: '3,5 %', color: 'text-emerald-600' },
           ].map((m) => (
             <div key={m.label} className="flex justify-between items-center">
               <span className="text-xs text-slate-500">{m.label}</span>
@@ -89,10 +92,10 @@ function MiniReport() {
           ))}
           <div className="border-t border-slate-100 pt-3">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-500">Prix cible négociation</span>
-              <span className="text-xs font-mono font-bold text-[#0B1B2B]">218 400 €</span>
+              <span className="text-xs text-slate-500">Écart patrimoine final à 10 ans</span>
+              <span className="text-xs font-mono font-bold text-emerald-600">+11 647 €</span>
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 text-right">−14,7 % / prix demandé</div>
+            <div className="text-[10px] text-slate-400 mt-0.5 text-right">en faveur de la vente réallouée</div>
           </div>
         </div>
 

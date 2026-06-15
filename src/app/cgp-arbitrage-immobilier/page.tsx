@@ -113,7 +113,7 @@ const OBJECTIONS = [
 ]
 
 const EXEMPLE_AVANT = [
-  { label: 'Discours du client', val: '« Ce studio me rapporte 480 €/mois, je le garde. »' },
+  { label: 'Discours du client', val: '« Cet appartement me rapporte 820 € de loyer, je le garde. »' },
   { label: 'Détenu depuis', val: '12 ans, refus d\'arbitrage depuis 3 ans' },
   { label: 'Rendement perçu', val: 'Brut, jamais recalculé' },
 ]
@@ -126,10 +126,11 @@ const EXEMPLE_PENDANT = [
 ]
 
 const EXEMPLE_APRES = [
-  { label: 'Rendement net-net réel', val: '1,4 %' },
-  { label: 'Cash-flow réel', val: '−65 €/mois' },
-  { label: 'Produit net de cession estimé', val: '198 000 €' },
-  { label: 'Réemploi simulé (SCPI, autre bien...)', val: 'TRI 4,8 %' },
+  { label: 'Rendement net-net réel', val: '≈ 1,0 %' },
+  { label: 'Cash-flow réel', val: '−400 €/mois' },
+  { label: 'Produit net de cession estimé', val: '144 100 €' },
+  { label: 'Réemploi simulé (assurance-vie)', val: '3,5 %' },
+  { label: 'Écart de patrimoine à 10 ans', val: '+11 647 €' },
 ]
 
 export default function CgpArbitrageImmobilierPage() {
@@ -272,11 +273,14 @@ export default function CgpArbitrageImmobilierPage() {
         <div className="max-w-6xl mx-auto px-6">
           <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4 text-center">Exemple anonymisé</p>
           <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-4 text-center leading-tight">
-            Un studio détenu depuis 12 ans
+            Un appartement détenu depuis 12 ans, à Rennes
           </h2>
           <p className="text-slate-500 leading-relaxed mb-12 max-w-2xl mx-auto text-center">
             Le changement ne se voit pas seulement dans les chiffres — il se voit dans la dynamique du
-            rendez-vous client.
+            rendez-vous client. C&apos;est ce même cas, avec les mêmes chiffres, qui est utilisé dans le{' '}
+            <Link href="/exemple-rapport" className="underline decoration-[#C9A96E] decoration-2 underline-offset-2 text-[#0B1B2B] font-medium">
+              rapport PDF anonymisé
+            </Link>.
           </p>
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white rounded-2xl p-8 border border-slate-200">
@@ -312,8 +316,9 @@ export default function CgpArbitrageImmobilierPage() {
                 ))}
               </div>
               <p className="text-sm text-slate-500 mt-6 leading-relaxed">
-                Face à ces chiffres, le client a accepté de céder le bien et de réallouer le produit de la
-                vente vers un placement plus rentable — une décision qu&apos;il refusait depuis trois ans.
+                Face à ces chiffres — et sous réserve de validation des hypothèses de réemploi —, le client a
+                accepté d&apos;envisager la cession du bien et la réallocation du produit de vente vers une
+                assurance-vie, une option qu&apos;il refusait depuis trois ans.
               </p>
             </div>
           </div>
