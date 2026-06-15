@@ -23,7 +23,7 @@ import type { ProjectAnalysis, AIInterpretation } from '@/lib/calculator/types'
 import { S, COLORS, verdictColors } from './styles'
 import {
   fmt, eur, pct, sign, sanitize,
-  CashflowChart, PatrimoineChart, ScenarioBarChart,
+  CashflowChart, PatrimoineChart, ScenarioBarChart, DebtBreakdownChart,
   ScoreBar, HypRow, PageHeader, PageFooter, BrandSeal, CoverSummary,
   WaterfallRendement, ComparaisonPlacementsChart,
 } from './helpers'
@@ -2234,6 +2234,7 @@ export function RapportPDF({
           <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 6 }}>
             {`Années 1-10 + milestones (15${yearlyTable.length > 15 ? `, ${yearlyTable.length}` : ''}). Tableau complet sur ${input.revente.dureeDetentionAns} ans disponible sur demande.`}
           </Text>
+          <DebtBreakdownChart rows={yearlyTable} />
           <View style={S.table}>
             <View style={S.tableHeader}>
               {['Année','Mensualités versées','dont Intérêts','dont Assurance','Capital remboursé','Capital restant dû'].map((h,i)=>(

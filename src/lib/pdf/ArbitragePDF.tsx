@@ -16,7 +16,7 @@ Font.registerHyphenationCallback((word: string) => [word])
 
 import type { ArbitrageAnalysis } from '@/lib/calculator/types'
 import { S, COLORS, verdictColors } from './styles'
-import { fmt, eur, pct, sign, PatrimoineChart, CashflowChart, PageHeader, PageFooter, BrandSeal, CoverSummary, HypRow } from './helpers'
+import { fmt, eur, pct, sign, PatrimoineChart, CashflowChart, SensitivityBarChart, PageHeader, PageFooter, BrandSeal, CoverSummary, HypRow } from './helpers'
 
 const TYPE_LABELS: Record<string, string> = {
   appartement: 'Appartement', maison: 'Maison', studio: 'Studio',
@@ -467,6 +467,20 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 12 }}>
             Un écart positif signifie que le scénario Vendre reste favorable au taux de rendement testé ; un écart négatif
             signifie qu'à ce taux, conserver le bien deviendrait préférable.
+          </Text>
+
+          <SensitivityBarChart
+            scenarios={sensibiliteTaux.map(s => ({
+              label: `${pct(s.taux)}${s.delta === 0 ? ' (retenue)' : ''}`,
+              value: s.patrimoineFinalVendre,
+              highlight: s.delta === 0,
+            }))}
+            reference={scenarioConserver.patrimoineFinal}
+            referenceLabel="Conserver"
+          />
+          <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: 2, marginBottom: 12 }}>
+            Barres = patrimoine final du scénario Vendre selon le rendement testé. Ligne pointillée = patrimoine final du
+            scénario Conserver ({eur(scenarioConserver.patrimoineFinal)}).
           </Text>
 
           <View style={S.disclaimer}>

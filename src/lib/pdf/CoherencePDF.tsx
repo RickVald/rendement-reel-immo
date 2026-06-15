@@ -15,7 +15,7 @@ Font.registerHyphenationCallback((word: string) => [word])
 
 import type { CoherenceAnalysis, StatutPilier, ObjectifType, Priorite, Horizon } from '@/lib/calculator/types-bilan'
 import { S, COLORS, verdictColors } from './styles'
-import { fmt, eur, pct, sanitize, PageHeader, PageFooter, HypRow, BrandSeal, CoverSummary } from './helpers'
+import { fmt, eur, pct, sanitize, PageHeader, PageFooter, HypRow, BrandSeal, CoverSummary, StackedBarChart } from './helpers'
 
 const OBJECTIF_LABELS: Record<ObjectifType, string> = {
   acheter_residence_principale: 'Acheter ma résidence principale',
@@ -204,6 +204,14 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
             </View>
           </View>
 
+          {synthese.patrimoineBrut > 0 && (
+            <StackedBarChart segments={[
+              { label: 'Immobilier', value: eur(synthese.patrimoineImmobilierBrut), pct: repartition.immobilierPct, color: COLORS.indigo },
+              { label: 'Financier', value: eur(synthese.patrimoineFinancierBrut), pct: repartition.financierPct, color: COLORS.emerald },
+              { label: 'Liquidités', value: eur(synthese.liquidites), pct: repartition.liquiditesPct, color: COLORS.amber },
+            ]} />
+          )}
+
           <Text style={S.sectionTitle}>Verdict global</Text>
           <View style={[S.verdictBanner, { backgroundColor: vc.bg, borderWidth: 2, borderColor: vc.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
             <Text style={[S.verdictLabel, { color: vc.text, fontSize: 13 }]}>{verdictGlobal.label}</Text>
@@ -262,6 +270,14 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
         <PageHeader section="Analyse par pilier" meta={meta} />
         <View style={S.body}>
           <Text style={S.sectionTitle}>Analyse pilier par pilier</Text>
+
+          <StackedBarChart segments={[
+            { label: STATUT_LABELS.coherent, value: `${verdictGlobal.nbCoherents} pilier(s)`, pct: verdictGlobal.nbCoherents, color: verdictColors('emerald').border },
+            { label: STATUT_LABELS.a_verifier, value: `${verdictGlobal.nbAVerifier} pilier(s)`, pct: verdictGlobal.nbAVerifier, color: verdictColors('yellow').border },
+            { label: STATUT_LABELS.incoherence_detectee, value: `${verdictGlobal.nbIncoherences} pilier(s)`, pct: verdictGlobal.nbIncoherences, color: verdictColors('red').border },
+            { label: STATUT_LABELS.donnees_insuffisantes, value: `${verdictGlobal.nbDonneesInsuffisantes} pilier(s)`, pct: verdictGlobal.nbDonneesInsuffisantes, color: verdictColors('gray').border },
+          ]} />
+
           {piliers.map(p => (
             <View key={p.pilier} style={S.card} wrap={false}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
