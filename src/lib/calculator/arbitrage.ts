@@ -175,7 +175,7 @@ function construireScenarioVendre(input: ProjectInputDetenu, horizonAns: number)
 
   const dateAcquisitionConnue = !!historique.dateAchat || historique.dureeDetentionActuelleAns != null
 
-  let detailPlusValue = calculerDetailPlusValue(
+  let detailPlusValue: import('./fiscalite').DetailPlusValue | null = calculerDetailPlusValue(
     historique.prixAchatInitial,
     valeurActuelle.valeurMarcheEstimee,
     fraisAcquisitionBOFIP,
@@ -186,17 +186,10 @@ function construireScenarioVendre(input: ProjectInputDetenu, horizonAns: number)
     fiscalite.regime,
   )
 
+  let nonCalculableReason: 'date_acquisition_absente' | undefined
   if (!dateAcquisitionConnue) {
-    detailPlusValue = {
-      ...detailPlusValue,
-      plusValueBrute: 0,
-      pvImposableIR: 0,
-      pvImposablePS: 0,
-      ir: 0,
-      ps: 0,
-      total: 0,
-      note: "Date d'acquisition non renseignée : fiscalité de cession non calculable (N/A).",
-    }
+    detailPlusValue = null
+    nonCalculableReason = 'date_acquisition_absente'
   }
 
   const capitalRestantDuSolde = pretEnCours.pretEnCours ? pretEnCours.capitalRestantDu : 0
@@ -213,7 +206,7 @@ function construireScenarioVendre(input: ProjectInputDetenu, horizonAns: number)
 
   const produitNetVenteAujourdhui = Math.max(
     0,
-    valeurActuelle.valeurMarcheEstimee - fraisVenteAujourdhui - detailPlusValue.total - capitalRestantDuSolde - ira,
+    valeurActuelle.valeurMarcheEstimee - fraisVenteAujourdhui - (detailPlusValue?.total ?? 0) - capitalRestantDuSolde - ira,
   )
 
   const rendementNetAttendu = alternativeReemploi.rendementAnnuelAttendu
@@ -227,6 +220,7 @@ function construireScenarioVendre(input: ProjectInputDetenu, horizonAns: number)
     rendementNetAttendu,
     patrimoineFinal,
     dateAcquisitionConnue,
+    nonCalculableReason,
   }
 }
 
@@ -295,10 +289,28 @@ function construireVerdict(
     couleur = 'yellow'
   }
 
+  // P1 : si la mensualité recalculée (capital restant dû / taux / durée) diverge fortement
+  // de la mensualité réellement déclarée par l'utilisateur pour un bien déjà détenu, le
+  // cash-flow du scénario Conserver repose sur une hypothèse trop éloignée de la réalité
+  // pour produire un verdict ferme.
+  let ecartMensualitePct = 0
+  if (input.pretEnCours.pretEnCours && scenarioConserver.rows.length > 0) {
+    const mensualiteDeclareeAnnuelle = input.pretEnCours.mensualiteActuelle * 12
+    const mensualiteRecalculeeAnnuelle = scenarioConserver.rows[0].mensualitesAnnuelles
+    if (mensualiteDeclareeAnnuelle > 0) {
+      ecartMensualitePct = Math.abs(mensualiteRecalculeeAnnuelle - mensualiteDeclareeAnnuelle) / mensualiteDeclareeAnnuelle
+    }
+  }
+  if (ecartMensualitePct > 0.15 && label !== 'Arbitrage à approfondir') {
+    label = 'Arbitrage à approfondir'
+    couleur = 'yellow'
+  }
+
   // P0 : un verdict décisionnel (Conserver/Vendre) ne peut pas être affiché si la
   // fiscalité de cession n'est pas calculable (date d'acquisition / durée de détention
   // non renseignées), ce paramètre pesant directement sur le scénario Vendre.
-  const degradePourFiscaliteInconnue = !scenarioVendre.dateAcquisitionConnue && label !== 'Arbitrage à approfondir'
+  const dateAcquisitionInconnue = !scenarioVendre.dateAcquisitionConnue
+  const degradePourFiscaliteInconnue = dateAcquisitionInconnue && label !== 'Arbitrage à approfondir'
   if (degradePourFiscaliteInconnue) {
     label = 'Arbitrage à approfondir'
     couleur = 'yellow'
@@ -316,7 +328,7 @@ function construireVerdict(
       `Non arbitrable en l'état : ${motifsBlocage.join(' ; ')}. Complétez ces informations pour obtenir un arbitrage fiable.`
     )
   }
-  if (degradePourFiscaliteInconnue) {
+  if (dateAcquisitionInconnue) {
     alertes.push(
       "Date d'acquisition non renseignée : la fiscalité de cession (plus-value) n'a pas pu être calculée. " +
       "Le verdict ne peut donc pas être considéré comme définitif — renseignez la date d'achat ou la durée de détention pour affiner l'arbitrage."
@@ -324,11 +336,24 @@ function construireVerdict(
   }
   if (dpeRisque) {
     alertes.push(`DPE ${performanceActuelle.dpeActuel} : bien difficile à louer en l'état (gel des loyers, interdiction de location à venir).`)
-    alertes.push(
-      `Le scénario Conserver suppose la perception des loyers actuels sur l'ensemble de l'horizon de ${horizonAns} ans. ` +
-      `Avec un DPE ${performanceActuelle.dpeActuel}, cette hypothèse est optimiste tant que des travaux de rénovation énergétique, ` +
-      'une dérogation ou une nouvelle mise en location ne sont pas confirmés : ce scénario doit être considéré comme un majorant.'
-    )
+    // P1 : si l'interdiction de mise en location s'applique déjà (loyers encaissés neutralisés
+    // à 0 € dans le tableau annuel), l'alerte doit décrire cette neutralisation plutôt que
+    // de présenter la perception des loyers actuels comme une hypothèse de calcul.
+    const loyersNeutralises = performanceActuelle.loyerActuelMensuel > 0
+      && scenarioConserver.rows.some(r => r.loyersEncaisses === 0)
+    if (loyersNeutralises) {
+      alertes.push(
+        `Les loyers ont été neutralisés à 0 € dans le scénario Conserver : avec un DPE ${performanceActuelle.dpeActuel}, ` +
+        'la mise en location de ce bien est interdite tant que des travaux de rénovation énergétique, ' +
+        'une dérogation ou une nouvelle mise en location ne sont pas confirmés.'
+      )
+    } else {
+      alertes.push(
+        `Le scénario Conserver suppose la perception des loyers actuels sur l'ensemble de l'horizon de ${horizonAns} ans. ` +
+        `Avec un DPE ${performanceActuelle.dpeActuel}, cette hypothèse est optimiste tant que des travaux de rénovation énergétique, ` +
+        'une dérogation ou une nouvelle mise en location ne sont pas confirmés : ce scénario doit être considéré comme un majorant.'
+      )
+    }
   }
   if (input.valeurActuelle.fiabiliteValeur === 'faible') {
     alertes.push('Estimation de valeur de marché peu fiable — arbitrage à confirmer par une expertise.')
@@ -342,18 +367,15 @@ function construireVerdict(
   // P0 : la mensualité actuellement déclarée par l'utilisateur n'est pas utilisée pour le
   // cash-flow (recalculée à partir du capital restant dû / taux / durée) — on alerte si
   // l'écart entre les deux est significatif, signe d'une incohérence dans les données du prêt.
-  if (input.pretEnCours.pretEnCours && scenarioConserver.rows.length > 0) {
-    const mensualiteDeclareeAnnuelle = input.pretEnCours.mensualiteActuelle * 12
+  if (input.pretEnCours.pretEnCours && scenarioConserver.rows.length > 0 && ecartMensualitePct > 0.10) {
     const mensualiteRecalculeeAnnuelle = scenarioConserver.rows[0].mensualitesAnnuelles
-    const ecart = Math.abs(mensualiteRecalculeeAnnuelle - mensualiteDeclareeAnnuelle)
-    if (mensualiteDeclareeAnnuelle > 0 && ecart / mensualiteDeclareeAnnuelle > 0.10) {
-      alertes.push(
-        `Écart entre la mensualité de prêt déclarée (${Math.round(input.pretEnCours.mensualiteActuelle).toLocaleString('fr-FR')} €/mois) ` +
-        `et la mensualité recalculée à partir du capital restant dû, du taux et de la durée restante ` +
-        `(${Math.round(mensualiteRecalculeeAnnuelle / 12).toLocaleString('fr-FR')} €/mois). ` +
-        'Vérifiez ces informations sur votre tableau d\'amortissement, le cash-flow du scénario Conserver est calculé sur la mensualité recalculée.'
-      )
-    }
+    alertes.push(
+      `Écart entre la mensualité de prêt déclarée (${Math.round(input.pretEnCours.mensualiteActuelle).toLocaleString('fr-FR')} €/mois) ` +
+      `et la mensualité recalculée à partir du capital restant dû, du taux et de la durée restante ` +
+      `(${Math.round(mensualiteRecalculeeAnnuelle / 12).toLocaleString('fr-FR')} €/mois). ` +
+      'Vérifiez ces informations sur votre tableau d\'amortissement, le cash-flow du scénario Conserver est calculé sur la mensualité recalculée.' +
+      (ecartMensualitePct > 0.15 ? ' Cet écart important dégrade le verdict en « Arbitrage à approfondir ».' : '')
+    )
   }
   if (alternativeReemploi.rendementAnnuelAttendu > 0.06) {
     alertes.push(
@@ -382,7 +404,7 @@ function construireVerdict(
           "Cet arbitrage n'est pas exploitable en l'état : des informations structurantes (valeur du bien, prix d'achat, ou caractéristiques du prêt en cours) sont manquantes ou nulles.",
           'Complétez ces informations pour obtenir un arbitrage fiable.',
         )
-      } else if (degradePourFiscaliteInconnue) {
+      } else if (dateAcquisitionInconnue) {
         recommandations.push(
           "La comparaison entre conserver et vendre n'intègre pas la fiscalité de plus-value, faute de date d'acquisition ou de durée de détention renseignée.",
           'Renseignez ces informations pour obtenir un arbitrage fiable, ou faites-vous accompagner par un conseiller pour estimer cette fiscalité.',

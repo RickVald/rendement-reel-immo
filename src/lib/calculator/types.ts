@@ -701,7 +701,8 @@ export interface ScenarioConserver {
 
 export interface ScenarioVendre {
   produitNetVenteAujourdhui: number
-  detailPlusValue: import('./fiscalite').DetailPlusValue
+  /** null si dateAcquisitionConnue === false : la fiscalité de cession n'est pas calculable (cf. nonCalculableReason). */
+  detailPlusValue: import('./fiscalite').DetailPlusValue | null
   ira: number
   capitalRestantDuSolde: number
   rendementNetAttendu: number
@@ -709,6 +710,8 @@ export interface ScenarioVendre {
   patrimoineFinal: number
   /** false si historique.dateAchat est vide et dureeDetentionActuelleAns non renseignée : la fiscalité de cession est alors neutralisée. */
   dateAcquisitionConnue: boolean
+  /** Présent uniquement si detailPlusValue est null, pour expliciter la raison côté API/consommateurs. */
+  nonCalculableReason?: 'date_acquisition_absente'
 }
 
 export type VerdictArbitrageLabel = 'Conserver' | 'Vendre' | 'Arbitrage à approfondir'

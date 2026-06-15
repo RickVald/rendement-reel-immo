@@ -230,8 +230,8 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           </View>
 
           <Text style={S.sectionTitle}>Fiscalité de cession — si vente aujourd'hui</Text>
-          {!scenarioVendre.dateAcquisitionConnue ? (
-            <View style={S.card}>
+          {!scenarioVendre.detailPlusValue ? (
+            <View style={[S.card, { marginBottom: 20 }]} wrap={false}>
               <Text style={S.listText}>
                 N/A — date d'acquisition à renseigner. La fiscalité de plus-value (impôt sur le revenu et prélèvements
                 sociaux) ne peut pas être calculée sans la date d'acquisition du bien. Le produit net de cession affiché
@@ -287,18 +287,20 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               </View>
             </View>
           )}
-          {scenarioVendre.dateAcquisitionConnue && scenarioVendre.detailPlusValue.note && (
+          {scenarioVendre.detailPlusValue?.note && (
             <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 12 }}>{scenarioVendre.detailPlusValue.note}</Text>
           )}
 
-          <Text style={S.sectionTitle}>Lecture de la simulation</Text>
-          <View style={S.card}>
-            {verdict.recommandations.map((r, i) => (
-              <View key={i} style={S.listItem}>
-                <Text style={S.listBullet}>-</Text>
-                <Text style={S.listText}>{r}</Text>
-              </View>
-            ))}
+          <View wrap={false}>
+            <Text style={S.sectionTitle}>Lecture de la simulation</Text>
+            <View style={S.card}>
+              {verdict.recommandations.map((r, i) => (
+                <View key={i} style={S.listItem}>
+                  <Text style={S.listBullet}>-</Text>
+                  <Text style={S.listText}>{r}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <View style={S.disclaimer}>

@@ -157,7 +157,43 @@ export function SimulatorForm() {
     }
   }
 
+  const header = typeAnalyse === 'detenu'
+    ? {
+        eyebrow: 'Parcours conserver ou vendre — gratuit',
+        title: 'Conserver ou vendre : analysez l\'arbitrage de votre bien',
+        sub: 'Performance locative actuelle · Fiscalité de cession · Comparaison conserver/vendre · Verdict indicatif',
+      }
+    : typeAnalyse === 'audit_global'
+    ? {
+        eyebrow: 'Bilan de cohérence patrimoniale — gratuit',
+        title: 'Faites le point sur la cohérence de votre situation patrimoniale',
+        sub: 'Profil, objectifs, patrimoine, dettes, protection, transmission · Points d\'attention indicatifs',
+      }
+    : {
+        eyebrow: 'Simulateur complet — gratuit',
+        title: 'Analysez la rentabilité réelle de votre projet',
+        sub: '9 étapes · Rendement net-net · Cash-flow · TRI · VAN · Verdict · Synthèse automatique',
+      }
+
   return (
+    <>
+    {/* Header section */}
+    <div className="bg-[#0F1B2D] text-white py-12">
+      <div className="max-w-2xl mx-auto px-6 text-center">
+        <p className="text-emerald-400 font-mono text-xs tracking-widest uppercase mb-3">
+          {header.eyebrow}
+        </p>
+        <h1 className="text-3xl font-bold mb-3">
+          {header.title}
+        </h1>
+        <p className="text-slate-300 text-sm leading-relaxed">
+          {header.sub}
+        </p>
+      </div>
+    </div>
+
+    {/* Form */}
+    <div className="py-10 px-6">
     <div className="max-w-2xl mx-auto">
       {/* Scroll anchor: jumps here on step change so mobile users land at the top of the form */}
       <div ref={topRef} className="scroll-mt-20" />
@@ -324,5 +360,7 @@ export function SimulatorForm() {
       </>
       )}
     </div>
+    </div>
+    </>
   )
 }

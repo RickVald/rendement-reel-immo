@@ -227,57 +227,66 @@ function ArbitrageReport({ analysis, onRestart }: { analysis: ArbitrageAnalysis;
 
         {/* 4. Fiscalité de cession aujourd'hui */}
         <Card title="Fiscalité de cession — si vente aujourd'hui">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-slate-100">
-                <tr>
-                  <td className="py-2 pr-4 text-slate-600">Prix de vente estimé</td>
-                  <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.prixRevente)}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 text-slate-600">Frais de vente</td>
-                  <td className="py-2 text-right font-medium">- {eur(scenarioVendre.detailPlusValue.fraisRevente)}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 text-slate-600">Prix de revient fiscal</td>
-                  <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.prixRevientFiscal)}</td>
-                </tr>
-                {scenarioVendre.detailPlusValue.amortissementsReintegres > 0 && (
+          {!scenarioVendre.detailPlusValue ? (
+            <p className="text-sm text-slate-600">
+              N/A — date d&apos;acquisition à renseigner. La fiscalité de plus-value (impôt sur le revenu et prélèvements
+              sociaux) ne peut pas être calculée sans la date d&apos;acquisition du bien. Le produit net de cession
+              affiché ci-dessous et le « patrimoine final hors fiscalité de plus-value » de la section précédente ne
+              tiennent donc pas compte de cette fiscalité.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-slate-100">
                   <tr>
-                    <td className="py-2 pr-4 text-slate-600">Amortissements réintégrés</td>
-                    <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.amortissementsReintegres)}</td>
+                    <td className="py-2 pr-4 text-slate-600">Prix de vente estimé</td>
+                    <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.prixRevente)}</td>
                   </tr>
-                )}
-                <tr>
-                  <td className="py-2 pr-4 text-slate-600">Plus-value brute</td>
-                  <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.plusValueBrute)}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 text-slate-600">Impôt sur le revenu (plus-value)</td>
-                  <td className="py-2 text-right font-medium">- {eur(scenarioVendre.detailPlusValue.ir)}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 text-slate-600">Prélèvements sociaux</td>
-                  <td className="py-2 text-right font-medium">- {eur(scenarioVendre.detailPlusValue.ps)}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 pr-4 text-slate-600">Capital restant dû (prêt en cours)</td>
-                  <td className="py-2 text-right font-medium">- {eur(scenarioVendre.capitalRestantDuSolde)}</td>
-                </tr>
-                {scenarioVendre.ira > 0 && (
                   <tr>
-                    <td className="py-2 pr-4 text-slate-600">Indemnité de remboursement anticipé</td>
-                    <td className="py-2 text-right font-medium">- {eur(scenarioVendre.ira)}</td>
+                    <td className="py-2 pr-4 text-slate-600">Frais de vente</td>
+                    <td className="py-2 text-right font-medium">- {eur(scenarioVendre.detailPlusValue.fraisRevente)}</td>
                   </tr>
-                )}
-                <tr>
-                  <td className="py-2 pr-4 font-semibold text-slate-800">Produit net de cession</td>
-                  <td className="py-2 text-right font-bold">{eur(scenarioVendre.produitNetVenteAujourdhui)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          {scenarioVendre.detailPlusValue.note && (
+                  <tr>
+                    <td className="py-2 pr-4 text-slate-600">Prix de revient fiscal</td>
+                    <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.prixRevientFiscal)}</td>
+                  </tr>
+                  {scenarioVendre.detailPlusValue.amortissementsReintegres > 0 && (
+                    <tr>
+                      <td className="py-2 pr-4 text-slate-600">Amortissements réintégrés</td>
+                      <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.amortissementsReintegres)}</td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td className="py-2 pr-4 text-slate-600">Plus-value brute</td>
+                    <td className="py-2 text-right font-medium">{eur(scenarioVendre.detailPlusValue.plusValueBrute)}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 text-slate-600">Impôt sur le revenu (plus-value)</td>
+                    <td className="py-2 text-right font-medium">- {eur(scenarioVendre.detailPlusValue.ir)}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 text-slate-600">Prélèvements sociaux</td>
+                    <td className="py-2 text-right font-medium">- {eur(scenarioVendre.detailPlusValue.ps)}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 pr-4 text-slate-600">Capital restant dû (prêt en cours)</td>
+                    <td className="py-2 text-right font-medium">- {eur(scenarioVendre.capitalRestantDuSolde)}</td>
+                  </tr>
+                  {scenarioVendre.ira > 0 && (
+                    <tr>
+                      <td className="py-2 pr-4 text-slate-600">Indemnité de remboursement anticipé</td>
+                      <td className="py-2 text-right font-medium">- {eur(scenarioVendre.ira)}</td>
+                    </tr>
+                  )}
+                  <tr>
+                    <td className="py-2 pr-4 font-semibold text-slate-800">Produit net de cession</td>
+                    <td className="py-2 text-right font-bold">{eur(scenarioVendre.produitNetVenteAujourdhui)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+          {scenarioVendre.detailPlusValue?.note && (
             <p className="text-xs text-slate-400 mt-3">{scenarioVendre.detailPlusValue.note}</p>
           )}
         </Card>
