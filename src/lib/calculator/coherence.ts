@@ -790,6 +790,12 @@ function construireVerdictGlobal(input: ProjectInputBilan, synthese: SyntheseGlo
   if (pilierProtection?.statut === 'incoherence_detectee') {
     raisonsOrientationCgp.push('La protection du foyer présente une incohérence au regard des personnes à charge déclarées.')
   }
+  if (label === 'Analyse incomplète — données insuffisantes pour conclure') {
+    raisonsOrientationCgp.push(
+      'Les informations renseignées sont actuellement insuffisantes pour établir un bilan de cohérence. ' +
+      'Vous pouvez compléter votre saisie pour affiner ce bilan indicatif, ou solliciter une orientation vers un professionnel habilité pour vous accompagner.'
+    )
+  }
 
   const orientationCgp = raisonsOrientationCgp.length > 0
 

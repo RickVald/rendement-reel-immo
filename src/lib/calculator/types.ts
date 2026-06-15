@@ -13,7 +13,7 @@ export type TypeBien = 'appartement' | 'maison' | 'studio' | 'immeuble' | 'parki
  * | sci_is       | SCI à l'IS (15 % PME / 25 %) — bloque Denormandie, Loc'Avantages,   |
  * |              | déficit foncier personnel et la plupart des dispositifs IR           |
  */
-export type HoldingStructure = 'nom_propre' | 'indivision' | 'sci_ir' | 'sci_is'
+export type HoldingStructure = 'nom_propre' | 'indivision' | 'sci_ir' | 'sci_is' | 'demembrement' | 'sarl_famille' | 'sas_is' | 'autre'
 export type Dpe = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'inconnu'
 export type EtatBien = 'neuf' | 'bon_etat' | 'a_rafraichir' | 'travaux_lourds'
 export type TypeLocation = 'nue' | 'meublee' | 'colocation' | 'courte_duree' | 'bail_mobilite'
@@ -719,6 +719,8 @@ export interface VerdictArbitrage {
   ecartPatrimoineFinalPct: number
   alertes: string[]
   recommandations: string[]
+  /** Champs structurants manquants/nuls qui rendent l'arbitrage non exploitable (valeur du bien, prix d'achat, prêt en cours). Vide si aucun blocage. */
+  motifsBlocage: string[]
 }
 
 export interface ArbitrageAnalysis {

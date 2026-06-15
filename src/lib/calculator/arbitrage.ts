@@ -228,6 +228,24 @@ function construireVerdict(
       break
   }
 
+  // P1 : champs structurants sans lesquels un arbitrage chiffré n'a pas de sens —
+  // on bloque le verdict plutôt que de l'afficher comme une simple alerte.
+  const motifsBlocage: string[] = []
+  if (input.valeurActuelle.valeurMarcheEstimee <= 0) {
+    motifsBlocage.push("la valeur de marché actuelle du bien n'est pas renseignée (ou nulle)")
+  }
+  if (input.historique.prixAchatInitial <= 0) {
+    motifsBlocage.push("le prix d'achat initial n'est pas renseigné (ou nul)")
+  }
+  if (input.pretEnCours.pretEnCours) {
+    if (input.pretEnCours.capitalRestantDu <= 0) {
+      motifsBlocage.push("un prêt en cours est déclaré mais le capital restant dû n'est pas renseigné (ou nul)")
+    }
+    if (input.pretEnCours.dureeRestanteMois <= 0) {
+      motifsBlocage.push("un prêt en cours est déclaré mais sa durée restante n'est pas renseignée (ou nulle)")
+    }
+  }
+
   let label: VerdictArbitrage['label']
   let couleur: VerdictArbitrage['couleur']
   const van = scenarioConserver.van
@@ -243,7 +261,33 @@ function construireVerdict(
     couleur = 'yellow'
   }
 
+  // P0 : un verdict décisionnel (Conserver/Vendre) ne peut pas être affiché si la
+  // fiscalité de cession n'est pas calculable (date d'acquisition / durée de détention
+  // non renseignées), ce paramètre pesant directement sur le scénario Vendre.
+  const degradePourFiscaliteInconnue = !scenarioVendre.dateAcquisitionConnue && label !== 'Arbitrage à approfondir'
+  if (degradePourFiscaliteInconnue) {
+    label = 'Arbitrage à approfondir'
+    couleur = 'yellow'
+  }
+
+  // Les motifs de blocage priment sur tout le reste : verdict "à approfondir" + couleur rouge.
+  if (motifsBlocage.length > 0) {
+    label = 'Arbitrage à approfondir'
+    couleur = 'red'
+  }
+
   const alertes: string[] = []
+  if (motifsBlocage.length > 0) {
+    alertes.push(
+      `Non arbitrable en l'état : ${motifsBlocage.join(' ; ')}. Complétez ces informations pour obtenir un arbitrage fiable.`
+    )
+  }
+  if (degradePourFiscaliteInconnue) {
+    alertes.push(
+      "Date d'acquisition non renseignée : la fiscalité de cession (plus-value) n'a pas pu être calculée. " +
+      "Le verdict ne peut donc pas être considéré comme définitif — renseignez la date d'achat ou la durée de détention pour affiner l'arbitrage."
+    )
+  }
   if (dpeRisque) {
     alertes.push(`DPE ${performanceActuelle.dpeActuel} : bien difficile à louer en l'état (gel des loyers, interdiction de location à venir).`)
     alertes.push(
@@ -283,13 +327,25 @@ function construireVerdict(
       )
       break
     default:
-      recommandations.push(
-        'Les deux scénarios sont proches en termes de patrimoine final projeté : l\'écart se situe dans la marge d\'incertitude des hypothèses retenues.',
-        'Affinez l\'estimation de la valeur de marché et le rendement de l\'alternative de réemploi pour confirmer l\'arbitrage, ou faites-vous accompagner par un conseiller.',
-      )
+      if (motifsBlocage.length > 0) {
+        recommandations.push(
+          "Cet arbitrage n'est pas exploitable en l'état : des informations structurantes (valeur du bien, prix d'achat, ou caractéristiques du prêt en cours) sont manquantes ou nulles.",
+          'Complétez ces informations pour obtenir un arbitrage fiable.',
+        )
+      } else if (degradePourFiscaliteInconnue) {
+        recommandations.push(
+          "La comparaison entre conserver et vendre n'intègre pas la fiscalité de plus-value, faute de date d'acquisition ou de durée de détention renseignée.",
+          'Renseignez ces informations pour obtenir un arbitrage fiable, ou faites-vous accompagner par un conseiller pour estimer cette fiscalité.',
+        )
+      } else {
+        recommandations.push(
+          'Les deux scénarios sont proches en termes de patrimoine final projeté : l\'écart se situe dans la marge d\'incertitude des hypothèses retenues.',
+          'Affinez l\'estimation de la valeur de marché et le rendement de l\'alternative de réemploi pour confirmer l\'arbitrage, ou faites-vous accompagner par un conseiller.',
+        )
+      }
   }
 
-  return { label, couleur, ecartPatrimoineFinalPct, alertes, recommandations }
+  return { label, couleur, ecartPatrimoineFinalPct, alertes, recommandations, motifsBlocage }
 }
 
 function alternativeReemploiLabel(type: string): string {
@@ -302,7 +358,15 @@ function alternativeReemploiLabel(type: string): string {
   }
 }
 
-export function analyserArbitrage(input: ProjectInputDetenu): ArbitrageAnalysis {
+export function analyserArbitrage(rawInput: ProjectInputDetenu): ArbitrageAnalysis {
+  // P1 : input.bien.dpe et performanceActuelle.dpeActuel peuvent être désynchronisés
+  // (champ legacy non saisi côté Parcours B) — on aligne bien.dpe sur la valeur actuelle
+  // réellement déclarée, seule utilisée par l'analyse et le rapport.
+  const input: ProjectInputDetenu = {
+    ...rawInput,
+    bien: { ...rawInput.bien, dpe: rawInput.performanceActuelle.dpeActuel },
+  }
+
   const horizonAns = clamp(
     input.objectifPatrimonial.horizonSouhaiteAns ?? input.alternativeReemploi.horizonAns ?? 10,
     1,

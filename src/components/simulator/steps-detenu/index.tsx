@@ -60,6 +60,10 @@ export function StepBienDetenu({ data, onChange }: SPD) {
             { value: 'indivision', label: 'Indivision', desc: 'Plusieurs co-propriétaires' },
             { value: 'sci_ir', label: "SCI à l'IR", desc: 'SCI transparente — résultats imposés chez les associés' },
             { value: 'sci_is', label: "SCI à l'IS", desc: 'IS 15 %/25 % — fiscalité de cession différente' },
+            { value: 'demembrement', label: 'Démembrement', desc: 'Usufruit / nue-propriété séparés' },
+            { value: 'sarl_famille', label: 'SARL de famille', desc: 'Société familiale soumise à l\'IR' },
+            { value: 'sas_is', label: "Société à l'IS (SAS...)", desc: "Hors SCI — société soumise à l'IS" },
+            { value: 'autre', label: 'Autre', desc: 'À préciser auprès d\'un professionnel' },
           ] as { value: HoldingStructure; label: string; desc: string }[]).map(opt => (
             <button
               key={opt.value}
@@ -390,9 +394,12 @@ export function StepAlternativeObjectif({ data, onChange }: SPD) {
               { value: 'autre', label: 'Autre' },
             ]}
           />
-          <Input label="Rendement annuel attendu" type="number" step="0.1" value={(alt.rendementAnnuelAttendu * 100).toFixed(1)}
+          <Input label="Rendement net annuel attendu (après frais et fiscalité)" type="number" step="0.1" value={(alt.rendementAnnuelAttendu * 100).toFixed(1)}
             onChange={e => setAlt({ rendementAnnuelAttendu: +e.target.value / 100 })} suffix="%/an" />
         </Grid2>
+        <p className="text-xs text-slate-400">
+          Indiquez le rendement net que vous espérez réellement percevoir chaque année (après frais de gestion et fiscalité applicable), et non un rendement brut affiché.
+        </p>
         <Grid2>
           <Input label="Horizon de placement" type="number" min={1} value={alt.horizonAns}
             onChange={e => setAlt({ horizonAns: +e.target.value })} suffix="ans" />

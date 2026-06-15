@@ -76,6 +76,11 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           {/* Verdict */}
           <View style={[S.verdictBanner, { backgroundColor: vc.bg, borderWidth: 2, borderColor: vc.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
             <Text style={[S.verdictLabel, { color: vc.text, fontSize: 16 }]}>{verdict.label}</Text>
+            {!scenarioVendre.dateAcquisitionConnue && (
+              <Text style={{ fontSize: 8, color: vc.text, opacity: 0.85, fontWeight: 'bold', marginTop: 2 }}>
+                ⚠ Verdict établi hors fiscalité de plus-value — date d'acquisition à renseigner
+              </Text>
+            )}
             <Text style={{ fontSize: 9, color: vc.text, opacity: 0.85 }}>
               Écart de patrimoine final projeté : {pct(verdict.ecartPatrimoineFinalPct)} en faveur de{' '}
               {verdict.ecartPatrimoineFinalPct >= 0 ? 'la conservation' : 'la vente'}.
@@ -139,16 +144,29 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               <Text style={[S.tableCell, S.tableCellGray]}>—</Text>
             </View>
             <View style={[S.tableRow, S.tableRowTotal]}>
-              <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>Patrimoine final après cession fiscalisée ({horizonAns} ans)</Text>
+              <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>
+                {scenarioVendre.dateAcquisitionConnue
+                  ? `Patrimoine final après cession fiscalisée (${horizonAns} ans)`
+                  : `Patrimoine final hors fiscalité de plus-value (${horizonAns} ans)`}
+              </Text>
               <Text style={[S.tableCell, S.tableCellBold]}>{eur(scenarioConserver.patrimoineFinal)}</Text>
               <Text style={[S.tableCell, S.tableCellBold]}>{eur(scenarioVendre.patrimoineFinal)}</Text>
             </View>
           </View>
-          <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 16 }}>
-            « Conserver » = cash-flows cumulés + produit net de revente à l'horizon de {horizonAns} ans, après fiscalité de cession.{'\n'}
-            « Vendre » = produit net de cession aujourd'hui (après fiscalité de cession), capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an sur {horizonAns} ans.{'\n'}
-            Ces montants diffèrent du « Patrimoine net final » de la page suivante, qui est la valeur nette du bien avant fiscalité de cession.
-          </Text>
+          {scenarioVendre.dateAcquisitionConnue ? (
+            <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 16 }}>
+              « Conserver » = cash-flows cumulés + produit net de revente à l'horizon de {horizonAns} ans, après fiscalité de cession.{'\n'}
+              « Vendre » = produit net de cession aujourd'hui (après fiscalité de cession), capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an sur {horizonAns} ans.{'\n'}
+              Ces montants diffèrent du « Patrimoine net final » de la page suivante, qui est la valeur nette du bien avant fiscalité de cession.
+            </Text>
+          ) : (
+            <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 16 }}>
+              Date d'acquisition non renseignée : ces montants ne tiennent pas compte de la fiscalité de plus-value sur la cession (impôt sur le revenu et prélèvements sociaux).{'\n'}
+              « Conserver » = cash-flows cumulés + produit net de revente à l'horizon de {horizonAns} ans, hors fiscalité de plus-value.{'\n'}
+              « Vendre » = produit net de cession aujourd'hui (hors fiscalité de plus-value), capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an sur {horizonAns} ans.{'\n'}
+              Ces montants diffèrent du « Patrimoine net final » de la page suivante, qui est la valeur nette du bien avant fiscalité de cession.
+            </Text>
+          )}
 
           <Text style={S.sectionTitle}>Projection — scénario Conserver</Text>
           <View style={S.row2}>

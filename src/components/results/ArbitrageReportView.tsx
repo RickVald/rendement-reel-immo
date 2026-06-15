@@ -123,6 +123,11 @@ function ArbitrageReport({ analysis, onRestart }: { analysis: ArbitrageAnalysis;
             Verdict
           </span>
           <h2 className={`text-xl font-bold ${c.text}`}>{verdict.label}</h2>
+          {!scenarioVendre.dateAcquisitionConnue && (
+            <p className={`text-xs font-bold mt-1 ${c.text}`}>
+              ⚠ Verdict établi hors fiscalité de plus-value — date d&apos;acquisition à renseigner
+            </p>
+          )}
           <p className={`text-sm mt-1 ${c.text}`}>
             Écart de patrimoine final projeté : {pctSign(verdict.ecartPatrimoineFinalPct)} en faveur de{' '}
             {verdict.ecartPatrimoineFinalPct >= 0 ? 'la conservation' : 'la vente'}.
@@ -165,18 +170,31 @@ function ArbitrageReport({ analysis, onRestart }: { analysis: ArbitrageAnalysis;
                   <td className="py-2 pr-4 font-medium" colSpan={2}>{eur(scenarioConserver.van)}</td>
                 </tr>
                 <tr>
-                  <td className="py-2 pr-4 text-slate-600 font-semibold">Patrimoine final projeté ({horizonAns} ans)</td>
+                  <td className="py-2 pr-4 text-slate-600 font-semibold">
+                    {scenarioVendre.dateAcquisitionConnue
+                      ? `Patrimoine final après cession fiscalisée (${horizonAns} ans)`
+                      : `Patrimoine final hors fiscalité de plus-value (${horizonAns} ans)`}
+                  </td>
                   <td className="py-2 pr-4 font-bold">{eur(scenarioConserver.patrimoineFinal)}</td>
                   <td className="py-2 font-bold">{eur(scenarioVendre.patrimoineFinal)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p className="text-xs text-slate-400 mt-3">
-            « Conserver » = cash-flows cumulés + produit net de revente à l&apos;horizon de {horizonAns} ans.
-            « Vendre » = produit net de cession aujourd&apos;hui, capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an
-            sur {horizonAns} ans.
-          </p>
+          {scenarioVendre.dateAcquisitionConnue ? (
+            <p className="text-xs text-slate-400 mt-3">
+              « Conserver » = cash-flows cumulés + produit net de revente à l&apos;horizon de {horizonAns} ans, après fiscalité de cession.
+              « Vendre » = produit net de cession aujourd&apos;hui (après fiscalité de cession), capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an
+              sur {horizonAns} ans.
+            </p>
+          ) : (
+            <p className="text-xs text-slate-400 mt-3">
+              Date d&apos;acquisition non renseignée : ces montants ne tiennent pas compte de la fiscalité de plus-value sur la cession.
+              « Conserver » = cash-flows cumulés + produit net de revente à l&apos;horizon de {horizonAns} ans, hors fiscalité de plus-value.
+              « Vendre » = produit net de cession aujourd&apos;hui (hors fiscalité de plus-value), capitalisé à {pct(scenarioVendre.rendementNetAttendu)}/an
+              sur {horizonAns} ans.
+            </p>
+          )}
         </Card>
 
         {/* 3. Détail scénario Conserver */}
