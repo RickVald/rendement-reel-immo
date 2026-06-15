@@ -8,6 +8,7 @@ import { calculerCoutTotal, genererTableauAnnuel } from './cashflow'
 import { calculerTRI, calculerVAN, calculerTRIParAnnee } from './tri-van'
 import { calculerDetailPlusValue } from './fiscalite'
 import { calculerEligibilite } from './eligibilite'
+import { fmtEur } from './format'
 
 const REVALO_BIEN_DEFAULT = 0.015
 
@@ -386,7 +387,7 @@ function construireVerdict(
     alertes.push('Estimation de valeur de marché peu fiable — arbitrage à confirmer par une expertise.')
   }
   if (scenarioVendre.ira > 0) {
-    alertes.push(`Indemnité de remboursement anticipé (${Math.round(scenarioVendre.ira).toLocaleString('fr-FR')} €) incluse dans le produit net de vente.`)
+    alertes.push(`Indemnité de remboursement anticipé (${fmtEur(scenarioVendre.ira)}) incluse dans le produit net de vente.`)
   }
   if (equiteActuelle <= 0) {
     alertes.push('Situation de surfinancement (équité actuelle nulle ou négative) — le TRI du scénario Conserver n\'est pas interprétable.')
@@ -397,9 +398,9 @@ function construireVerdict(
   if (input.pretEnCours.pretEnCours && scenarioConserver.rows.length > 0 && ecartMensualitePct > 0.10) {
     const sourceDeclaree = (input.pretEnCours.sourceMensualite ?? 'declaree') === 'declaree'
     alertes.push(
-      `Écart entre la mensualité de prêt déclarée (${Math.round(input.pretEnCours.mensualiteActuelle).toLocaleString('fr-FR')} €/mois) ` +
+      `Écart entre la mensualité de prêt déclarée (${fmtEur(input.pretEnCours.mensualiteActuelle)}/mois) ` +
       `et la mensualité recalculée à partir du capital restant dû, du taux et de la durée restante ` +
-      `(${Math.round(mensualiteRecalculeeAnnuelle / 12).toLocaleString('fr-FR')} €/mois). ` +
+      `(${fmtEur(mensualiteRecalculeeAnnuelle / 12)}/mois). ` +
       (sourceDeclaree
         ? 'Le cash-flow du scénario Conserver est calculé sur la mensualité déclarée, mais les intérêts déductibles restent calculés sur le tableau d\'amortissement recalculé : vérifiez ces informations sur votre tableau d\'amortissement.'
         : 'Vérifiez ces informations sur votre tableau d\'amortissement, le cash-flow du scénario Conserver est calculé sur la mensualité recalculée.') +

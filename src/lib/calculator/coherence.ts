@@ -13,6 +13,7 @@ import type {
   ObjectifEvalue,
   ObjectifType,
 } from './types-bilan'
+import { fmtEur } from './format'
 
 // ─── Bilan de cohérence patrimoniale — moteur d'analyse indicative ─────────
 //
@@ -35,7 +36,7 @@ const PILIER_LABELS: Record<NomPilier, string> = {
 }
 
 const pct1 = (x: number) => `${Math.round(x * 100)} %`
-const eur0 = (x: number) => `${Math.round(x).toLocaleString('fr-FR')} €`
+const eur0 = fmtEur
 
 function couleurPourStatut(statut: StatutPilier, criticite: CriticitePilier): CouleurPilier {
   switch (statut) {

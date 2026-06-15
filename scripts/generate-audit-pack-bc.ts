@@ -136,6 +136,90 @@ const SCENARIOS_B: ScenarioB[] = [
     },
   },
   {
+    id: 'conserver_recommande_date_connue',
+    label: 'Bien performant, date d\'acquisition connue — verdict attendu : Conserver (fiscalité de cession calculée)',
+    description:
+      'Même profil que « conserver_recommande », avec une date d\'acquisition renseignée (achat il y a 12 ans) : la fiscalité de plus-value est calculée et le verdict ne doit plus mentionner « à approfondir » pour cause de date d\'acquisition manquante.',
+    overrides: {
+      historique: {
+        ...DEFAULT_INPUT_DETENU.historique,
+        dateAchat: '2013-06-01',
+      },
+      performanceActuelle: {
+        ...DEFAULT_INPUT_DETENU.performanceActuelle,
+        loyerActuelMensuel: 1200,
+        tauxVacanceReel: 0.02,
+        dpeActuel: 'B',
+      },
+      valeurActuelle: {
+        ...DEFAULT_INPUT_DETENU.valeurActuelle,
+        valeurMarcheEstimee: 280000,
+        fiabiliteValeur: 'haute',
+      },
+      pretEnCours: {
+        ...DEFAULT_INPUT_DETENU.pretEnCours,
+        capitalRestantDu: 30000,
+        // Proche de la mensualité recalculée (≈ 556 €/mois) pour éviter l'alerte
+        // d'écart mensualité déclarée/recalculée, et obtenir un verdict ferme.
+        mensualiteActuelle: 540,
+        dureeRestanteMois: 60,
+      },
+      alternativeReemploi: {
+        ...DEFAULT_INPUT_DETENU.alternativeReemploi,
+        typeSupport: 'fonds_euros',
+        rendementAnnuelAttendu: 0.01,
+        horizonAns: 15,
+      },
+      objectifPatrimonial: {
+        ...DEFAULT_INPUT_DETENU.objectifPatrimonial,
+        objectifPrincipal: 'maximiser_rendement',
+        horizonSouhaiteAns: 15,
+      },
+    },
+  },
+  {
+    id: 'vendre_recommande_date_connue',
+    label: 'Bien dégradé, date d\'acquisition connue — verdict attendu : Vendre (fiscalité de cession calculée)',
+    description:
+      'Même profil que « vendre_recommande », avec une date d\'acquisition renseignée (achat il y a 6 ans) : la fiscalité de plus-value est calculée et le verdict ne doit plus mentionner « à approfondir » pour cause de date d\'acquisition manquante.',
+    overrides: {
+      historique: {
+        ...DEFAULT_INPUT_DETENU.historique,
+        dateAchat: '2019-06-01',
+      },
+      performanceActuelle: {
+        ...DEFAULT_INPUT_DETENU.performanceActuelle,
+        loyerActuelMensuel: 400,
+        tauxVacanceReel: 0.15,
+        dpeActuel: 'G',
+      },
+      valeurActuelle: {
+        ...DEFAULT_INPUT_DETENU.valeurActuelle,
+        valeurMarcheEstimee: 200000,
+        fiabiliteValeur: 'moyenne',
+      },
+      pretEnCours: {
+        ...DEFAULT_INPUT_DETENU.pretEnCours,
+        capitalRestantDu: 150000,
+        // Proche de la mensualité recalculée (≈ 1 125 €/mois) pour éviter l'alerte
+        // d'écart mensualité déclarée/recalculée, et obtenir un verdict ferme.
+        mensualiteActuelle: 1150,
+        dureeRestanteMois: 180,
+      },
+      alternativeReemploi: {
+        ...DEFAULT_INPUT_DETENU.alternativeReemploi,
+        typeSupport: 'assurance_vie',
+        rendementAnnuelAttendu: 0.06,
+        horizonAns: 10,
+      },
+      objectifPatrimonial: {
+        ...DEFAULT_INPUT_DETENU.objectifPatrimonial,
+        objectifPrincipal: 'liquidite',
+        horizonSouhaiteAns: 10,
+      },
+    },
+  },
+  {
     id: 'arbitrage_a_approfondir',
     label: 'Situation médiane (entrées par défaut) — verdict attendu : Arbitrage à approfondir',
     description:
