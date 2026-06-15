@@ -6,7 +6,15 @@ const IconDownload = () => <svg width="14" height="14" viewBox="0 0 24 24" fill=
 
 const PDF_URL = '/exemples/rapport-exemple-anonymise.pdf'
 
-export function DownloadGate() {
+export function DownloadGate({
+  pdfUrl = PDF_URL,
+  buttonLabel = "Télécharger le PDF d'exemple",
+  pagesLabel = '17 pages',
+}: {
+  pdfUrl?: string
+  buttonLabel?: string
+  pagesLabel?: string
+}) {
   const [open, setOpen] = useState(false)
   const [nom, setNom] = useState('')
   const [email, setEmail] = useState('')
@@ -39,7 +47,7 @@ export function DownloadGate() {
       }
 
       const a = document.createElement('a')
-      a.href = PDF_URL
+      a.href = pdfUrl
       a.download = ''
       document.body.appendChild(a)
       a.click()
@@ -60,7 +68,7 @@ export function DownloadGate() {
         onClick={() => setOpen(true)}
         className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20"
       >
-        Télécharger le PDF d&apos;exemple <IconDownload />
+        {buttonLabel} <IconDownload />
       </button>
 
       {open && (
@@ -69,7 +77,7 @@ export function DownloadGate() {
             <div className="bg-[#0B1B2B] text-white px-6 py-5">
               <h2 className="text-lg font-bold">Recevez le rapport d&apos;exemple</h2>
               <p className="text-sm text-slate-300 mt-1">
-                Indiquez vos coordonnées pour télécharger le PDF complet (17 pages).
+                Indiquez vos coordonnées pour télécharger le PDF complet ({pagesLabel}).
               </p>
             </div>
             <div className="p-6 space-y-3">
