@@ -73,11 +73,20 @@ export default function QuiSommesNousPage() {
                   détriment de l&apos;investisseur comme du professionnel qui le conseille.
                 </p>
                 <p>
+                  Le déclic est venu d&apos;un autre type de rendez-vous, tout aussi fréquent : celui où le
+                  client détient déjà un bien — depuis dix, quinze ans parfois — et refuse d&apos;envisager
+                  un arbitrage. « Je l&apos;ai payé tel prix », « il me rapporte un loyer quand même », « je
+                  le garde pour mes enfants »... Le bien n&apos;était plus performant, mais aucun chiffre
+                  sur la table ne permettait de l&apos;objectiver. Le rendez-vous tournait en rond, et le
+                  conseiller ressortait sans avoir pu faire avancer la décision.
+                </p>
+                <p>
                   C&apos;est ce constat qui m&apos;a poussé à quitter la gestion de patrimoine pour me
                   consacrer pleinement à Rendement Réel Immo : un outil au service de la vérité des
                   chiffres, pour supprimer les zones d&apos;ombre, clarifier le rendement réel — net,
-                  net-net, après impôts — et faciliter des décisions d&apos;investissement locatif solides
-                  et défendables.
+                  net-net, après impôts — et donner aux professionnels un support neutre et documenté
+                  pour faire accepter, quand les chiffres l&apos;imposent, l&apos;arbitrage d&apos;un bien
+                  qui ne performe plus.
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm">

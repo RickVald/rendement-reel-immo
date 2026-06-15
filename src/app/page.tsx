@@ -133,18 +133,19 @@ export default function Home() {
             <div>
               <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-8">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]"/>
-                <span className="text-xs text-slate-300 tracking-wide">Outil pro · Référentiel fiscal 2025–2026</span>
+                <span className="text-xs text-slate-300 tracking-wide">Pour CGP, courtiers et cabinets patrimoniaux</span>
               </div>
 
-              <h1 className="font-playfair text-4xl md:text-5xl lg:text-[3.25rem] leading-[1.1] font-bold mb-6">
-                Générez des rapports d&apos;arbitrage<br />
-                <em className="text-slate-400 not-italic">immobilier en marque blanche</em>
+              <h1 className="font-playfair text-4xl md:text-5xl lg:text-[3.25rem] leading-[1.15] font-bold mb-6">
+                Faites accepter à vos clients<br />
+                <em className="text-slate-400 not-italic">les arbitrages immobiliers que les chiffres imposent.</em>
               </h1>
 
               <p className="text-slate-400 text-lg leading-relaxed mb-8 max-w-lg">
-                Analysez un projet locatif en quelques minutes : rendement réel, cash-flow, TRI, VAN, fiscalité,
-                revente, dispositifs fiscaux, stress tests et prix cible. Un rapport professionnel prêt
-                à remettre à vos clients investisseurs.
+                Vos clients détiennent des biens dont la rentabilité réelle s&apos;est dégradée, mais qu&apos;ils
+                refusent de vendre « sur la base d&apos;un ressenti ». Rendement Réel Immo identifie les biens
+                sous-performants, compare conservation, optimisation et cession, et produit un rapport à vos
+                couleurs qui objective le débat avec votre client.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-8">
@@ -152,9 +153,9 @@ export default function Home() {
                   className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
                   Demander une démo pro <IconArrow />
                 </Link>
-                <Link href="/simulateur"
+                <Link href="/cgp-arbitrage-immobilier"
                   className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-400 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
-                  Tester le simulateur
+                  Le cas du client qui refuse de vendre
                 </Link>
               </div>
 
@@ -184,6 +185,59 @@ export default function Home() {
               <MiniReport />
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* ── AUDIT DE PARC IMMOBILIER EXISTANT ────────────────────────── */}
+      <section className="py-20 md:py-28 border-b border-slate-200">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le cas le plus fréquent</p>
+              <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-6 leading-tight">
+                Vos clients gardent des biens<br />qui ne performent plus
+              </h2>
+              <p className="text-slate-500 leading-relaxed mb-7">
+                Rendement Réel Immo ne sert pas uniquement à analyser un projet d&apos;achat. Le moteur audite
+                aussi un bien déjà détenu ou un parc immobilier existant : rentabilité réelle, cash-flow,
+                fiscalité, revente nette, TRI, VAN, stress tests et scénario de conservation ou d&apos;arbitrage.
+              </p>
+              <p className="text-slate-500 leading-relaxed mb-8">
+                Le rapport documente, chiffres à l&apos;appui, les scénarios de conservation, d&apos;optimisation
+                ou de cession — pour transformer un capital immobilisé dans un actif sous-performant en
+                opportunité de conseil, d&apos;arbitrage et de réallocation patrimoniale.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/simulateur"
+                  className="inline-flex items-center justify-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                  Auditer un bien détenu <IconArrow />
+                </Link>
+                <Link href="/cgp-arbitrage-immobilier"
+                  className="inline-flex items-center justify-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                  Voir la page dédiée CGP
+                </Link>
+              </div>
+            </div>
+            <div className="bg-[#F8F7F4] rounded-2xl p-8 border border-slate-200">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Identifiez les biens à...</p>
+              <ul className="space-y-4">
+                {[
+                  { label: 'Conserver', desc: 'Le bien reste un actif performant — aucun arbitrage nécessaire.' },
+                  { label: 'Optimiser', desc: 'Renégociation de crédit, fiscalité plus favorable, travaux ciblés.' },
+                  { label: 'Refinancer ou réallouer', desc: "Le capital immobilisé pourrait produire un meilleur rendement ailleurs." },
+                  { label: 'Arbitrer (revente)', desc: 'La rentabilité réelle ne justifie plus la détention — un scénario de cession est documenté.' },
+                ].map((item) => (
+                  <li key={item.label} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-slate-200">
+                    <span className="text-[#C9A96E] shrink-0 mt-0.5"><IconCheck /></span>
+                    <div>
+                      <p className="font-semibold text-[#0B1B2B] text-sm mb-1">{item.label}</p>
+                      <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -353,59 +407,6 @@ export default function Home() {
                   <li key={i} className="flex items-start gap-3 text-sm">
                     <span className="text-[#C9A96E] shrink-0 mt-0.5"><IconCheck /></span>
                     <span className="text-slate-600">{page}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── AUDIT DE PARC IMMOBILIER EXISTANT ────────────────────────── */}
-      <section className="py-20 md:py-28 border-t border-slate-200">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div>
-              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Déjà propriétaire ?</p>
-              <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-6 leading-tight">
-                Auditez aussi votre<br />parc immobilier existant
-              </h2>
-              <p className="text-slate-500 leading-relaxed mb-7">
-                Rendement Réel Immo ne sert pas uniquement à analyser un projet d&apos;achat. Le moteur permet
-                aussi d&apos;auditer un bien déjà détenu ou un parc immobilier existant : rentabilité réelle,
-                cash-flow, fiscalité, revente nette, TRI, VAN, stress tests et scénario de conservation
-                ou d&apos;arbitrage.
-              </p>
-              <p className="text-slate-500 leading-relaxed mb-8">
-                Le rapport documente les scénarios de conservation, d&apos;optimisation ou d&apos;arbitrage —
-                à vous, ou à votre conseiller, de décider.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/simulateur"
-                  className="inline-flex items-center justify-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
-                  Auditer un bien détenu <IconArrow />
-                </Link>
-                <Link href="/professionnels#demo"
-                  className="inline-flex items-center justify-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
-                  Demander une démo pro
-                </Link>
-              </div>
-            </div>
-            <div className="bg-[#F8F7F4] rounded-2xl p-8 border border-slate-200">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Identifiez les biens à...</p>
-              <ul className="space-y-4">
-                {[
-                  { label: 'Conserver', desc: 'Le bien reste un actif performant — aucun arbitrage nécessaire.' },
-                  { label: 'Optimiser', desc: 'Renégociation de crédit, fiscalité plus favorable, travaux ciblés.' },
-                  { label: 'Refinancer ou réallouer', desc: "Le capital immobilisé pourrait produire un meilleur rendement ailleurs." },
-                  { label: 'Arbitrer (revente)', desc: 'La rentabilité réelle ne justifie plus la détention — un scénario de cession est documenté.' },
-                ].map((item) => (
-                  <li key={item.label} className="flex items-start gap-3 bg-white rounded-xl p-4 border border-slate-200">
-                    <span className="text-[#C9A96E] shrink-0 mt-0.5"><IconCheck /></span>
-                    <div>
-                      <p className="font-semibold text-[#0B1B2B] text-sm mb-1">{item.label}</p>
-                      <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
-                    </div>
                   </li>
                 ))}
               </ul>

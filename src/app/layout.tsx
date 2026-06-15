@@ -29,6 +29,7 @@ export const metadata: Metadata = {
 
 const NAV_LINKS = [
   { href: '/simulateur', label: 'Simulateur' },
+  { href: '/cgp-arbitrage-immobilier', label: 'Pour les CGP' },
   { href: '/professionnels', label: 'Professionnels' },
   { href: '/white-label', label: 'Marque blanche' },
   { href: '/tarifs', label: 'Tarifs' },
