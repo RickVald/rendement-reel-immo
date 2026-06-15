@@ -235,7 +235,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               <Text style={S.listText}>
                 N/A — date d'acquisition à renseigner. La fiscalité de plus-value (impôt sur le revenu et prélèvements
                 sociaux) ne peut pas être calculée sans la date d'acquisition du bien. Le produit net de cession affiché
-                ci-dessous et le « patrimoine final après cession fiscalisée » de la page précédente ne tiennent donc
+                ci-dessous et le « patrimoine final hors fiscalité de plus-value » de la page précédente ne tiennent donc
                 pas compte de cette fiscalité.
               </Text>
             </View>

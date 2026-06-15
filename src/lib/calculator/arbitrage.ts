@@ -120,7 +120,7 @@ function calculerDureeDetentionActuelle(historique: ProjectInputDetenu['historiq
   return 6
 }
 
-function construireScenarioConserver(input: ProjectInputDetenu, horizonAns: number): { scenario: ScenarioConserver; equiteActuelle: number } {
+function construireScenarioConserver(input: ProjectInputDetenu, horizonAns: number): { scenario: ScenarioConserver; equiteActuelle: number; mensualiteRecalculeeAnnuelle: number } {
   const inputAdapte = construireInputAdapte(input, horizonAns)
   const coutTotal = calculerCoutTotal(inputAdapte.acquisition)
   const creditSchedule = calculerCredit(inputAdapte.financement)
@@ -136,6 +136,32 @@ function construireScenarioConserver(input: ProjectInputDetenu, horizonAns: numb
     integrerAvantage,
     input.historique.amortissementsDejaPratiques,
   )
+
+  const mensualiteRecalculeeAnnuelle = rows[0]?.mensualitesAnnuelles ?? 0
+
+  // P1 : par défaut, le cash-flow du scénario Conserver repose sur la mensualité
+  // réellement déclarée par l'utilisateur (mensualiteActuelle) plutôt que sur la
+  // mensualité recalculée à partir du capital restant dû, du taux et de la durée
+  // restante — plus représentative pour un bien déjà détenu. La fiscalité (intérêts
+  // déductibles, amortissements) reste calculée sur le tableau d'amortissement
+  // recalculé, seule base disponible pour ce calcul.
+  if (input.pretEnCours.pretEnCours && (input.pretEnCours.sourceMensualite ?? 'declaree') === 'declaree') {
+    const mensualiteDeclareeAnnuelle = input.pretEnCours.mensualiteActuelle * 12
+    let cashflowCumule = 0
+    rows = rows.map(row => {
+      const pretEnCoursCetteAnnee = row.mensualitesAnnuelles > 0
+      const mensualitesAnnuelles = pretEnCoursCetteAnnee ? mensualiteDeclareeAnnuelle : row.mensualitesAnnuelles
+      const cashflowAnnuel = row.cashflowAnnuel - (mensualitesAnnuelles - row.mensualitesAnnuelles)
+      cashflowCumule += cashflowAnnuel
+      return {
+        ...row,
+        mensualitesAnnuelles: Math.round(mensualitesAnnuelles),
+        cashflowAnnuel: Math.round(cashflowAnnuel),
+        cashflowCumule: Math.round(cashflowCumule),
+        patrimoineNet: Math.round(row.valeurEstimeeBien - row.capitalRestantDu + cashflowCumule),
+      }
+    })
+  }
 
   const equiteActuelle = Math.max(
     0,
@@ -163,6 +189,7 @@ function construireScenarioConserver(input: ProjectInputDetenu, horizonAns: numb
       patrimoineFinal: dernier.produitNetReventePotentiel + dernier.cashflowCumule,
     },
     equiteActuelle,
+    mensualiteRecalculeeAnnuelle,
   }
 }
 
@@ -230,6 +257,7 @@ function construireVerdict(
   equiteActuelle: number,
   scenarioConserver: ScenarioConserver,
   scenarioVendre: ScenarioVendre,
+  mensualiteRecalculeeAnnuelle: number,
 ): VerdictArbitrage {
   const ecartPatrimoineFinalPct = (scenarioConserver.patrimoineFinal - scenarioVendre.patrimoineFinal)
     / Math.max(1, scenarioVendre.patrimoineFinal)
@@ -296,7 +324,6 @@ function construireVerdict(
   let ecartMensualitePct = 0
   if (input.pretEnCours.pretEnCours && scenarioConserver.rows.length > 0) {
     const mensualiteDeclareeAnnuelle = input.pretEnCours.mensualiteActuelle * 12
-    const mensualiteRecalculeeAnnuelle = scenarioConserver.rows[0].mensualitesAnnuelles
     if (mensualiteDeclareeAnnuelle > 0) {
       ecartMensualitePct = Math.abs(mensualiteRecalculeeAnnuelle - mensualiteDeclareeAnnuelle) / mensualiteDeclareeAnnuelle
     }
@@ -364,16 +391,18 @@ function construireVerdict(
   if (equiteActuelle <= 0) {
     alertes.push('Situation de surfinancement (équité actuelle nulle ou négative) — le TRI du scénario Conserver n\'est pas interprétable.')
   }
-  // P0 : la mensualité actuellement déclarée par l'utilisateur n'est pas utilisée pour le
-  // cash-flow (recalculée à partir du capital restant dû / taux / durée) — on alerte si
-  // l'écart entre les deux est significatif, signe d'une incohérence dans les données du prêt.
+  // P0/P1 : la mensualité recalculée à partir du capital restant dû / taux / durée diverge
+  // de la mensualité réellement déclarée — signe d'une incohérence dans les données du
+  // prêt, quelle que soit la source utilisée pour le cash-flow du scénario Conserver.
   if (input.pretEnCours.pretEnCours && scenarioConserver.rows.length > 0 && ecartMensualitePct > 0.10) {
-    const mensualiteRecalculeeAnnuelle = scenarioConserver.rows[0].mensualitesAnnuelles
+    const sourceDeclaree = (input.pretEnCours.sourceMensualite ?? 'declaree') === 'declaree'
     alertes.push(
       `Écart entre la mensualité de prêt déclarée (${Math.round(input.pretEnCours.mensualiteActuelle).toLocaleString('fr-FR')} €/mois) ` +
       `et la mensualité recalculée à partir du capital restant dû, du taux et de la durée restante ` +
       `(${Math.round(mensualiteRecalculeeAnnuelle / 12).toLocaleString('fr-FR')} €/mois). ` +
-      'Vérifiez ces informations sur votre tableau d\'amortissement, le cash-flow du scénario Conserver est calculé sur la mensualité recalculée.' +
+      (sourceDeclaree
+        ? 'Le cash-flow du scénario Conserver est calculé sur la mensualité déclarée, mais les intérêts déductibles restent calculés sur le tableau d\'amortissement recalculé : vérifiez ces informations sur votre tableau d\'amortissement.'
+        : 'Vérifiez ces informations sur votre tableau d\'amortissement, le cash-flow du scénario Conserver est calculé sur la mensualité recalculée.') +
       (ecartMensualitePct > 0.15 ? ' Cet écart important dégrade le verdict en « Arbitrage à approfondir ».' : '')
     )
   }
@@ -445,9 +474,9 @@ export function analyserArbitrage(rawInput: ProjectInputDetenu): ArbitrageAnalys
     30,
   )
 
-  const { scenario: scenarioConserver, equiteActuelle } = construireScenarioConserver(input, horizonAns)
+  const { scenario: scenarioConserver, equiteActuelle, mensualiteRecalculeeAnnuelle } = construireScenarioConserver(input, horizonAns)
   const scenarioVendre = construireScenarioVendre(input, horizonAns)
-  const verdict = construireVerdict(input, horizonAns, equiteActuelle, scenarioConserver, scenarioVendre)
+  const verdict = construireVerdict(input, horizonAns, equiteActuelle, scenarioConserver, scenarioVendre, mensualiteRecalculeeAnnuelle)
 
   return {
     input,

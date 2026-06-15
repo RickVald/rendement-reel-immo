@@ -166,6 +166,16 @@ export function StepPretEnCours({ data, onChange }: SPD) {
               <Input label="Mensualité actuelle (avec assurance)" type="number" value={p.mensualiteActuelle}
                 onChange={e => set({ mensualiteActuelle: +e.target.value })} suffix="€/mois" />
             </Grid2>
+            <Select
+              label="Mensualité à utiliser pour le calcul du cash-flow"
+              value={p.sourceMensualite ?? 'declaree'}
+              onChange={e => set({ sourceMensualite: e.target.value as typeof p.sourceMensualite })}
+              options={[
+                { value: 'declaree', label: 'Utiliser la mensualité réelle déclarée ci-dessus' },
+                { value: 'recalculee', label: 'Recalculer depuis le capital restant dû, le taux et la durée' },
+              ]}
+              hint="La fiscalité (déduction des intérêts) est toujours calculée à partir du capital restant dû, du taux et de la durée, quel que soit ce choix."
+            />
             <Grid2>
               <Input label="Taux nominal" type="number" step="0.01" value={(p.tauxNominal * 100).toFixed(2)}
                 onChange={e => set({ tauxNominal: +e.target.value / 100 })} suffix="%" />

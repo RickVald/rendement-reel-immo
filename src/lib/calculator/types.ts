@@ -269,6 +269,16 @@ export interface PretEnCoursInput {
   pretEnCours: boolean
   capitalRestantDu: number
   mensualiteActuelle: number
+  /**
+   * Source du cash-flow du scénario Conserver pour la part prêt :
+   * - 'declaree' : la mensualité réellement payée (mensualiteActuelle) est utilisée
+   *   telle quelle, pour les années où le prêt est en cours.
+   * - 'recalculee' : la mensualité est recalculée à partir du capital restant dû,
+   *   du taux et de la durée restante.
+   * La fiscalité (intérêts déductibles) reste dans tous les cas calculée à partir
+   * du tableau d'amortissement recalculé.
+   */
+  sourceMensualite?: 'declaree' | 'recalculee'
   tauxNominal: number              // ex: 0.037 = 3.7%
   tauxAssurance: number            // ex: 0.002 = 0.2%
   dureeRestanteMois: number

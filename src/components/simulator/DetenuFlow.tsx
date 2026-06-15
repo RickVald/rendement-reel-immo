@@ -63,10 +63,17 @@ export function DetenuFlow({ onBack }: { onBack: () => void }) {
     setLoading(true)
     setError(null)
     try {
+      // bien.dpe est un champ hérité du parcours Achat : on le synchronise sur le DPE
+      // actuel déclaré (performanceActuelle.dpeActuel), seule source pertinente côté
+      // Parcours B, pour éviter un payload contradictoire (ex. scénarios QA/import JSON).
+      const payload: ProjectInputDetenu = {
+        ...data,
+        bien: { ...data.bien, dpe: data.performanceActuelle.dpeActuel },
+      }
       const res = await fetch('/api/analyze-detenu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error(await res.text())
       const analysis = await res.json()
@@ -84,8 +91,8 @@ export function DetenuFlow({ onBack }: { onBack: () => void }) {
 
       <div className="mb-8">
         <StepIndicator
-          current={Math.min(step, STEPS.length)}
-          steps={STEP_TITLES.map(s => ({ n: s.n, label: s.label }))}
+          current={step}
+          steps={[...STEP_TITLES.map(s => ({ n: s.n, label: s.label })), { n: TOTAL, label: 'Validation' }]}
         />
       </div>
 

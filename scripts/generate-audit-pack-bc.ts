@@ -467,6 +467,9 @@ async function generateParcoursB() {
     console.log(`[parcours-b ${i + 1}/${SCENARIOS_B.length}] ${scenario.id}`)
 
     const input = mergeOverrides(DEFAULT_INPUT_DETENU, scenario.overrides)
+    // bien.dpe est hérité du parcours Achat : on le synchronise sur le DPE actuel
+    // déclaré (performanceActuelle.dpeActuel), comme le fait le formulaire Parcours B.
+    input.bien = { ...input.bien, dpe: input.performanceActuelle.dpeActuel }
     const analysis = analyserArbitrage(input)
 
     await writeFile(path.join(dir, 'input.json'), JSON.stringify(input, null, 2))

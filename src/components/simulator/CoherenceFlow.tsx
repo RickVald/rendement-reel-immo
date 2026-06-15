@@ -93,8 +93,8 @@ export function CoherenceFlow({ onBack }: { onBack: () => void }) {
 
       <div className="mb-8">
         <StepIndicator
-          current={Math.min(step, STEPS.length)}
-          steps={STEP_TITLES.map(s => ({ n: s.n, label: s.label }))}
+          current={step}
+          steps={[...STEP_TITLES.map(s => ({ n: s.n, label: s.label })), { n: TOTAL, label: 'Validation' }]}
         />
       </div>
 

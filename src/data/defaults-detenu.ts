@@ -91,6 +91,7 @@ export const DEFAULT_INPUT_DETENU: ProjectInputDetenu = {
     pretEnCours: true,
     capitalRestantDu: 150000,
     mensualiteActuelle: 1000,
+    sourceMensualite: 'declaree',
     tauxNominal: 0.037,
     tauxAssurance: 0.003,
     dureeRestanteMois: 180,
