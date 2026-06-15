@@ -16,7 +16,7 @@ Font.registerHyphenationCallback((word: string) => [word])
 
 import type { ArbitrageAnalysis } from '@/lib/calculator/types'
 import { S, COLORS, verdictColors } from './styles'
-import { fmt, eur, pct, sign, PatrimoineChart, CashflowChart, PageHeader, PageFooter, BrandSeal, CoverSummary } from './helpers'
+import { fmt, eur, pct, sign, PatrimoineChart, CashflowChart, PageHeader, PageFooter, BrandSeal, CoverSummary, HypRow } from './helpers'
 
 const TYPE_LABELS: Record<string, string> = {
   appartement: 'Appartement', maison: 'Maison', studio: 'Studio',
@@ -31,6 +31,24 @@ const ALTERNATIVE_LABELS: Record<string, string> = {
   autre: "l'alternative déclarée",
 }
 
+// Wording de couverture volontairement plus prudent que le label métier brut
+// (Conserver/Vendre/Arbitrage à approfondir) : on présente un scénario favorable
+// à valider, pas une décision prise par le logiciel.
+const VERDICT_COVER_LABELS: Record<string, string> = {
+  Conserver: 'Scénario le plus favorable : conserver le bien',
+  Vendre: 'Scénario le plus favorable : vendre et réallouer',
+  'Arbitrage à approfondir': 'Arbitrage à approfondir',
+}
+
+const REGIME_LABELS: Record<string, string> = {
+  micro_foncier: 'Micro-foncier',
+  reel_foncier: 'Location nue — réel foncier',
+  lmnp_micro_bic: 'LMNP micro-BIC',
+  lmnp_reel: 'LMNP réel',
+  sci_ir: 'SCI à l\'IR',
+  sci_is: 'SCI à l\'IS',
+}
+
 export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
   const { input, horizonAns, equiteActuelle, scenarioConserver, scenarioVendre, verdict } = analysis
   const vc = verdictColors(verdict.couleur)
@@ -41,6 +59,33 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
   const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
   const alternativeLabel = ALTERNATIVE_LABELS[input.alternativeReemploi.typeSupport] ?? "l'alternative déclarée"
   const dernier = scenarioConserver.rows[scenarioConserver.rows.length - 1]
+
+  // Écart de patrimoine final, exprimé en euros d'abord (lecture immédiate),
+  // puis en pourcentage du scénario perdant (référence pour le second chiffre).
+  const ecartEuros = Math.abs(scenarioVendre.patrimoineFinal - scenarioConserver.patrimoineFinal)
+  const venteGagne = scenarioVendre.patrimoineFinal > scenarioConserver.patrimoineFinal
+  const beneficiaire = venteGagne ? 'la vente réallouée' : 'la conservation'
+  const reference = venteGagne ? 'conservation' : 'la vente réallouée'
+  const baseComparaison = venteGagne ? scenarioConserver.patrimoineFinal : scenarioVendre.patrimoineFinal
+  const ecartPctVsReference = ecartEuros / Math.max(1, baseComparaison)
+
+  // Sensibilité du rendement de l'alternative de réemploi (item 1, page 4)
+  const tauxBase = scenarioVendre.rendementNetAttendu
+  const sensibiliteTaux = [
+    { delta: -0.01, taux: Math.max(0, tauxBase - 0.01) },
+    { delta: 0, taux: tauxBase },
+    { delta: 0.01, taux: tauxBase + 0.01 },
+  ].map(({ delta, taux }) => {
+    const patrimoineFinalVendre = scenarioVendre.produitNetVenteAujourdhui * Math.pow(1 + taux, horizonAns)
+    return {
+      delta,
+      taux,
+      patrimoineFinalVendre,
+      ecartVsConserver: patrimoineFinalVendre - scenarioConserver.patrimoineFinal,
+    }
+  })
+  const revaloBienPct = 0.015
+  const valeurReventeHorizon = input.valeurActuelle.valeurMarcheEstimee * Math.pow(1 + revaloBienPct, horizonAns)
 
   return (
     <Document
@@ -79,16 +124,19 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
 
           {/* Verdict */}
           <View style={[S.verdictBanner, { backgroundColor: vc.bg, borderWidth: 2, borderColor: vc.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
-            <Text style={[S.verdictLabel, { color: vc.text, fontSize: 16 }]}>{verdict.label}</Text>
+            <Text style={[S.verdictLabel, { color: vc.text, fontSize: 16 }]}>{VERDICT_COVER_LABELS[verdict.label] ?? verdict.label}</Text>
             {!scenarioVendre.dateAcquisitionConnue && (
               <Text style={{ fontSize: 8, color: vc.text, opacity: 0.85, fontWeight: 'bold', marginTop: 2 }}>
                 ⚠ Verdict établi hors fiscalité de plus-value — date d'acquisition à renseigner
               </Text>
             )}
-            <Text style={{ fontSize: 9, color: vc.text, opacity: 0.85 }}>
-              Écart de patrimoine final projeté : {pct(verdict.ecartPatrimoineFinalPct)} en faveur de{' '}
-              {verdict.ecartPatrimoineFinalPct >= 0 ? 'la conservation' : 'la vente'}.
-            </Text>
+            {verdict.label !== 'Arbitrage à approfondir' && (
+              <Text style={{ fontSize: 9, color: vc.text, opacity: 0.85 }}>
+                Écart de patrimoine final projeté à {horizonAns} ans : {sign(ecartEuros)} en faveur de {beneficiaire},{' '}
+                soit {pct(ecartPctVsReference)} de plus que {reference === 'la vente réallouée' ? 'la vente réallouée' : `la ${reference}`}.{' '}
+                Sous réserve de validation des hypothèses (page « Hypothèses retenues »).
+              </Text>
+            )}
             {verdict.alertes.length > 0 && (
               <View style={{ marginTop: 8 }}>
                 {verdict.alertes.map((a, i) => (
@@ -101,6 +149,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           <CoverSummary items={[
             'Comparaison des scénarios Conserver / Vendre',
             'Détail du scénario Conserver',
+            'Hypothèses retenues et sensibilité',
           ]} />
         </View>
 
@@ -320,6 +369,111 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               Simulation indicative. Ne constitue pas un conseil en investissement, fiscal, juridique ou patrimonial.
               Les hypothèses retenues (valeur de marché, rendement de l'alternative de réemploi, fiscalité de cession) doivent être
               vérifiées par les professionnels compétents avant toute décision de conservation ou de vente.
+            </Text>
+          </View>
+        </View>
+        <PageFooter />
+      </Page>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PAGE 4 — HYPOTHÈSES RETENUES ET SENSIBILITÉ
+      ══════════════════════════════════════════════════════════════════════ */}
+      <Page size="A4" style={S.page}>
+        <PageHeader section="Hypothèses retenues" meta={meta} />
+        <View style={S.body}>
+          <Text style={S.sectionTitle}>Les hypothèses qui déterminent ce verdict</Text>
+          <Text style={[S.cardText, { marginBottom: 12 }]}>
+            La comparaison entre conserver le bien et le vendre pour réinvestir dans {alternativeLabel} repose sur les
+            hypothèses ci-dessous. Tout écart entre ces hypothèses et la situation réelle du client peut faire évoluer,
+            voire inverser, le scénario présenté comme favorable.
+          </Text>
+
+          <View style={S.row2}>
+            <View style={S.col}>
+              <View style={[S.card, { marginBottom: 10 }]}>
+                <Text style={S.cardTitle}>Alternative de réemploi ({alternativeLabel})</Text>
+                <HypRow label="Rendement annuel retenu" value={pct(input.alternativeReemploi.rendementAnnuelAttendu)} highlight />
+                <HypRow label="Brut ou net ?" value="Supposé net" />
+                <HypRow label="Fiscalité du support" value={input.alternativeReemploi.fiscaliteSupport || 'Non précisée par le client'} />
+                <HypRow label="Frais de gestion / d'arbitrage" value="Inclus dans le rendement net retenu" />
+                <HypRow label="Niveau de risque déclaré" value={input.alternativeReemploi.niveauRisque === 'faible' ? 'Faible' : input.alternativeReemploi.niveauRisque === 'eleve' ? 'Élevé' : 'Modéré'} />
+              </View>
+              <Text style={[S.cardText, { marginBottom: 10 }]}>
+                Le rendement de {pct(input.alternativeReemploi.rendementAnnuelAttendu)}/an est appliqué tel que déclaré, et traité
+                comme un rendement déjà net (frais du support et fiscalité de sortie déduits). Si ce taux est en réalité un
+                rendement brut, le produit net réellement disponible à {horizonAns} ans serait inférieur à
+                {' '}{eur(scenarioVendre.patrimoineFinal)} indiqué page précédente — à faire confirmer par le client ou son
+                assureur/courtier.
+              </Text>
+
+              <View style={[S.card, { marginBottom: 10 }]}>
+                <Text style={S.cardTitle}>Bien conservé — revalorisation et revente</Text>
+                <HypRow label="Revalorisation annuelle du bien" value={pct(revaloBienPct)} highlight />
+                <HypRow label="Frais de vente retenus" value={pct(input.valeurActuelle.fraisVentePct)} />
+                <HypRow label="Valeur de marché actuelle" value={eur(input.valeurActuelle.valeurMarcheEstimee)} />
+                <HypRow label={`Valeur estimée à ${horizonAns} ans`} value={eur(valeurReventeHorizon)} />
+                <HypRow label="Fiabilité de l'estimation" value={input.valeurActuelle.fiabiliteValeur === 'haute' ? 'Élevée' : input.valeurActuelle.fiabiliteValeur === 'faible' ? 'Faible' : 'Moyenne'} />
+              </View>
+            </View>
+
+            <View style={S.col}>
+              <View style={[S.card, { marginBottom: 10 }]}>
+                <Text style={S.cardTitle}>Charges, vacance et travaux (scénario Conserver)</Text>
+                <HypRow label="Taxe foncière annuelle" value={eur(input.performanceActuelle.taxeFonciereReelle)} />
+                <HypRow label="Charges de copropriété annuelles" value={eur(input.performanceActuelle.chargesCoproReellesAnnuelles)} />
+                <HypRow label="Taux de vacance locative retenu" value={pct(input.performanceActuelle.tauxVacanceReel)} />
+                <HypRow label="Travaux récurrents annuels" value={eur(input.travauxFuturs.travauxRecurrentsAnnuels)} />
+              </View>
+
+              <View style={[S.card, { marginBottom: 10 }]}>
+                <Text style={S.cardTitle}>Fiscalité locative (scénario Conserver)</Text>
+                <HypRow label="Régime fiscal retenu" value={REGIME_LABELS[input.fiscalite.regime] ?? input.fiscalite.regime} highlight />
+                <HypRow label="Taux marginal d'imposition (TMI)" value={pct(input.fiscalite.tmi, 0)} />
+              </View>
+
+              <View style={[S.card]}>
+                <Text style={S.cardTitle}>Hypothèses de revente du bien à {horizonAns} ans</Text>
+                <HypRow label="Méthode de projection" value={`Revalorisation à ${pct(revaloBienPct)}/an`} />
+                <HypRow label="Valeur projetée" value={eur(valeurReventeHorizon)} />
+                <HypRow label="Fiscalité de cession (vente immédiate)" value={scenarioVendre.dateAcquisitionConnue ? 'Calculée (cf. page précédente)' : 'Non calculable — date d\'acquisition manquante'} />
+              </View>
+            </View>
+          </View>
+
+          <Text style={S.sectionTitle}>Sensibilité — rendement de l'alternative de réemploi</Text>
+          <Text style={[S.cardText, { marginBottom: 8 }]}>
+            Le tableau ci-dessous montre comment le patrimoine final du scénario Vendre, et l'écart avec le scénario
+            Conserver, évoluent si le rendement net de {alternativeLabel} s'écarte de l'hypothèse retenue
+            ({pct(tauxBase)}/an).
+          </Text>
+          <View style={S.table}>
+            <View style={S.tableHeader}>
+              <Text style={[S.tableHeaderCell, S.tableHeaderCellLeft, { flex: 2 }]}>Rendement net de l'alternative</Text>
+              <Text style={S.tableHeaderCell}>Patrimoine final — Vendre</Text>
+              <Text style={S.tableHeaderCell}>Patrimoine final — Conserver</Text>
+              <Text style={S.tableHeaderCell}>Écart (Vendre - Conserver)</Text>
+            </View>
+            {sensibiliteTaux.map((s, i) => (
+              <View key={i} style={[S.tableRow, s.delta === 0 ? S.tableRowTotal : i % 2 === 1 ? S.tableRowAlt : {}]}>
+                <Text style={[S.tableCell, S.tableCellLeft, S.tableCellBold, { flex: 2 }]}>
+                  {pct(s.taux)}{s.delta === 0 ? ' (hypothèse retenue)' : ''}
+                </Text>
+                <Text style={[S.tableCell, S.tableCellBold]}>{eur(s.patrimoineFinalVendre)}</Text>
+                <Text style={[S.tableCell, S.tableCellGray]}>{eur(scenarioConserver.patrimoineFinal)}</Text>
+                <Text style={[S.tableCell, S.tableCellBold, s.ecartVsConserver >= 0 ? S.tableCellGood : S.tableCellBad]}>{sign(s.ecartVsConserver)}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={{ fontSize: 7, color: COLORS.slate400, marginTop: -6, marginBottom: 12 }}>
+            Un écart positif signifie que le scénario Vendre reste favorable au taux de rendement testé ; un écart négatif
+            signifie qu'à ce taux, conserver le bien deviendrait préférable.
+          </Text>
+
+          <View style={S.disclaimer}>
+            <Text style={S.disclaimerText}>
+              Toutes les hypothèses de cette page sont des paramètres de simulation, déclarés ou estimés, et non des
+              données contractuelles. Elles doivent être vérifiées et, si nécessaire, ajustées avec le client avant toute
+              décision de conservation, de vente ou de réinvestissement.
             </Text>
           </View>
         </View>

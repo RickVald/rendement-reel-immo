@@ -19,9 +19,10 @@ const CAPTURES = [
 ]
 
 const CAPTURES_DETENU = [
-  { src: '/exemples/captures-detenu/page1.png', title: 'Page de garde', desc: 'Équité actuelle, valeur de marché estimée et verdict — conserver ou vendre — basés sur la performance réelle du bien.', page: '1' },
+  { src: '/exemples/captures-detenu/page1.png', title: 'Page de garde', desc: 'Équité actuelle, valeur de marché estimée et scénario le plus favorable — conserver ou vendre — avec l\'écart de patrimoine projeté en euros, basés sur la performance réelle du bien.', page: '1' },
   { src: '/exemples/captures-detenu/page2.png', title: 'Comparaison des scénarios', desc: 'Conserver vs. vendre aujourd\'hui : TRI, VAN, et patrimoine final projeté sur l\'horizon choisi, avec projection graphique du cash-flow et du patrimoine.', page: '2' },
   { src: '/exemples/captures-detenu/page3.png', title: 'Détail annuel et fiscalité de cession', desc: 'Tableau annuel du scénario Conserver, calcul détaillé de la plus-value immobilière et de sa fiscalité, et lecture commentée du résultat — sans conclusion forcée.', page: '3' },
+  { src: '/exemples/captures-detenu/page4.png', title: 'Hypothèses retenues et sensibilité', desc: 'Toutes les hypothèses qui sous-tendent la comparaison (rendement de l\'alternative, fiscalité, revalorisation, charges) et un tableau de sensibilité si le rendement de l\'alternative varie.', page: '4' },
 ]
 
 export default function ExempleRapportPage() {
@@ -91,7 +92,7 @@ export default function ExempleRapportPage() {
       <section className="py-16 md:py-24 bg-[#F8F7F4] border-t border-slate-200">
         <div className="max-w-5xl mx-auto px-6">
           <div className="mb-12 text-center">
-            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Exemple 2 · 3 pages</p>
+            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Exemple 2 · 4 pages</p>
             <h2 className="font-playfair text-3xl font-bold text-[#0B1B2B] leading-tight">
               Audit d&apos;un bien détenu depuis 12 ans — conserver, optimiser ou vendre ?
             </h2>
@@ -109,7 +110,7 @@ export default function ExempleRapportPage() {
                   </div>
                 </div>
                 <div className="md:w-1/3">
-                  <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Page {c.page} / 3</p>
+                  <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Page {c.page} / 4</p>
                   <h3 className="font-playfair text-2xl font-bold text-[#0B1B2B] mb-3 leading-tight">{c.title}</h3>
                   <p className="text-sm text-slate-600 leading-relaxed">{c.desc}</p>
                 </div>
@@ -120,7 +121,7 @@ export default function ExempleRapportPage() {
             <DownloadGate
               pdfUrl="/exemples/rapport-exemple-detenu-anonymise.pdf"
               buttonLabel="Télécharger ce PDF d'exemple"
-              pagesLabel="3 pages"
+              pagesLabel="4 pages"
             />
           </div>
         </div>
