@@ -38,7 +38,6 @@ const REPORT_PAGES = [
 ]
 
 const PRO_USAGES = [
-  { title: 'Conseillers en gestion de patrimoine', desc: "Documentez les arbitrages immobiliers de vos clients sans refaire un Excel pendant 2 heures." },
   { title: 'Chasseurs immobiliers', desc: 'Justifiez pourquoi un bien mérite une offre — ou doit être écarté. Prix cible calculé à 100 € près.' },
   { title: 'Courtiers en financement', desc: "Montrez l'effort d'épargne réel et la soutenabilité du projet face au reste à vivre." },
   { title: 'Cabinets / experts-comptables LMNP', desc: 'Objectivez les régimes et hypothèses fiscales, évitez les promesses commerciales dangereuses.' },
@@ -517,16 +516,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── POUR LES PROFESSIONNELS ──────────────────────────────────── */}
+      {/* ── AUTRES PROFESSIONNELS ─────────────────────────────────────── */}
       <section className="bg-[#F8F7F4] py-20 md:py-28 border-t border-slate-200" id="professionnels">
         <div className="max-w-6xl mx-auto px-6">
           <div className="mb-14">
-            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Usage professionnel</p>
+            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le même moteur, utile aussi à</p>
             <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] max-w-xl leading-tight">
-              Pour les professionnels<br />du patrimoine et de l&apos;immobilier
+              Chasseurs, courtiers et experts-comptables
             </h2>
           </div>
-          <div className="grid md:grid-cols-2 gap-5 mb-8">
+          <div className="grid md:grid-cols-3 gap-5 mb-8">
             {PRO_USAGES.map((u) => (
               <div key={u.title}
                 className="bg-white border border-slate-200 rounded-xl p-7 hover:border-[#0B1B2B]/30 hover:shadow-sm transition-all">
