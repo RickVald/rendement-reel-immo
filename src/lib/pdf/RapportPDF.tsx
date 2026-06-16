@@ -85,9 +85,11 @@ const SCORE_ITEMS = [
 export function RapportPDF({
   analysis,
   ai,
+  synthese = false,
 }: {
   analysis: ProjectAnalysis
   ai: AIInterpretation | null
+  synthese?: boolean
 }) {
   const {
     input, summary, verdict, yearlyTable, scenarios, prixMax,
@@ -158,7 +160,7 @@ export function RapportPDF({
           </View>
 
           <Text style={S.coverTitle}>Dossier d'arbitrage{'\n'}financier</Text>
-          <Text style={S.coverSubtitle}>Investissement locatif — Analyse complète sur {input.revente.dureeDetentionAns} ans</Text>
+          <Text style={S.coverSubtitle}>{synthese ? `Investissement locatif — Synthèse ${input.revente.dureeDetentionAns} ans · 7 pages` : `Investissement locatif — Analyse complète sur ${input.revente.dureeDetentionAns} ans`}</Text>
 
           <View style={S.coverSeparator} />
 
@@ -211,7 +213,13 @@ export function RapportPDF({
             </View>
           </View>
 
-          <CoverSummary items={[
+          <CoverSummary items={synthese ? [
+            'Décision investisseur — checklist de viabilité',
+            'Promesse commerciale vs réalité financière',
+            'Projection financière sur la durée de détention',
+            'Fiscalité de la revente — produit net de cession',
+            'Stress tests et conditions de viabilité',
+          ] : [
             'Synthèse exécutive et décision investisseur',
             'Projection financière sur la durée de détention',
             'Régimes fiscaux et stratégie envisagée',
@@ -510,8 +518,9 @@ export function RapportPDF({
       </Page>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          PAGE 4 — SYNTHÈSE EXÉCUTIVE (score détaillé)
+          PAGE 4 — SYNTHÈSE EXÉCUTIVE (score détaillé)  [rapport complet uniquement]
       ══════════════════════════════════════════════════════════════════════ */}
+      {!synthese && (<>
       <Page size="A4" style={S.page}>
         <PageHeader section="Synthèse Exécutive" meta={meta} />
         <View style={S.body}>
@@ -723,6 +732,8 @@ export function RapportPDF({
         </Page>
       )}
 
+      </>)}
+
       {/* ══════════════════════════════════════════════════════════════════════
           PAGE 6 — PROJECTION GRAPHIQUE
       ══════════════════════════════════════════════════════════════════════ */}
@@ -819,8 +830,10 @@ export function RapportPDF({
       </Page>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          PAGE 6 — TABLEAU ANNUEL DÉTAILLÉ (landscape)
+          PAGES 6b–9 — rapport complet uniquement (tableau, régimes, fiscalité, financement)
       ══════════════════════════════════════════════════════════════════════ */}
+      {!synthese && (<>
+      {/* PAGE 6b — TABLEAU ANNUEL DÉTAILLÉ (landscape) */}
       <Page size="A4" style={S.page} orientation="landscape">
         <PageHeader section="Tableau annuel détaillé" meta={meta} />
         <View style={[S.body, { paddingHorizontal: 20 }]}>
@@ -2264,6 +2277,111 @@ export function RapportPDF({
         <PageFooter />
       </Page>
 
+      </>)}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          PAGE REVENTE SYNTHÉTIQUE — synthèse uniquement
+      ══════════════════════════════════════════════════════════════════════ */}
+      {synthese && (() => {
+        const lastRow = yearlyTable[yearlyTable.length - 1]
+        if (!lastRow) return null
+        const duree = input.revente.dureeDetentionAns
+        const prixRevente = lastRow.valeurEstimeeBien
+        const fraisVente = Math.round(prixRevente * input.revente.fraisVentePct)
+        const fraisAcq = input.acquisition.fraisNotaire + input.acquisition.fraisAgence + input.acquisition.travauxInitiaux
+        const amortsCumulesTotal = yearlyTable.reduce((s, r) => s + (r.amortissementsUtilises ?? 0), 0)
+        const _baseAmortImmo = summary.coutTotalAcquisition * 0.85
+        const _amortImmoAn = input.fiscalite.dureeAmortissementImmo > 0 ? _baseAmortImmo / input.fiscalite.dureeAmortissementImmo : 0
+        const _amortMobAn = (input.fiscalite.amortissementMobilier ?? 0) > 0 && input.fiscalite.dureeAmortissementMobilier > 0
+          ? (input.fiscalite.amortissementMobilier ?? 0) / input.fiscalite.dureeAmortissementMobilier : 0
+        const _fracImmo = (_amortImmoAn + _amortMobAn) > 0 ? _amortImmoAn / (_amortImmoAn + _amortMobAn) : 1
+        const amortsCumules = Math.round(amortsCumulesTotal * _fracImmo)
+        const isLmnpReel = input.fiscalite.regime === 'lmnp_reel'
+        const isSciIs = input.fiscalite.regime === 'sci_is'
+        const detailPP = calculerDetailPlusValue(input.acquisition.prixAchat, prixRevente, fraisAcq, fraisVente, duree, input.location.type, 0, 'pp')
+        const detailLMNP = calculerDetailPlusValue(input.acquisition.prixAchat, prixRevente, fraisAcq, fraisVente, duree, input.location.type, amortsCumules, 'lmnp_reel')
+        const detailSciIs = calculerDetailPlusValue(input.acquisition.prixAchat, prixRevente, fraisAcq, fraisVente, duree, input.location.type, amortsCumules, 'sci_is')
+        const detailApplicable = isLmnpReel ? detailLMNP : isSciIs ? detailSciIs : detailPP
+        const capitalRestant = lastRow.capitalRestantDu
+        const produitNet = prixRevente - fraisVente - detailApplicable.total - capitalRestant
+        const cashflowCumul = lastRow.cashflowCumule
+        const gainNet = produitNet + cashflowCumul - summary.cashTotalNecessaire
+        const row = (label: string, val: string, bold?: boolean, color?: string) => (
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3, borderBottomWidth: 1, borderBottomColor: COLORS.slate100 }}>
+            <Text style={{ fontSize: 8, color: bold ? COLORS.slate700 : COLORS.slate500, fontFamily: 'Arial', fontWeight: bold ? 'bold' : 'normal', flex: 3 }}>{label}</Text>
+            <Text style={{ fontSize: 8, color: color ?? (bold ? COLORS.slate700 : COLORS.slate500), fontFamily: 'Arial', fontWeight: bold ? 'bold' : 'normal', flex: 1, textAlign: 'right' }}>{val}</Text>
+          </View>
+        )
+        return (
+          <Page size="A4" style={S.page}>
+            <PageHeader section="Fiscalité & Revente" meta={meta} />
+            <View style={S.body}>
+              <Text style={S.sectionTitle}>Produit net de cession — An {duree} ({REGIME_SHORT[input.fiscalite.regime] ?? input.fiscalite.regime})</Text>
+              <Text style={{ fontSize: 7, color: COLORS.slate400, marginBottom: 12 }}>
+                Simulation indicative fondée sur les hypothèses saisies. Valeur de revente projetée à {pct(input.revente.revalorisationAnnuelle)}/an sur {duree} ans.
+              </Text>
+
+              <View style={[S.row2, { gap: 12, marginBottom: 16 }]}>
+                {/* Col gauche : calcul en cascade */}
+                <View style={{ flex: 1, backgroundColor: COLORS.slate50, borderRadius: 4, padding: 12, borderWidth: 1, borderColor: COLORS.slate200 }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.navy, marginBottom: 8 }}>Calcul du produit net</Text>
+                  {row('Valeur estimée du bien (an ' + duree + ')', eur(prixRevente))}
+                  {row('- Frais de vente (' + (input.revente.fraisVentePct * 100).toFixed(1) + ' %)', '- ' + eur(fraisVente))}
+                  {row('- Fiscalité plus-value', '- ' + eur(detailApplicable.total), false, COLORS.red)}
+                  {row('- Capital restant dû', '- ' + eur(capitalRestant))}
+                  <View style={{ height: 6 }} />
+                  {row('= Produit net de cession', eur(produitNet), true, produitNet >= 0 ? COLORS.emerald : COLORS.red)}
+                  <View style={{ height: 8 }} />
+                  {row('+ Cash-flow cumulé sur ' + duree + ' ans', (cashflowCumul >= 0 ? '+' : '') + eur(cashflowCumul), false, cashflowCumul >= 0 ? COLORS.emerald : COLORS.red)}
+                  {row('- Investissement initial (cash)', '- ' + eur(summary.cashTotalNecessaire))}
+                  <View style={{ height: 6 }} />
+                  {row('= Gain patrimonial net', (gainNet >= 0 ? '+' : '') + eur(gainNet), true, gainNet >= 0 ? COLORS.emerald : COLORS.red)}
+                </View>
+
+                {/* Col droite : détail fiscalité PV */}
+                <View style={{ flex: 1, backgroundColor: COLORS.slate50, borderRadius: 4, padding: 12, borderWidth: 1, borderColor: COLORS.slate200 }}>
+                  <Text style={{ fontSize: 8, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.navy, marginBottom: 8 }}>Fiscalité de la plus-value</Text>
+                  {row('Plus-value brute', eur(detailApplicable.plusValueBrute))}
+                  {isSciIs ? (
+                    row('IS sur plus-value (15–25 %)', '- ' + eur(detailApplicable.total))
+                  ) : (
+                    <>
+                      {row('IR (abatt. ' + (detailApplicable.abattementIRPct * 100).toFixed(0) + ' %)', '- ' + eur(detailApplicable.ir))}
+                      {row('PS (abatt. ' + (detailApplicable.abattementPSPct * 100).toFixed(1) + ' %)', '- ' + eur(detailApplicable.ps))}
+                    </>
+                  )}
+                  {row('= Fiscalité totale', eur(detailApplicable.total), true, COLORS.red)}
+                  <View style={{ height: 8 }} />
+                  <Text style={{ fontSize: 7, color: COLORS.slate400, lineHeight: 1.5 }}>
+                    {isSciIs
+                      ? 'SCI IS : pas d\'abattement pour durée de détention. Dividendes : PFU 30 % supplémentaire sur le net d\'IS.'
+                      : `Durée ${duree} ans — Exo. IR à 22 ans · Exo. PS à 30 ans.${isLmnpReel ? ' LMNP réel : amortissements immo réintégrés dans la base PV (LF 2025).' : ''}`}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Point mort condensé */}
+              {pointMort && (
+                <View style={[S.card, { marginBottom: 0 }]} wrap={false}>
+                  <Text style={S.cardTitle}>Conditions pour que le projet devienne acceptable</Text>
+                  <View style={{ flexDirection: 'row', gap: 16, marginTop: 4 }}>
+                    <View style={{ flex: 1 }}>
+                      <HypRow label="Loyer min pour cash-flow neutre" value={`${eur(pointMort.loyerPourCashflowNeutre)}/mois (actuel : ${eur(input.location.loyerMensuelHC)}/mois)`} />
+                      <HypRow label="Prix max pour TRI ≥ 4 %" value={triNonSignificatif ? 'N/A' : (pointMort.prixMaxPourTri4pct ?? 0) >= input.acquisition.prixAchat * 0.99 && (summary.tri ?? 0) < 0.04 ? 'Non atteignable' : eur(pointMort.prixMaxPourTri4pct)} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <HypRow label="Durée de détention optimale" value={`${pointMort.dureeDetentionOptimale} an${pointMort.dureeDetentionOptimale > 1 ? 's' : ''}`} highlight />
+                      <HypRow label="Produit net cession min (VAN = 0)" value={triNonSignificatif ? 'N/A' : eur(pointMort.reventeMinPourVanPositive)} />
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+            <PageFooter />
+          </Page>
+        )
+      })()}
+
       {/* ══════════════════════════════════════════════════════════════════════
           PAGE 10 — MATRICE DE SENSIBILITÉ & STRESS TESTS
       ══════════════════════════════════════════════════════════════════════ */}
@@ -2382,8 +2500,10 @@ export function RapportPDF({
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          PAGE 11 — ANALYSE IA (conditionnelle)
+          PAGES 11–13 — rapport complet uniquement (IA, hypothèses, checklist)
       ══════════════════════════════════════════════════════════════════════ */}
+      {!synthese && (<>
+      {/* PAGE 11 — ANALYSE IA (conditionnelle) */}
       {ai && ai.verdict_explain && (
         <Page size="A4" style={S.page}>
           <PageHeader section="Analyse IA" meta={meta} />
@@ -3026,6 +3146,8 @@ export function RapportPDF({
         </View>
         <PageFooter />
       </Page>
+
+      </>)}
 
       {/* ══════════════════════════════════════════════════════════════════════
           PAGE 14 — MÉTHODE, SOURCES & MENTIONS LÉGALES
