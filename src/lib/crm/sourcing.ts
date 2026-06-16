@@ -45,9 +45,9 @@ export const NAF_PAR_SEGMENT: Record<string, string[]> = {
   CGP_IMMOBILIER:        ['6619Z'],                   // Activités auxiliaires services financiers
   CHASSEUR_INVESTISSEUR: ['6831Z'],                   // Agences immobilières
   COURTIER_INVESTISSEUR: ['6622Z'],                   // Courtiers, agents d'assurances
-  EXPERT_LMNP:           ['6920Z'],                   // Activités comptables
+  EXPERT_LMNP:           ['6920Z'],                   // Activités comptables (scan ciblé uniquement)
   AGENCE_INVESTISSEUR:   ['6831Z', '6832A', '6832B'],
-  '': ['6619Z', '6831Z', '6622Z', '6920Z'],           // Toutes catégories
+  '': ['6619Z', '6831Z', '6622Z'],                    // Toutes catégories — expert-comptables exclus
 }
 
 /* ── Appel Pappers API ───────────────────────────────────────────────── */

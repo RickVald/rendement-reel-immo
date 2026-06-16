@@ -3,7 +3,8 @@ import { Card, SegmentBadge, SourcingStatutBadge } from '@/components/crm/Badges
 import { getSourcingResults, getScanRuns } from '@/lib/crm/data'
 import { SEGMENT_LABELS, type Segment } from '@/lib/crm/types'
 import { ScanForm } from './ScanForm'
-import { SourcingRowActions } from './SourcingRowActions'
+import { SourcingRowActions, LinkedInButton } from './SourcingRowActions'
+import { OriasImportForm } from './OriasImportForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,10 +36,20 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
         <Card title="Doublons détectés" value={`${doublons.length}`} sub="déjà en base ou probable" />
       </div>
 
-      {/* Lancer un scan */}
+      {/* Import ORIAS */}
       <div className="bg-white border border-slate-200 rounded-xl">
-        <div className="px-5 py-3 border-b border-slate-200">
-          <h2 className="font-bold text-sm text-[#0B1B2B]">Lancer un scan</h2>
+        <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="font-bold text-sm text-[#0B1B2B]">Import ORIAS <span className="text-[#C9A96E]">— CGP / CIF / IOBSP</span></h2>
+          <span className="text-xs text-slate-400">Registre officiel des intermédiaires financiers</span>
+        </div>
+        <OriasImportForm />
+      </div>
+
+      {/* Lancer un scan Pappers */}
+      <div className="bg-white border border-slate-200 rounded-xl">
+        <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="font-bold text-sm text-[#0B1B2B]">Scan Pappers <span className="text-slate-400 font-normal">— agences immo / chasseurs</span></h2>
+          <span className="text-xs text-slate-400">Registre SIRENE/RCS</span>
         </div>
         <ScanForm defaultSegment={segment} defaultVille={ville} />
       </div>
@@ -94,7 +105,10 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <SourcingRowActions id={r.id} statut={r.statut} hasEmail={!!r.email} hasSite={!!r.site} />
+                    <div className="flex flex-col gap-1">
+                      <LinkedInButton nom={r.nom} dirigeant={r.dirigeant} ville={r.ville} />
+                      <SourcingRowActions id={r.id} statut={r.statut} hasEmail={!!r.email} hasSite={!!r.site} />
+                    </div>
                   </td>
                 </tr>
               ))}
