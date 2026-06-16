@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Script from 'next/script'
 
 export const metadata: Metadata = {
   robots: { index: false, follow: true },
@@ -32,6 +33,7 @@ function LogoMark() {
 export default function LpLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-white text-slate-800 antialiased font-sans">
+      <Script defer data-domain="rendementreelimmo.fr" src="https://plausible.io/js/script.js" />
       <header className="bg-white border-b border-slate-100 shadow-[0_1px_0_0_rgba(0,0,0,0.04)]">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="shrink-0">

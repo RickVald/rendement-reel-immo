@@ -170,29 +170,6 @@ export default function CgpArbitrageImmobilierPage() {
         </div>
       </section>
 
-      {/* ── LE PROBLÈME ──────────────────────────────────────────────── */}
-      <section className="py-20 md:py-28">
-        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-8">
-          <div className="bg-[#F8F7F4] rounded-2xl p-8 border border-slate-200">
-            <p className="text-red-400 font-mono text-xs tracking-[0.2em] uppercase mb-4">Le problème</p>
-            <p className="text-slate-700 leading-relaxed">
-              Un client détient un bien depuis des années. Sa rentabilité réelle s&apos;est érodée — charges,
-              fiscalité, marché locatif — mais le client raisonne encore sur le prix d&apos;achat et le loyer
-              encaissé. L&apos;arbitrage que les chiffres imposeraient n&apos;a jamais lieu, faute de support
-              pour en parler.
-            </p>
-          </div>
-          <div className="bg-[#0B1B2B] rounded-2xl p-8 text-white">
-            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">La solution</p>
-            <p className="text-slate-300 leading-relaxed">
-              Rendement Réel Immo transforme un bien déjà détenu en <strong className="text-white">rapport
-              d&apos;arbitrage daté et documenté</strong> : rendement net-net réel, cash-flow, produit net de
-              cession, et scénarios de conservation, d&apos;optimisation ou de cession à comparer.
-            </p>
-          </div>
-        </div>
-      </section>
-
       {/* ── EXEMPLE ANONYMISÉ AVANT / PENDANT / APRÈS ────────────────── */}
       <section className="bg-[#F8F7F4] py-20 md:py-28 border-y border-slate-200">
         <div className="max-w-6xl mx-auto px-6">
@@ -252,6 +229,29 @@ export default function CgpArbitrageImmobilierPage() {
               className="inline-flex items-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-sm">
               Télécharger le rapport PDF de cet exemple <IconArrow />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── LE PROBLÈME ──────────────────────────────────────────────── */}
+      <section className="py-20 md:py-28">
+        <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-8">
+          <div className="bg-[#F8F7F4] rounded-2xl p-8 border border-slate-200">
+            <p className="text-red-400 font-mono text-xs tracking-[0.2em] uppercase mb-4">Le problème</p>
+            <p className="text-slate-700 leading-relaxed">
+              Un client détient un bien depuis des années. Sa rentabilité réelle s&apos;est érodée — charges,
+              fiscalité, marché locatif — mais le client raisonne encore sur le prix d&apos;achat et le loyer
+              encaissé. L&apos;arbitrage que les chiffres imposeraient n&apos;a jamais lieu, faute de support
+              pour en parler.
+            </p>
+          </div>
+          <div className="bg-[#0B1B2B] rounded-2xl p-8 text-white">
+            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">La solution</p>
+            <p className="text-slate-300 leading-relaxed">
+              Rendement Réel Immo transforme un bien déjà détenu en <strong className="text-white">rapport
+              d&apos;arbitrage daté et documenté</strong> : rendement net-net réel, cash-flow, produit net de
+              cession, et scénarios de conservation, d&apos;optimisation ou de cession à comparer.
+            </p>
           </div>
         </div>
       </section>

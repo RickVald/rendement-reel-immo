@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { TrackLink } from '@/components/ui/TrackLink'
 
 /* ── Icônes SVG ─────────────────────────────────────────────────────── */
 const IconChart = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-4 4"/></svg>
@@ -150,14 +151,14 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <Link href="/exemple-rapport"
+                <TrackLink href="/exemple-rapport" event="cta_rapport_exemple_click" props={{ source: 'home_hero' }}
                   className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
                   Voir un rapport exemple <IconArrow />
-                </Link>
-                <Link href="/cgp-arbitrage-immobilier#demo"
+                </TrackLink>
+                <TrackLink href="/cgp-arbitrage-immobilier#demo" event="cta_demo_click" props={{ source: 'home_hero' }}
                   className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-400 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
                   Auditer un cas client en démo
-                </Link>
+                </TrackLink>
               </div>
 
               {/* Trust micro-signals */}

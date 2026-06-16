@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
+import Script from 'next/script'
 import { MobileNav } from '@/components/layout/MobileNav'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
       <body className="min-h-screen flex flex-col bg-white text-slate-800 antialiased font-sans">
+        <Script defer data-domain="rendementreelimmo.fr" src="https://plausible.io/js/script.js" />
 
         {/* HEADER */}
         <header className="sticky top-0 z-50 bg-white/98 backdrop-blur-sm border-b border-slate-100 shadow-[0_1px_0_0_rgba(0,0,0,0.04)] relative">

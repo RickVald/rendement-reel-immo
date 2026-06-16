@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { track } from '@/lib/analytics'
 
 const BESOINS = [
@@ -24,6 +25,7 @@ export function ContactForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const started = useRef(false)
+  const router = useRouter()
 
   const update = (key: keyof typeof form) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -59,6 +61,7 @@ export function ContactForm() {
       if (!res.ok) throw new Error(data.error || 'Erreur, veuillez réessayer.')
       track('demo_form_submit', { besoin: form.besoin })
       setSent(true)
+      router.push('/merci')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur inattendue')
     } finally {
