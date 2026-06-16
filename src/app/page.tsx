@@ -185,52 +185,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── DEUX CAS D'USAGE ──────────────────────────────────────────── */}
-      <section className="py-20 md:py-28 border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-14">
-            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Deux situations, un seul outil</p>
-            <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] leading-tight max-w-2xl mx-auto">
-              Débloquez les arbitrages immobiliers que vos clients repoussent
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="border border-slate-200 rounded-2xl p-8">
-              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Cas 1 — Avant achat</p>
-              <h3 className="font-playfair text-2xl font-bold text-[#0B1B2B] mb-3 leading-snug">
-                Éviter une mauvaise opération
-              </h3>
-              <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                Objectivez la rentabilité réelle d&apos;un projet avant signature, calculez le prix cible de
-                négociation et anticipez le risque DPE — pour ne pas valider une opération sur la base d&apos;un
-                rendement brut affiché.
-              </p>
-              <Link href="/simulateur"
-                className="inline-flex items-center gap-2 text-[#0B1B2B] font-semibold text-sm hover:text-[#C9A96E] transition-colors">
-                Tester un projet d&apos;achat <IconArrow />
-              </Link>
-            </div>
-            <div className="bg-[#0B1B2B] text-white rounded-2xl p-8 relative overflow-hidden">
-              <div className="absolute top-5 right-5 bg-[#C9A96E] text-[#0B1B2B] text-[10px] font-bold px-3 py-1 rounded-full">
-                Cas premium CGP
-              </div>
-              <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Cas 2 — Bien déjà détenu</p>
-              <h3 className="font-playfair text-2xl font-bold mb-3 leading-snug">
-                Débloquer un arbitrage que le client repousse
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                Le cas le plus différenciant : auditer un bien que votre client détient depuis des années,
-                comparer conservation, optimisation et cession, et documenter la décision pour faire avancer
-                un rendez-vous qui tournait en rond.
-              </p>
-              <Link href="/cgp-arbitrage-immobilier"
-                className="inline-flex items-center gap-2 text-[#C9A96E] font-semibold text-sm hover:text-[#d4b87a] transition-colors">
-                Voir la page dédiée CGP <IconArrow />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── AUDIT DE PARC IMMOBILIER EXISTANT ────────────────────────── */}
       <section className="py-20 md:py-28 border-b border-slate-200 bg-[#F8F7F4]">
@@ -501,62 +455,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── LE SIMULATEUR V3 ─────────────────────────────────────────── */}
-      <section className="py-20 md:py-28 border-t border-slate-200">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-14 max-w-2xl">
-            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le simulateur</p>
-            <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] mb-4 leading-tight">
-              De &laquo; je pense qu&apos;il faut arbitrer &raquo;<br />à &laquo; voici les chiffres qui le montrent &raquo;
-            </h2>
-            <p className="text-slate-500 leading-relaxed">
-              Le parcours de saisie couvre désormais le profil fiscal, les principaux dispositifs, l&apos;audit
-              d&apos;éligibilité par condition et deux modes de simulation (prudent / indicatif) pour rester
-              transparent sur ce qui est intégré au calcul.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {SIMULATEUR_HIGHLIGHTS.map((h) => (
-              <div key={h.title}
-                className="p-6 rounded-xl border border-slate-200 bg-[#F8F7F4]">
-                <h3 className="font-semibold text-[#0B1B2B] mb-2 text-sm">{h.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{h.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── AUTRES PROFESSIONNELS ─────────────────────────────────────── */}
-      <section className="bg-[#F8F7F4] py-20 md:py-28 border-t border-slate-200" id="professionnels">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="mb-14">
-            <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4">Le même moteur, utile aussi à</p>
-            <h2 className="font-playfair text-4xl font-bold text-[#0B1B2B] max-w-xl leading-tight">
-              Chasseurs, courtiers et experts-comptables
-            </h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-5 mb-8">
-            {PRO_USAGES.map((u) => (
-              <div key={u.title}
-                className="bg-white border border-slate-200 rounded-xl p-7 hover:border-[#0B1B2B]/30 hover:shadow-sm transition-all">
-                <h3 className="font-semibold text-[#0B1B2B] mb-2">{u.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{u.desc}</p>
-              </div>
-            ))}
-          </div>
-          <div className="bg-[#0B1B2B] rounded-xl p-7 flex flex-col md:flex-row md:items-center justify-between gap-5">
-            <div>
-              <p className="font-semibold text-white mb-1">Marque blanche & offre pilote disponibles</p>
-              <p className="text-sm text-slate-400">Rapport à vos couleurs, coordonnées, mentions personnalisées — découvrez la page dédiée aux professionnels.</p>
-            </div>
-            <Link href="/professionnels"
-              className="shrink-0 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-6 py-3 rounded-lg text-sm transition-colors">
-              Découvrir l&apos;offre pro
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* ── CTA FINAL ────────────────────────────────────────────────── */}
       <section className="bg-[#0B1B2B] text-white py-24 relative overflow-hidden">

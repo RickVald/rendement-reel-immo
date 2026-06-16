@@ -193,6 +193,69 @@ export default function CgpArbitrageImmobilierPage() {
         </div>
       </section>
 
+      {/* ── EXEMPLE ANONYMISÉ AVANT / PENDANT / APRÈS ────────────────── */}
+      <section className="bg-[#F8F7F4] py-20 md:py-28 border-y border-slate-200">
+        <div className="max-w-6xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4 text-center">Exemple anonymisé</p>
+          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-4 text-center leading-tight">
+            Un appartement détenu depuis 12 ans, à Rennes
+          </h2>
+          <p className="text-slate-500 leading-relaxed mb-12 max-w-2xl mx-auto text-center">
+            Le changement ne se voit pas seulement dans les chiffres — il se voit dans la dynamique du
+            rendez-vous client. C&apos;est ce même cas, avec les mêmes chiffres, qui est utilisé dans le{' '}
+            <Link href="/exemple-rapport" className="underline decoration-[#C9A96E] decoration-2 underline-offset-2 text-[#0B1B2B] font-medium">
+              rapport PDF anonymisé
+            </Link>.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-white rounded-2xl p-8 border border-slate-200">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Avant — le client refuse depuis 3 ans</p>
+              <div className="space-y-4">
+                {EXEMPLE_AVANT.map((e) => (
+                  <div key={e.label}>
+                    <p className="text-xs text-slate-400 mb-1">{e.label}</p>
+                    <p className="text-sm font-semibold text-slate-700">{e.val}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl p-8 border border-slate-200">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Pendant — le cabinet reprend la main</p>
+              <div className="space-y-4">
+                {EXEMPLE_PENDANT.map((e) => (
+                  <div key={e.label}>
+                    <p className="text-xs text-slate-400 mb-1">{e.label}</p>
+                    <p className="text-sm font-semibold text-slate-700 leading-snug">{e.val}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#C9A96E]">
+              <p className="text-xs font-semibold text-[#C9A96E] uppercase tracking-widest mb-5">Après — la décision, en connaissance de cause</p>
+              <div className="space-y-4">
+                {EXEMPLE_APRES.map((e) => (
+                  <div key={e.label} className="flex justify-between items-center gap-2">
+                    <span className="text-sm text-slate-500">{e.label}</span>
+                    <span className="font-mono font-bold text-[#0B1B2B] text-right">{e.val}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-slate-500 mt-6 leading-relaxed">
+                Face à ces chiffres — et sous réserve de validation des hypothèses de réemploi —, le client a
+                accepté d&apos;envisager la cession du bien et la réallocation du produit de vente vers une
+                assurance-vie, une option qu&apos;il refusait depuis trois ans.
+              </p>
+            </div>
+          </div>
+          <div className="mt-10 text-center">
+            <Link href="/exemple-rapport"
+              className="inline-flex items-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-sm">
+              Télécharger le rapport PDF de cet exemple <IconArrow />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── POURQUOI ILS REFUSENT ─────────────────────────────────────── */}
       <section className="bg-[#F8F7F4] py-20 md:py-28 border-y border-slate-200">
         <div className="max-w-5xl mx-auto px-6">
@@ -264,63 +327,6 @@ export default function CgpArbitrageImmobilierPage() {
                 <p className="text-sm text-slate-600 leading-relaxed">{b.desc}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── EXEMPLE ANONYMISÉ AVANT / PENDANT / APRÈS ────────────────── */}
-      <section className="bg-[#F8F7F4] py-20 md:py-28 border-y border-slate-200">
-        <div className="max-w-6xl mx-auto px-6">
-          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-4 text-center">Exemple anonymisé</p>
-          <h2 className="font-playfair text-3xl md:text-4xl font-bold text-[#0B1B2B] mb-4 text-center leading-tight">
-            Un appartement détenu depuis 12 ans, à Rennes
-          </h2>
-          <p className="text-slate-500 leading-relaxed mb-12 max-w-2xl mx-auto text-center">
-            Le changement ne se voit pas seulement dans les chiffres — il se voit dans la dynamique du
-            rendez-vous client. C&apos;est ce même cas, avec les mêmes chiffres, qui est utilisé dans le{' '}
-            <Link href="/exemple-rapport" className="underline decoration-[#C9A96E] decoration-2 underline-offset-2 text-[#0B1B2B] font-medium">
-              rapport PDF anonymisé
-            </Link>.
-          </p>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl p-8 border border-slate-200">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Avant — le client refuse depuis 3 ans</p>
-              <div className="space-y-4">
-                {EXEMPLE_AVANT.map((e) => (
-                  <div key={e.label}>
-                    <p className="text-xs text-slate-400 mb-1">{e.label}</p>
-                    <p className="text-sm font-semibold text-slate-700">{e.val}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl p-8 border border-slate-200">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Pendant — le cabinet reprend la main</p>
-              <div className="space-y-4">
-                {EXEMPLE_PENDANT.map((e) => (
-                  <div key={e.label}>
-                    <p className="text-xs text-slate-400 mb-1">{e.label}</p>
-                    <p className="text-sm font-semibold text-slate-700 leading-snug">{e.val}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl p-8 border-2 border-[#C9A96E]">
-              <p className="text-xs font-semibold text-[#C9A96E] uppercase tracking-widest mb-5">Après — la décision, en connaissance de cause</p>
-              <div className="space-y-4">
-                {EXEMPLE_APRES.map((e) => (
-                  <div key={e.label} className="flex justify-between items-center gap-2">
-                    <span className="text-sm text-slate-500">{e.label}</span>
-                    <span className="font-mono font-bold text-[#0B1B2B] text-right">{e.val}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-slate-500 mt-6 leading-relaxed">
-                Face à ces chiffres — et sous réserve de validation des hypothèses de réemploi —, le client a
-                accepté d&apos;envisager la cession du bien et la réallocation du produit de vente vers une
-                assurance-vie, une option qu&apos;il refusait depuis trois ans.
-              </p>
-            </div>
           </div>
         </div>
       </section>

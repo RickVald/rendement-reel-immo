@@ -68,29 +68,6 @@ export default function LpCgpArbitragePage() {
         </div>
       </div>
 
-      {/* ── LE PROBLÈME ──────────────────────────────────────────────── */}
-      <section className="py-20 md:py-24 bg-[#F8F7F4] border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-6">
-          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Le problème client</p>
-          <h2 className="font-playfair text-3xl font-bold text-[#0B1B2B] mb-8 leading-tight">
-            Le débat tourne en rond depuis des mois
-          </h2>
-          <div className="grid md:grid-cols-2 gap-5">
-            {[
-              { title: 'Il raisonne sur le loyer encaissé', desc: '820 € de loyer brut, ça paraît solide. Mais une fois les charges, la vacance, le crédit et l\'impôt déduits, il reste souvent moins de 200 €/mois — ou un cash-flow négatif.' },
-              { title: 'La plus-value lui fait peur', desc: 'La crainte de l\'impôt bloque la discussion avant qu\'elle commence. Pourtant, chiffré précisément, le montant est souvent bien inférieur à ce qu\'il imaginait.' },
-              { title: 'Il s\'accroche au prix d\'achat', desc: '« Je l\'ai payé 280 000 €, je ne vends pas à perte. » Le raisonnement se fait sur le passé, jamais sur le rendement réel actuel.' },
-              { title: 'Vous n\'avez pas de support documenté', desc: 'Votre analyse est juste. Mais sans rapport chiffré et signé par votre cabinet, le client repart comme il est venu.' },
-            ].map(p => (
-              <div key={p.title} className="bg-white rounded-xl p-6 border border-slate-200">
-                <h3 className="font-semibold text-[#0B1B2B] mb-2 text-sm">{p.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{p.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── EXEMPLE RENNES ───────────────────────────────────────────── */}
       <section className="py-20 bg-[#0B1B2B] text-white">
         <div className="max-w-4xl mx-auto px-6">
@@ -144,6 +121,29 @@ export default function LpCgpArbitragePage() {
               className="inline-flex items-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors">
               Voir le rapport complet de cet exemple <IconArrow />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── LE PROBLÈME ──────────────────────────────────────────────── */}
+      <section className="py-16 bg-[#F8F7F4] border-b border-slate-200">
+        <div className="max-w-4xl mx-auto px-6">
+          <p className="text-[#C9A96E] font-mono text-xs tracking-[0.2em] uppercase mb-3">Le problème client</p>
+          <h2 className="font-playfair text-3xl font-bold text-[#0B1B2B] mb-8 leading-tight">
+            Le débat tourne en rond depuis des mois
+          </h2>
+          <div className="grid md:grid-cols-2 gap-5">
+            {[
+              { title: 'Il raisonne sur le loyer encaissé', desc: '820 € de loyer brut, ça paraît solide. Mais une fois les charges, la vacance, le crédit et l\'impôt déduits, il reste souvent moins de 200 €/mois — ou un cash-flow négatif.' },
+              { title: 'La plus-value lui fait peur', desc: 'La crainte de l\'impôt bloque la discussion avant qu\'elle commence. Pourtant, chiffré précisément, le montant est souvent bien inférieur à ce qu\'il imaginait.' },
+              { title: 'Il s\'accroche au prix d\'achat', desc: '« Je l\'ai payé 280 000 €, je ne vends pas à perte. » Le raisonnement se fait sur le passé, jamais sur le rendement réel actuel.' },
+              { title: 'Vous n\'avez pas de support documenté', desc: 'Votre analyse est juste. Mais sans rapport chiffré et signé par votre cabinet, le client repart comme il est venu.' },
+            ].map(p => (
+              <div key={p.title} className="bg-white rounded-xl p-6 border border-slate-200">
+                <h3 className="font-semibold text-[#0B1B2B] mb-2 text-sm">{p.title}</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
