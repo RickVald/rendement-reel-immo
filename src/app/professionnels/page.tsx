@@ -110,17 +110,13 @@ export default function ProfessionnelsPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="#demo"
               className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
-              Demander une démo pro <IconArrow />
+              Auditer un cas client en démo <IconArrow />
             </Link>
-            <Link href="/simulateur"
+            <Link href="/exemple-rapport"
               className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
-              Voir le simulateur
+              Voir un rapport exemple
             </Link>
           </div>
-          <Link href="/exemple-rapport"
-            className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mt-6 transition-colors">
-            Voir un rapport exemple <IconArrow />
-          </Link>
         </div>
       </section>
 
@@ -338,7 +334,7 @@ export default function ProfessionnelsPage() {
           </h2>
           <div className="bg-white rounded-2xl border border-slate-200 p-8 mb-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-left">
             {[
-              { label: '99 € HT / mois', desc: 'pendant 2 mois, puis 299 € HT/mois si vous continuez' },
+              { label: '99 € HT / mois', desc: 'pendant 2 mois, puis 299 € HT/mois (tarif fondateur — au lieu de 399 € HT/mois)' },
               { label: '10 rapports', desc: 'inclus pour tester sur vos dossiers réels' },
               { label: 'Logo de votre cabinet', desc: 'sur les rapports dès la période pilote' },
               { label: 'Onboarding 30 minutes', desc: 'prise en main personnalisée en visio' },
@@ -401,10 +397,10 @@ export default function ProfessionnelsPage() {
           <div className="text-center mb-10">
             <div className="inline-block w-12 h-px bg-[#C9A96E] mb-6" />
             <h2 className="font-playfair text-3xl md:text-4xl font-bold mb-4 leading-tight">
-              Demander une démo pro
+              Auditer un cas client en démo
             </h2>
             <p className="text-slate-400 leading-relaxed">
-              20 minutes pour découvrir l&apos;outil, le rapport et l&apos;offre pilote adaptée à votre activité.
+              En 20 minutes, on audite un bien client réel ou anonymisé et on vous montre le rapport que vous pourriez remettre en rendez-vous.
             </p>
           </div>
           <ContactForm />

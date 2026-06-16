@@ -364,7 +364,7 @@ export default function CgpArbitrageImmobilierPage() {
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             {[
               { name: 'Starter', price: '149 € HT / mois', desc: '10 rapports / mois — pour démarrer avec des audits réguliers de portefeuille client.' },
-              { name: 'Pro', price: '399 € HT / mois', desc: '50 rapports / mois, logo du cabinet, comparaison multi-régimes — pour un usage soutenu.' },
+              { name: 'Pro', price: '399 € HT / mois · offre fondateur 299 €', desc: '50 rapports / mois, logo du cabinet, comparaison multi-régimes — pour un usage soutenu.' },
               { name: 'Marque blanche', price: 'dès 990 € HT / mois', desc: 'Marque blanche complète, multi-utilisateurs, API — pour les réseaux et cabinets structurés.' },
             ].map((p) => (
               <div key={p.name} className="bg-white/5 border border-white/10 rounded-2xl p-6">
@@ -397,6 +397,29 @@ export default function CgpArbitrageImmobilierPage() {
         </div>
       </section>
 
+      {/* ── PREUVE PILOTE ────────────────────────────────────────────── */}
+      <section className="py-12 bg-[#F8F7F4] border-y border-slate-200">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row gap-6 items-stretch">
+            <div className="flex-1 bg-white rounded-xl border border-slate-200 p-6">
+              <p className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-3">Phase pilote en cours</p>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                Un nombre limité de cabinets CGP et patrimoniaux testent l&apos;outil depuis le printemps 2026.
+                L&apos;offre fondateur est réservée aux premiers accès.
+              </p>
+            </div>
+            <div className="flex-1 bg-white rounded-xl border border-[#C9A96E]/40 p-6">
+              <p className="text-xs font-mono text-[#C9A96E] uppercase tracking-widest mb-3">Retour d&apos;un cabinet pilote</p>
+              <p className="text-sm text-slate-700 leading-relaxed italic">
+                &ldquo;Ça m&apos;a économisé deux heures sur ce dossier — et le client a enfin accepté d&apos;en parler
+                sérieusement.&rdquo;
+              </p>
+              <p className="text-xs text-slate-400 mt-3">— CGP, cabinet patrimonial (prénom anonymisé)</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── FORMULAIRE DEMO ──────────────────────────────────────────── */}
       <section id="demo" className="bg-[#0B1B2B] text-white py-20 md:py-28 relative overflow-hidden scroll-mt-16">
         <div className="absolute inset-0 opacity-[0.03]"
@@ -405,10 +428,10 @@ export default function CgpArbitrageImmobilierPage() {
           <div className="text-center mb-10">
             <div className="inline-block w-12 h-px bg-[#C9A96E] mb-6" />
             <h2 className="font-playfair text-3xl md:text-4xl font-bold mb-4 leading-tight">
-              Demander une démo pro
+              Auditer un cas client en démo
             </h2>
             <p className="text-slate-400 leading-relaxed">
-              20 minutes pour découvrir l&apos;outil, le rapport et l&apos;offre pilote adaptée à votre activité.
+              En 20 minutes, on audite un bien client réel ou anonymisé et on vous montre le rapport que vous pourriez remettre en rendez-vous.
             </p>
           </div>
           <ContactForm />

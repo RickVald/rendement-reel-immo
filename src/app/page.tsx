@@ -150,20 +150,15 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <Link href="/cgp-arbitrage-immobilier#demo"
+                <Link href="/exemple-rapport"
                   className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-7 py-3.5 rounded-lg text-sm transition-colors shadow-lg shadow-[#C9A96E]/20">
-                  Auditer un bien client bloqué <IconArrow />
+                  Voir un rapport exemple <IconArrow />
                 </Link>
-                <Link href="/cgp-arbitrage-immobilier"
+                <Link href="/cgp-arbitrage-immobilier#demo"
                   className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-400 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
-                  Voir comment débloquer un arbitrage
+                  Auditer un cas client en démo
                 </Link>
               </div>
-
-              <Link href="/exemple-rapport"
-                className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mb-8 transition-colors">
-                Voir un rapport exemple <IconArrow />
-              </Link>
 
               {/* Trust micro-signals */}
               <div className="flex flex-wrap gap-x-5 gap-y-2">
@@ -306,6 +301,29 @@ export default function Home() {
                 <span>{t}</span>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PREUVE PILOTE ────────────────────────────────────────────── */}
+      <section className="py-10 border-b border-slate-200">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row gap-5 items-stretch">
+            <div className="flex-1 bg-[#F8F7F4] rounded-xl border border-slate-200 p-5">
+              <p className="text-xs font-mono text-slate-400 uppercase tracking-widest mb-2">Phase pilote en cours</p>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                Premiers cabinets CGP et chasseurs immobiliers en test depuis le printemps 2026.
+                Accès fondateur ouvert à un nombre limité de cabinets.
+              </p>
+            </div>
+            <div className="flex-1 bg-white rounded-xl border border-[#C9A96E]/40 p-5">
+              <p className="text-xs font-mono text-[#C9A96E] uppercase tracking-widest mb-2">Retour pilote</p>
+              <p className="text-sm text-slate-700 leading-relaxed italic">
+                &ldquo;Le client avait refusé l&apos;arbitrage depuis deux ans. Le rapport a objectivé le débat — on a enfin
+                pu avancer.&rdquo;
+              </p>
+              <p className="text-xs text-slate-400 mt-2">— CGP, cabinet patrimonial (prénom anonymisé)</p>
+            </div>
           </div>
         </div>
       </section>
@@ -564,19 +582,15 @@ export default function Home() {
             Rapport d&apos;arbitrage complet, personnalisable.<br />Auditez un bien client ou testez le simulateur.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/cgp-arbitrage-immobilier#demo"
+            <Link href="/exemple-rapport"
               className="inline-flex items-center justify-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-10 py-4 rounded-lg text-base transition-colors shadow-lg shadow-[#C9A96E]/20">
-              Auditer un bien client bloqué <IconArrow />
+              Voir un rapport exemple <IconArrow />
             </Link>
-            <Link href="/simulateur"
+            <Link href="/cgp-arbitrage-immobilier#demo"
               className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-10 py-4 rounded-lg transition-colors text-base">
-              Tester le simulateur
+              Auditer un cas client en démo
             </Link>
           </div>
-          <Link href="/exemple-rapport"
-            className="inline-flex items-center gap-1.5 text-sm text-[#C9A96E] hover:text-[#d4b87a] font-medium mt-6 transition-colors">
-            Voir un rapport exemple <IconArrow />
-          </Link>
           <p className="text-slate-600 text-xs mt-8 max-w-lg mx-auto leading-relaxed">
             Les résultats sont des simulations indicatives basées sur les données saisies. Ils ne constituent pas
             un conseil en investissement ni un conseil fiscal personnalisé.

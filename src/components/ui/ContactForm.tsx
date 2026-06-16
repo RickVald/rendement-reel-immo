@@ -87,6 +87,10 @@ export function ContactForm() {
           Merci ! Votre demande a bien été reçue, nous revenons vers vous rapidement.
         </p>
       )}
+      <p className="text-center text-xs text-slate-600 leading-relaxed">
+        Données de simulation non conservées sans coordonnées renseignées · PDF générés à la demande, non stockés après génération.{' '}
+        <a href="/securite-donnees" className="underline hover:text-slate-400 transition-colors">Sécurité des données</a>
+      </p>
     </form>
   )
 }
