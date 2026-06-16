@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { searchDDG, scrapeWebsite, computeScore, QUERIES_PAR_SEGMENT, VILLES_CIBLES, type PappersResultat } from '@/lib/crm/sourcing'
+import { searchGoogle, scrapeWebsite, computeScore, QUERIES_PAR_SEGMENT, VILLES_CIBLES, type PappersResultat } from '@/lib/crm/sourcing'
 import type { Segment } from '@/lib/crm/types'
 
 export const dynamic = 'force-dynamic'
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
     for (const queryTemplate of queryTemplates) {
       const query = `${queryTemplate} ${villeStr}`
-      const ddgResults = await searchDDG(query)
+      const ddgResults = await searchGoogle(query)
 
       for (const result of ddgResults) {
         if (seen.has(result.url)) continue
