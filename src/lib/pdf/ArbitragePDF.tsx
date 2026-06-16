@@ -163,7 +163,9 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           <CoverSummary items={[
             'Comparaison des scénarios Conserver / Vendre',
             'Détail du scénario Conserver',
-            'Hypothèses retenues et sensibilité',
+            'Hypothèses retenues',
+            'Sensibilité et seuil de bascule',
+            'Pistes d\'optimisation avant arbitrage',
           ]} />
         </View>
 
@@ -393,7 +395,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           PAGE 4 — HYPOTHÈSES RETENUES ET SENSIBILITÉ
       ══════════════════════════════════════════════════════════════════════ */}
       <Page size="A4" style={S.page}>
-        <PageHeader section="Hypothèses retenues" meta={meta} />
+        <PageHeader section="Seuil de bascule et pistes d'optimisation" meta={meta} />
         <View style={S.body}>
           <Text style={S.sectionTitle}>Les hypothèses qui déterminent ce verdict</Text>
           <Text style={[S.cardText, { marginBottom: 12 }]}>

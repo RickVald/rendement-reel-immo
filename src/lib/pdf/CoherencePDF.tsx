@@ -61,13 +61,13 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
   const vc = verdictColors(verdictGlobal.couleur)
   const dateStr = new Date(dateAnalyse).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
   const titreBilan = nomUtilisateur?.trim() ? `Bilan de ${nomUtilisateur.trim()}` : 'Votre bilan'
-  const meta = `Bilan de cohérence patrimoniale · ${dateStr}`
+  const meta = `Bilan indicatif de cohérence patrimoniale · ${dateStr}`
 
   const { repartition } = synthese
 
   return (
     <Document
-      title="Bilan de cohérence patrimoniale"
+      title="Bilan indicatif de cohérence patrimoniale"
       author="Rendement Réel Immo"
       subject="Bilan indicatif de cohérence patrimoniale"
       creator="rendementreelimmo.fr"
@@ -82,7 +82,7 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
             <BrandSeal size={34} />
             <Text style={S.coverBrand}>Rendement Réel Immo · Bilan patrimonial</Text>
           </View>
-          <Text style={S.coverTitle}>Bilan de{'\n'}cohérence patrimoniale</Text>
+          <Text style={S.coverTitle}>Bilan indicatif de{'\n'}cohérence patrimoniale</Text>
           <Text style={S.coverSubtitle}>{titreBilan}</Text>
 
           <View style={S.coverSeparator} />

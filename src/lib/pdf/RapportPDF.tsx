@@ -265,6 +265,22 @@ export function RapportPDF({
             </View>
           </View>
 
+          {/* Synthèse uniquement — deux chiffres clés en bannière haute */}
+          {synthese && verdict.label !== "Non arbitrable en l'état" && (
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+              <View style={{ flex: 1, backgroundColor: summary.cashflowMensuelMoyen >= 0 ? '#ecfdf5' : '#fef2f2', borderRadius: 5, borderWidth: 1.5, borderColor: summary.cashflowMensuelMoyen >= 0 ? COLORS.emerald : COLORS.red, padding: 10, alignItems: 'center' }}>
+                <Text style={{ fontSize: 7, color: COLORS.slate500, marginBottom: 3, textAlign: 'center' }}>Cash-flow mensuel réel</Text>
+                <Text style={{ fontSize: 22, fontFamily: 'Arial', fontWeight: 'bold', color: summary.cashflowMensuelMoyen >= 0 ? COLORS.emeraldDark : COLORS.red, textAlign: 'center' }}>{sign(summary.cashflowMensuelMoyen)}/mois</Text>
+                <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 2, textAlign: 'center' }}>après crédit, charges et impôts</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: '#eff6ff', borderRadius: 5, borderWidth: 1.5, borderColor: '#6366f1', padding: 10, alignItems: 'center' }}>
+                <Text style={{ fontSize: 7, color: COLORS.slate500, marginBottom: 3, textAlign: 'center' }}>Prix cible pour rentabilité cible</Text>
+                <Text style={{ fontSize: 22, fontFamily: 'Arial', fontWeight: 'bold', color: '#1e3a8a', textAlign: 'center' }}>{eur(prixMax.prixMaximum)}</Text>
+                <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginTop: 2, textAlign: 'center' }}>décote nécessaire : {eur(prixMax.negociationEuros)} ({pct(prixMax.negociationPct, 1)})</Text>
+              </View>
+            </View>
+          )}
+
           {/* Bloc "Points de fragilité à intégrer dans la décision" (CDC §6.2) */}
           {verdict.alertes.length > 0 && (
             <View style={{ marginBottom: 10, padding: 8, backgroundColor: '#fef2f2', borderRadius: 4, borderWidth: 1, borderColor: COLORS.red }}>
@@ -707,6 +723,11 @@ export function RapportPDF({
                 <Text style={{ fontSize: 6.5, color: COLORS.slate400, marginBottom: 4 }}>
                   Convention unique : capital final disponible après {input.revente.dureeDetentionAns} ans. Immo = produit net de cession après frais et fiscalité plus-value. Alternatives = capital capitalisé (même apport initial + même effort mensuel réinvesti).
                 </Text>
+                <View style={{ marginBottom: 4, paddingHorizontal: 6, paddingVertical: 3, backgroundColor: '#fff7ed', borderRadius: 3, borderLeftWidth: 2, borderLeftColor: COLORS.amber }}>
+                  <Text style={{ fontSize: 6.5, color: '#7c2d12', lineHeight: 1.4 }}>
+                    Comparaison indicative — les alternatives financières sont affichées avant fiscalité propre à leur enveloppe (PFU, abattements PEA, etc.).
+                  </Text>
+                </View>
                 <ComparaisonPlacementsChart
                   tri={summary.tri ?? 0}
                   triNonSignificatif={triNonSignificatif}

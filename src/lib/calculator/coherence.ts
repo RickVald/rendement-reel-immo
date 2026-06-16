@@ -676,6 +676,25 @@ function diagnostiquerCoherenceGlobaleObjectifs(
     )
   }
 
+  // Si tous les objectifs déclarés pointent vers des piliers sans données suffisantes,
+  // la cohérence globale ne peut pas être évaluée non plus.
+  const tousInsuffisants = input.objectifs.every(o => {
+    const np = OBJECTIF_PILIER[o.type] as NomPilier | undefined
+    const p = np ? piliers.get(np) : undefined
+    return !p || p.statut === 'donnees_insuffisantes'
+  })
+  if (tousInsuffisants) {
+    return makePilier(
+      'coherence_globale_objectifs',
+      'donnees_insuffisantes',
+      'low',
+      'Les objectifs patrimoniaux déclarés n\'ont pas pu être évalués : les données disponibles sur les piliers associés sont insuffisantes pour apprécier leur cohérence avec la situation financière déclarée.',
+      donneesUtilisees,
+      [],
+      []
+    )
+  }
+
   const objectifsCourtTermePrioritaires = input.objectifs.filter(
     o => o.priorite === 'forte' && (o.horizon === '<2' || o.horizon === '2-5') && (o.montantVise ?? 0) > 0
   )
