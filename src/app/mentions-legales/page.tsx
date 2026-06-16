@@ -20,7 +20,7 @@ export default function MentionsLegalesPage() {
           <li>Adresse du siège : Moulin de Carmenais, 56120 Saint-Servant</li>
           <li>SIREN : 883 055 857</li>
           <li>Immatriculation : RCS Vannes</li>
-          <li>TVA intracommunautaire : <ToComplete>numéro de TVA intracommunautaire ou mention &laquo; TVA non applicable, art. 293 B du CGI &raquo; si franchise en base</ToComplete></li>
+          <li>TVA : TVA non applicable, art. 293 B du CGI (franchise en base de TVA)</li>
           <li>Email de contact : remy@rendementreelimmo.fr</li>
         </ul>
       </LegalSection>

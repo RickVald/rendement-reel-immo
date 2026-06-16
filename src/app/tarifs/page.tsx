@@ -27,8 +27,8 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: '399 €',
-    period: 'HT / mois',
+    price: '299 €',
+    period: 'HT / mois — tarif fondateur',
     desc: 'Pour les cabinets avec un volume de dossiers soutenu.',
     features: [
       '50 rapports / mois',
