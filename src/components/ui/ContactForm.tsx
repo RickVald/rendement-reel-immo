@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { track } from '@/lib/analytics'
 
 const BESOINS = [
   'Rapport client (Starter / Pro)',
@@ -22,10 +23,18 @@ export function ContactForm() {
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const started = useRef(false)
 
   const update = (key: keyof typeof form) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const handleFirstFocus = () => {
+    if (!started.current) {
+      started.current = true
+      track('demo_form_start')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,6 +57,7 @@ export function ContactForm() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Erreur, veuillez réessayer.')
+      track('demo_form_submit', { besoin: form.besoin })
       setSent(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur inattendue')
@@ -61,7 +71,7 @@ export function ContactForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-4">
-        <input required placeholder="Nom" value={form.nom} onChange={update('nom')} className={inputClass} />
+        <input required placeholder="Nom" value={form.nom} onChange={update('nom')} onFocus={handleFirstFocus} className={inputClass} />
         <input required placeholder="Société / cabinet" value={form.societe} onChange={update('societe')} className={inputClass} />
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
