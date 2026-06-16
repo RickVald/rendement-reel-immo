@@ -30,6 +30,14 @@ const ALTERNATIVE_LABELS: Record<string, string> = {
   scpi: 'des SCPI',
   autre: "l'alternative déclarée",
 }
+// Forme prépositionnelle (après "de") — évite "de une" / "de un"
+const ALTERNATIVE_LABELS_DE: Record<string, string> = {
+  fonds_euros: "d'un fonds en euros",
+  assurance_vie: "de l'assurance-vie",
+  etf_pea: 'des ETF via un PEA',
+  scpi: 'des SCPI',
+  autre: "de l'alternative déclarée",
+}
 
 // Wording de couverture volontairement plus prudent que le label métier brut
 // (Conserver/Vendre/Arbitrage à approfondir) : on présente un scénario favorable
@@ -58,6 +66,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
   const meta = `${TYPE_LABELS[input.bien.type] ?? input.bien.type} · ${villeFormatee ?? '—'} · DPE ${input.performanceActuelle.dpeActuel}`
   const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
   const alternativeLabel = ALTERNATIVE_LABELS[input.alternativeReemploi.typeSupport] ?? "l'alternative déclarée"
+  const alternativeLabelDe = ALTERNATIVE_LABELS_DE[input.alternativeReemploi.typeSupport] ?? "de l'alternative déclarée"
   const dernier = scenarioConserver.rows[scenarioConserver.rows.length - 1]
 
   // Écart de patrimoine final, exprimé en euros d'abord (lecture immédiate),
@@ -448,7 +457,7 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
           <Text style={S.sectionTitle}>Sensibilité — rendement de l'alternative de réemploi</Text>
           <Text style={[S.cardText, { marginBottom: 8 }]}>
             Le tableau ci-dessous montre comment le patrimoine final du scénario Vendre, et l'écart avec le scénario
-            Conserver, évoluent si le rendement net de {alternativeLabel} s'écarte de l'hypothèse retenue
+            Conserver, évoluent si le rendement net {alternativeLabelDe} s'écarte de l'hypothèse retenue
             ({pct(tauxBase)}/an).
           </Text>
           <View style={S.table}>
@@ -511,7 +520,13 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
               'Tester une hausse de loyer ou un repositionnement locatif (meublé, colocation, bail mobilité) si le marché le permet.',
               'Programmer des travaux améliorant le DPE pour se conformer aux obligations réglementaires et relever le loyer plafonné.',
               'Réduire la vacance locative (gestion déléguée, bail plus flexible, plateformes spécialisées).',
-              'Optimiser le régime fiscal (passage au réel foncier ou LMNP réel si les charges sont élevées).',
+              (() => {
+                const r = input.fiscalite.regime
+                if (r === 'reel_foncier') return 'Tester un passage en meublé (LMNP réel) si le bien s\'y prête : amortissements déductibles, cash-flow souvent amélioré.'
+                if (r === 'lmnp_reel' || r === 'lmnp_micro_bic') return 'Vérifier l\'optimisation des charges déductibles dans le cadre du régime actuel (LMNP réel) : honoraires, travaux, intérêts d\'emprunt, amortissements.'
+                if (r === 'micro_foncier') return 'Envisager le passage au réel foncier ou au LMNP réel si les charges réelles dépassent l\'abattement forfaitaire de 30 %.'
+                return 'Optimiser le régime fiscal si le régime actuel n\'est pas adapté, ou tester un passage en meublé / LMNP réel lorsque le contexte locatif et fiscal le permet.'
+              })(),
             ].map((piste, i) => (
               <View key={i} style={S.listItem}>
                 <Text style={S.listBullet}>-</Text>

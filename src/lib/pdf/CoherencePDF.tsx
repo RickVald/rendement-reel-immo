@@ -230,9 +230,14 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
         <PageHeader section="Vos objectifs patrimoniaux" meta={meta} />
         <View style={S.body}>
           <Text style={S.sectionTitle}>Objectifs déclarés</Text>
-          {objectifsEvalues.length === 0 ? (
-            <View style={S.card}>
-              <Text style={S.cardText}>Aucun objectif patrimonial n&apos;a été déclaré dans le questionnaire.</Text>
+          {objectifsEvalues.length === 0 || objectifsEvalues.every(oe => oe.coherence === 'donnees_insuffisantes') ? (
+            <View style={[S.card, { backgroundColor: '#fafafa', borderColor: COLORS.slate200 }]}>
+              <Text style={[S.cardTitle, { marginBottom: 4 }]}>Objectifs insuffisamment renseignés</Text>
+              <Text style={S.cardText}>
+                Aucun objectif patrimonial exploitable n&apos;a pu être évalué avec les informations déclarées.
+                Cette section doit être complétée avec le client — priorité, horizon et, si possible, montant cible —
+                avant toute analyse de trajectoire patrimoniale.
+              </Text>
             </View>
           ) : (
             <View style={S.table}>
@@ -325,7 +330,19 @@ export function CoherencePDF({ analysis, nomUtilisateur }: { analysis: Coherence
           <Text style={S.sectionTitle}>Points d&apos;attention prioritaires</Text>
           {pointsAttentionPrioritaires.length === 0 ? (
             <View style={S.card}>
-              <Text style={S.cardText}>Aucun point d&apos;attention prioritaire n&apos;a été identifié sur la base des informations déclarées.</Text>
+              {verdictGlobal.nbDonneesInsuffisantes > 0 ? (
+                <>
+                  <Text style={[S.cardTitle, { marginBottom: 6 }]}>Points à compléter avant analyse approfondie</Text>
+                  {piliers.filter(p => p.statut === 'donnees_insuffisantes').map((p, i) => (
+                    <View key={i} style={S.listItem}>
+                      <Text style={S.listBullet}>{i + 1}.</Text>
+                      <Text style={S.listText}>{p.label} — données insuffisantes pour évaluation.</Text>
+                    </View>
+                  ))}
+                </>
+              ) : (
+                <Text style={S.cardText}>Aucun point d&apos;attention prioritaire n&apos;a été identifié sur la base des informations déclarées.</Text>
+              )}
             </View>
           ) : (
             <View style={S.card}>
