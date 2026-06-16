@@ -139,6 +139,81 @@ export function computeScore(r: PappersResultat): number {
   return Math.min(s, 100)
 }
 
+/* ── Requêtes de recherche par segment ──────────────────────────────── */
+
+export const QUERIES_PAR_SEGMENT: Record<string, string[]> = {
+  CGP_IMMOBILIER:        ['cabinet CGP conseiller gestion patrimoine', 'conseiller en investissements financiers CIF', 'gestion de patrimoine indépendant'],
+  CHASSEUR_INVESTISSEUR: ['chasseur immobilier investissement locatif', 'chasseur de biens immobilier'],
+  COURTIER_INVESTISSEUR: ['courtier crédit immobilier', 'courtier en prêts immobiliers'],
+  AGENCE_INVESTISSEUR:   ['agence immobilière investissement locatif', 'agence immobilière patrimoine'],
+  '':                    ['cabinet CGP conseiller gestion patrimoine', 'chasseur immobilier investissement', 'courtier crédit immobilier'],
+}
+
+/* ── Recherche DuckDuckGo (sans API key) ─────────────────────────────── */
+
+const ANNUAIRES = ['kompass', 'pages-jaunes', 'pagesjaunes', 'societe.com', 'pappers', 'infogreffe', 'verif.com', 'manageo', 'linkedin', 'facebook', 'instagram', 'twitter', 'youtube', 'leboncoin', 'seloger', 'meilleurtaux', 'empruntis', 'cafpi', 'lafinancepourtous', 'service-public', 'impots.gouv']
+
+function extractUrlFromDDG(href: string): string | null {
+  // DDG encode les URLs dans uddg= ou //duckduckgo.com/l/?uddg=
+  try {
+    const match = href.match(/uddg=([^&]+)/)
+    if (match) return decodeURIComponent(match[1])
+    if (href.startsWith('http')) return href
+  } catch { /* */ }
+  return null
+}
+
+function isUsefulUrl(url: string): boolean {
+  const lower = url.toLowerCase()
+  return !ANNUAIRES.some(a => lower.includes(a)) && (url.startsWith('http://') || url.startsWith('https://'))
+}
+
+export interface DDGResult {
+  titre: string
+  url: string
+  snippet: string
+}
+
+export async function searchDDG(query: string): Promise<DDGResult[]> {
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=fr-fr`
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'fr-FR,fr;q=0.9',
+      },
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!res.ok) return []
+    const html = await res.text()
+
+    const results: DDGResult[] = []
+    // Extraire les blocs résultats
+    const blockRe = /<div class="result[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g
+    const titleRe = /<a[^>]+class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/
+    const snippetRe = /<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/
+
+    let block: RegExpExecArray | null
+    while ((block = blockRe.exec(html)) !== null && results.length < 15) {
+      const content = block[1]
+      const titleMatch = titleRe.exec(content)
+      if (!titleMatch) continue
+
+      const rawUrl = extractUrlFromDDG(titleMatch[1])
+      if (!rawUrl || !isUsefulUrl(rawUrl)) continue
+
+      const titre = titleMatch[2].replace(/<[^>]+>/g, '').trim()
+      const snippetMatch = snippetRe.exec(content)
+      const snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').trim() : ''
+
+      results.push({ titre, url: rawUrl, snippet })
+    }
+    return results
+  } catch {
+    return []
+  }
+}
+
 /* ── Enrichissement web ──────────────────────────────────────────────── */
 
 const EMAIL_BLACKLIST = ['example', 'noreply', 'no-reply', 'donotreply', 'test@', 'user@', 'admin@', 'webmaster@', 'support@']
