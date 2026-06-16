@@ -37,21 +37,21 @@ export default function ExempleRapportPage() {
         <div className="relative max-w-3xl mx-auto px-6 py-20 md:py-24 text-center">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-8">
             <span className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]"/>
-            <span className="text-xs text-slate-300 tracking-wide">Deux exemples anonymisés</span>
+            <span className="text-xs text-slate-300 tracking-wide">Deux exemples anonymisés · acquisition &amp; bien détenu</span>
           </div>
           <h1 className="font-playfair text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            Voici à quoi ressemble<br />un rapport Rendement Réel Immo
+            Le rapport que vous pouvez remettre à un client<br />
+            <em className="text-[#C9A96E] not-italic">pour objectiver un arbitrage immobilier</em>
           </h1>
           <p className="text-slate-400 text-lg leading-relaxed mb-10 max-w-xl mx-auto">
-            Deux dossiers complets, générés en quelques minutes à partir de données fictives : un projet
-            d&apos;acquisition (verdict, prix cible, TRI/VAN, fiscalité, dispositifs, audit de cohérence) et
-            un bien déjà détenu (conserver ou vendre, fiscalité de cession, comparaison avec un placement alternatif).
+            Verdict go/no-go, prix cible de négociation, TRI/VAN, comparaison des régimes fiscaux,
+            audit d&apos;éligibilité et fiscalité de cession — deux dossiers complets, prêts à remettre en rendez-vous.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <DownloadGate />
-            <Link href="/professionnels#demo"
+            <Link href="/cgp-arbitrage-immobilier#demo"
               className="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-white/30 text-slate-300 hover:text-white font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
-              Demander une démo pro
+              Auditer un cas client en démo
             </Link>
           </div>
         </div>
@@ -137,13 +137,13 @@ export default function ExempleRapportPage() {
             En marque blanche, ce rapport peut porter le logo, les couleurs et les coordonnées de votre cabinet.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/professionnels#demo"
+            <Link href="/cgp-arbitrage-immobilier#demo"
               className="inline-flex items-center justify-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-bold px-7 py-3.5 rounded-lg text-sm transition-colors">
-              Demander une démo pro <IconArrow />
+              Auditer un cas client en démo <IconArrow />
             </Link>
-            <Link href="/white-label"
+            <Link href="/tarifs"
               className="inline-flex items-center justify-center gap-2 border border-slate-300 hover:border-[#0B1B2B] text-[#0B1B2B] font-medium px-7 py-3.5 rounded-lg transition-colors text-sm">
-              Découvrir la marque blanche
+              Voir les tarifs
             </Link>
           </div>
         </div>

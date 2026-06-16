@@ -251,16 +251,10 @@ export default function Home() {
                 ou de cession — pour transformer un capital immobilisé dans un actif sous-performant en
                 opportunité de conseil, d&apos;arbitrage et de réallocation patrimoniale.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/simulateur"
-                  className="inline-flex items-center justify-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
-                  Auditer un bien détenu <IconArrow />
-                </Link>
-                <Link href="/cgp-arbitrage-immobilier"
-                  className="inline-flex items-center justify-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
-                  Voir la page dédiée CGP
-                </Link>
-              </div>
+              <Link href="/cgp-arbitrage-immobilier"
+                className="inline-flex items-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                Voir la page dédiée CGP <IconArrow />
+              </Link>
             </div>
             <div className="bg-white rounded-2xl p-8 border border-slate-200">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Identifiez les biens à...</p>
@@ -452,17 +446,13 @@ export default function Home() {
                 pour être remis à un client, présenté en rendez-vous ou archivé dans un dossier patrimonial.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link href="/professionnels#demo"
-                  className="inline-flex items-center gap-2 bg-[#0B1B2B] hover:bg-[#162840] text-white font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
-                  Demander une démo pro <IconArrow />
-                </Link>
-                <Link href="/simulateur"
-                  className="inline-flex items-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
-                  Tester le simulateur
-                </Link>
                 <Link href="/exemple-rapport"
-                  className="inline-flex items-center gap-2 text-[#0B1B2B] font-semibold px-2 py-3.5 transition-colors text-sm underline decoration-[#C9A96E] decoration-2 underline-offset-4">
-                  Voir un rapport exemple
+                  className="inline-flex items-center gap-2 bg-[#C9A96E] hover:bg-[#d4b87a] text-[#0B1B2B] font-bold px-6 py-3.5 rounded-lg transition-colors text-sm shadow-sm">
+                  Télécharger le rapport exemple <IconArrow />
+                </Link>
+                <Link href="/cgp-arbitrage-immobilier#demo"
+                  className="inline-flex items-center gap-2 border border-slate-300 hover:border-slate-400 text-slate-600 font-semibold px-6 py-3.5 rounded-lg transition-colors text-sm">
+                  Auditer un cas client en démo
                 </Link>
               </div>
             </div>
