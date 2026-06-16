@@ -69,6 +69,11 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
   const baseComparaison = venteGagne ? scenarioConserver.patrimoineFinal : scenarioVendre.patrimoineFinal
   const ecartPctVsReference = ecartEuros / Math.max(1, baseComparaison)
 
+  // Seuil de bascule : rendement de réemploi à partir duquel la vente devient favorable
+  const seuilBasculePct = scenarioVendre.produitNetVenteAujourdhui > 0
+    ? Math.pow(scenarioConserver.patrimoineFinal / scenarioVendre.produitNetVenteAujourdhui, 1 / horizonAns) - 1
+    : null
+
   // Sensibilité du rendement de l'alternative de réemploi (item 1, page 4)
   const tauxBase = scenarioVendre.rendementNetAttendu
   const sensibiliteTaux = [
@@ -482,6 +487,38 @@ export function ArbitragePDF({ analysis }: { analysis: ArbitrageAnalysis }) {
             Barres = patrimoine final du scénario Vendre selon le rendement testé. Ligne pointillée = patrimoine final du
             scénario Conserver ({eur(scenarioConserver.patrimoineFinal)}).
           </Text>
+
+          {seuilBasculePct !== null && seuilBasculePct > 0 && (
+            <View style={[S.card, { backgroundColor: '#f0f9ff', borderColor: '#7dd3fc', marginBottom: 12 }]} wrap={false}>
+              <Text style={{ fontSize: 8.5, fontFamily: 'Arial', fontWeight: 'bold', color: '#0c4a6e', marginBottom: 4 }}>
+                Seuil de bascule — quand la vente devient favorable
+              </Text>
+              <Text style={{ fontSize: 8, color: '#0369a1', lineHeight: 1.6 }}>
+                {`La vente devient favorable dès que le rendement net annuel de l'alternative de réemploi dépasse environ ${pct(seuilBasculePct, 1)}/an. En dessous de ce seuil, conserver le bien reste préférable sur ${horizonAns} ans, toutes choses égales par ailleurs.`}
+              </Text>
+            </View>
+          )}
+
+          <View style={[S.card, { marginBottom: 12 }]} wrap={false}>
+            <Text style={{ fontSize: 8.5, fontFamily: 'Arial', fontWeight: 'bold', color: COLORS.navy, marginBottom: 6 }}>
+              Pistes d'optimisation à tester avant arbitrage
+            </Text>
+            <Text style={{ fontSize: 7.5, color: COLORS.slate500, marginBottom: 6, lineHeight: 1.5 }}>
+              Avant de décider de vendre, il peut être utile d'examiner si des leviers permettent d'améliorer significativement la rentabilité du scénario Conserver :
+            </Text>
+            {[
+              'Renégocier ou solder le crédit en cours (rachat de crédit, remboursement anticipé partiel) pour réduire l\'effort mensuel.',
+              'Tester une hausse de loyer ou un repositionnement locatif (meublé, colocation, bail mobilité) si le marché le permet.',
+              'Programmer des travaux améliorant le DPE pour se conformer aux obligations réglementaires et relever le loyer plafonné.',
+              'Réduire la vacance locative (gestion déléguée, bail plus flexible, plateformes spécialisées).',
+              'Optimiser le régime fiscal (passage au réel foncier ou LMNP réel si les charges sont élevées).',
+            ].map((piste, i) => (
+              <View key={i} style={S.listItem}>
+                <Text style={S.listBullet}>-</Text>
+                <Text style={S.listText}>{piste}</Text>
+              </View>
+            ))}
+          </View>
 
           <View style={S.disclaimer}>
             <Text style={S.disclaimerText}>

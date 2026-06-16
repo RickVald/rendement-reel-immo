@@ -10,11 +10,9 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import React from 'react'
 import { CoherencePDF } from '../src/lib/pdf/CoherencePDF'
 import { analyserCoherence } from '../src/lib/calculator/coherence'
-import { DEFAULT_INPUT_BILAN } from '../src/data/defaults-bilan'
 import type { ProjectInputBilan } from '../src/lib/calculator/types-bilan'
 
 const input: ProjectInputBilan = {
-  ...DEFAULT_INPUT_BILAN,
   profil: {
     age: 42,
     situationFamiliale: 'marie',
@@ -31,8 +29,8 @@ const input: ProjectInputBilan = {
   revenusChargesEpargne: {
     revenusMensuelsNets: 6500,
     chargesFixes: 1200,
-    mensualitesCredit: 1100,
-    impotsMensuels: 500,
+    mensualitesCredit: 1600,   // RP 1100 + locatif 500
+    impotsMensuels: 300,
     capaciteEpargneMensuelle: 800,
     epargneDisponible: 25000,
     stabiliteRevenus: 'stable',
@@ -40,26 +38,62 @@ const input: ProjectInputBilan = {
   patrimoineImmobilier: {
     biens: [
       {
+        id: 'rp',
         type: 'residence_principale',
         valeurEstimee: 380000,
-        capitalRestantDu: 185000,
-        loyerMensuelBrut: 0,
+        creditRestant: 185000,
+        mensualite: 1100,
+        loyerPercu: 0,
         chargesAnnuelles: 3200,
+        taxeFonciere: 1200,
+        regimeFiscal: 'non_applicable',
+        travauxPrevus: 0,
+        dpe: 'C',
       },
       {
+        id: 'locatif',
         type: 'investissement_locatif',
         valeurEstimee: 165000,
-        capitalRestantDu: 90000,
-        loyerMensuelBrut: 820,
+        creditRestant: 90000,
+        mensualite: 500,
+        loyerPercu: 820,
         chargesAnnuelles: 2400,
+        taxeFonciere: 800,
+        regimeFiscal: 'reel_foncier',
+        travauxPrevus: 0,
+        dpe: 'D',
       },
     ],
   },
   patrimoineFinancier: {
     actifs: [
-      { type: 'assurance_vie', valeur: 45000, rendementEstime: 0.025 },
-      { type: 'livret_a', valeur: 18000, rendementEstime: 0.03 },
-      { type: 'pea', valeur: 22000, rendementEstime: 0.05 },
+      {
+        id: 'av1',
+        categorie: 'assurance_vie',
+        montant: 45000,
+        disponibilite: 'partielle',
+        niveauRisque: 'modere',
+        horizon: '5_10_ans',
+        fraisConnus: 'oui',
+      },
+      {
+        id: 'livret',
+        categorie: 'livret',
+        montant: 18000,
+        disponibilite: 'immediate',
+        niveauRisque: 'aucun',
+        horizon: 'court_terme',
+        fraisConnus: 'non',
+      },
+      {
+        id: 'pea',
+        categorie: 'pea',
+        montant: 22000,
+        disponibilite: 'partielle',
+        niveauRisque: 'eleve',
+        horizon: '10_ans_et_plus',
+        fraisConnus: 'oui',
+      },
     ],
   },
   dettes: {
@@ -88,11 +122,15 @@ const input: ProjectInputBilan = {
 
 async function main() {
   const analysis = analyserCoherence(input)
+  const { verdictGlobal, synthese } = analysis
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buffer = await renderToBuffer(React.createElement(CoherencePDF, { analysis, nomUtilisateur: 'Martin' }) as any)
   const outPath = path.join(process.cwd(), 'public', 'exemples', 'rapport-exemple-coherence-anonymise.pdf')
   await writeFile(outPath, buffer)
-  console.log('Verdict:', analysis.verdictGlobal.verdict, '| Cohérents:', analysis.verdictGlobal.nbCoherents, '/ Incohérences:', analysis.verdictGlobal.nbIncoherences)
+  console.log(`Verdict: ${verdictGlobal.label}`)
+  console.log(`Cohérents: ${verdictGlobal.nbCoherents} / À vérifier: ${verdictGlobal.nbAVerifier} / Incohérences: ${verdictGlobal.nbIncoherences}`)
+  console.log(`Patrimoine brut: ${synthese.patrimoineBrut.toFixed(0)} € | Net: ${synthese.patrimoineNet.toFixed(0)} €`)
+  console.log(`Ratio dette/revenus: ${(synthese.ratioDetteRevenus * 100).toFixed(1)} %`)
   console.log('PDF écrit dans', outPath)
 }
 

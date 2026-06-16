@@ -35,7 +35,7 @@ const PILIER_LABELS: Record<NomPilier, string> = {
   coherence_globale_objectifs: 'Cohérence globale des objectifs',
 }
 
-const pct1 = (x: number) => `${Math.round(x * 100)} %`
+const pct1 = (x: number) => (Number.isFinite(x) ? `${Math.round(x * 100)} %` : '— %')
 const eur0 = fmtEur
 
 function couleurPourStatut(statut: StatutPilier, criticite: CriticitePilier): CouleurPilier {
@@ -760,6 +760,9 @@ function construireVerdictGlobal(input: ProjectInputBilan, synthese: SyntheseGlo
     couleur = 'red'
   } else if (nbAVerifier > 0) {
     label = 'Globalement cohérente, avec points à vérifier'
+    couleur = 'yellow'
+  } else if (nbDonneesInsuffisantes >= 2) {
+    label = 'Bilan partiel — données manquantes sur certains piliers'
     couleur = 'yellow'
   } else {
     label = 'Situation globalement cohérente'

@@ -317,8 +317,6 @@ export function RapportPDF({
                 { label: 'TRI projet',        val: triLabel,                          ok: !triNonSignificatif && (summary.tri ?? 0) >= 0.04 },
                 { label: 'VAN',               val: eur(summary.van),                   ok: summary.van > 0 },
                 { label: 'Cash-flow moyen',   val: `${sign(summary.cashflowMensuelMoyen)}/mois`, ok: summary.cashflowMensuelMoyen >= 0 },
-                { label: 'CF cumulé',         val: eur(summary.cashflowCumule),        ok: summary.cashflowCumule >= 0 },
-                { label: 'Effort mensuel',    val: `${eur(summary.effortEpargne)}/mois`, ok: summary.effortEpargne < 300 },
               ].map(k => <HypRow key={k.label} label={k.label} value={k.val} highlight={k.ok} />)}
               {triNonSignificatif && (
                 <Text style={{ fontSize: 6, color: COLORS.slate400, fontStyle: 'italic', marginTop: 2 }}>
@@ -328,11 +326,11 @@ export function RapportPDF({
               )}
 
               {verdict.recommandations.length > 0 && (
-                <View>
+                <View wrap={false}>
                   <Text style={[S.subTitle, { marginTop: 8 }]}>Leviers d'amélioration</Text>
                   <View style={S.card}>
                     {verdict.recommandations.slice(0, 3).map((r, i) => (
-                      <View key={i} style={S.listItem} wrap={false}>
+                      <View key={i} style={S.listItem}>
                         <Text style={S.listBullet}>-</Text>
                         <Text style={S.listText}>{r}</Text>
                       </View>
@@ -1075,13 +1073,9 @@ export function RapportPDF({
                       <Text style={{ fontSize: 6.5, color: COLORS.slate500, lineHeight: 1.5 }}>{REGIME_DESC[reg]}</Text>
                     </View>
                   ))}
-                  <View style={[S.alertBox, { marginTop: 4 }]} wrap={false}>
-                    <Text style={S.alertText}>
-                      Simulation sous réserve d'éligibilité. Le régime le plus favorable dépend de votre situation patrimoniale globale.
-                      Certains régimes (LMNP réel, SCI IS) nécessitent un expert-comptable.
-                      La réintégration des amortissements LMNP réel à la revente est calculée pour le régime retenu (voir page "Fiscalité de la Revente"). Pour les régimes alternatifs ci-dessus, la comparaison reste indicative : le TRI et la VAN affichés n'intègrent pas la fiscalité de cession propre à chaque régime.
-                    </Text>
-                  </View>
+                  <Text style={{ fontSize: 6, color: COLORS.slate400, marginTop: 6, lineHeight: 1.5 }}>
+                    Simulation sous réserve d'éligibilité. Certains régimes (LMNP réel, SCI IS) nécessitent un expert-comptable. La réintégration des amortissements LMNP réel à la revente n'est calculée que pour le régime retenu. Pour les régimes alternatifs, le TRI et la VAN affichés n'intègrent pas la fiscalité de cession propre à chaque régime.
+                  </Text>
                 </View>
               </View>
             </View>

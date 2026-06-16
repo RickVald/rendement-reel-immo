@@ -191,6 +191,7 @@ export interface PilierDiagnostic {
 
 export type VerdictGlobalLabel =
   | 'Situation globalement cohérente'
+  | 'Bilan partiel — données manquantes sur certains piliers'
   | 'Globalement cohérente, avec points à vérifier'
   | 'Incohérences importantes détectées'
   | 'Analyse incomplète — données insuffisantes pour conclure'
