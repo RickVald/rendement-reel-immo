@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { Card, SegmentBadge, SourcingStatutBadge } from '@/components/crm/Badges'
 import { getSourcingResults, getScanRuns } from '@/lib/crm/data'
 import { SEGMENT_LABELS, type Segment } from '@/lib/crm/types'
+import { ScanForm } from './ScanForm'
+import { SourcingRowActions } from './SourcingRowActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,11 +12,9 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
 
   const [sourcingResults, scanRuns] = await Promise.all([getSourcingResults(), getScanRuns()])
 
-  const villes = Array.from(new Set(sourcingResults.map(r => r.ville).filter(Boolean))).sort()
-
   const filtered = sourcingResults.filter(r =>
     (!segment || r.segment === segment) &&
-    (!ville || r.ville === ville))
+    (!ville || r.ville.toLowerCase().includes(ville.toLowerCase())))
 
   const lastScan = scanRuns[0]
   const enAttente = sourcingResults.filter(r => r.statut === 'NOUVEAU' || r.statut === 'DOUBLON_POTENTIEL')
@@ -25,13 +25,13 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
       <div>
         <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">Sourcing / Prospection</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Scan (mock) de sources publiques pour alimenter la base de prospects — à connecter à un vrai service de scan en Phase 1.
+          Scan du registre Pappers (SIRENE/RCS) pour trouver des CGP, chasseurs et courtiers en Bretagne et Loire-Atlantique.
         </p>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card title="Dernier scan" value={lastScan ? new Date(lastScan.date).toLocaleDateString('fr-FR') : '—'} sub={lastScan ? `${lastScan.nbResultats} résultat(s) — ${lastScan.zone}` : 'Aucun scan effectué'} />
-        <Card title="Prospects en attente de revue" value={`${enAttente.length}`} sub="statut nouveau ou doublon potentiel" />
+        <Card title="Prospects en attente" value={`${enAttente.length}`} sub="statut nouveau ou doublon potentiel" />
         <Card title="Doublons détectés" value={`${doublons.length}`} sub="déjà en base ou probable" />
       </div>
 
@@ -40,46 +40,21 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
         <div className="px-5 py-3 border-b border-slate-200">
           <h2 className="font-bold text-sm text-[#0B1B2B]">Lancer un scan</h2>
         </div>
-        <form className="px-5 py-4 flex flex-wrap items-end gap-3" method="get">
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Catégorie</label>
-            <select name="segment" defaultValue={segment} className="text-sm rounded-lg border border-slate-200 bg-white px-3 py-2 min-w-[200px]">
-              <option value="">Toutes les catégories</option>
-              {Object.entries(SEGMENT_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Ville / zone</label>
-            <select name="ville" defaultValue={ville} className="text-sm rounded-lg border border-slate-200 bg-white px-3 py-2 min-w-[160px]">
-              <option value="">Toutes les villes</option>
-              {villes.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </div>
-          <button
-            type="button"
-            disabled
-            title="Le scan réel sera branché en Phase 1 (API externe + base de données). Les résultats ci-dessous sont des données d'exemple."
-            className="text-sm font-semibold px-4 py-2 rounded-lg bg-[#0B1B2B] text-white opacity-40 cursor-not-allowed"
-          >
-            Lancer un scan
-          </button>
-          <button type="submit" className="text-sm font-semibold px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:text-[#0B1B2B] transition-colors">Filtrer les résultats</button>
-          {(segment || ville) && (
-            <Link href="/admin/crm/sourcing" className="text-sm px-4 py-2 rounded-lg border border-slate-200 text-slate-500 hover:text-[#0B1B2B] transition-colors">Réinitialiser</Link>
-          )}
-        </form>
-        <p className="px-5 pb-4 text-xs text-slate-400">
-          Sources envisagées : annuaires professionnels (Pages Jaunes), registres officiels (Pappers / Société.com), Google Places, sites web des professionnels. Le choix définitif des sources et l&apos;intégration technique seront finalisés en Phase 1.
-        </p>
+        <ScanForm defaultSegment={segment} defaultVille={ville} />
       </div>
 
       {/* Résultats */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
           <h2 className="font-bold text-sm text-[#0B1B2B]">Résultats à valider</h2>
-          <span className="text-xs text-slate-400">{filtered.length} / {sourcingResults.length}</span>
+          <div className="flex items-center gap-3">
+            {(segment || ville) && (
+              <Link href="/admin/crm/sourcing" className="text-xs text-slate-400 hover:text-[#0B1B2B] transition-colors">
+                Réinitialiser les filtres ×
+              </Link>
+            )}
+            <span className="text-xs text-slate-400">{filtered.length} / {sourcingResults.length}</span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[1100px]">
@@ -119,29 +94,16 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <button
-                        type="button"
-                        disabled
-                        title="Disponible une fois la base de données connectée (Phase 1)"
-                        className="text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed whitespace-nowrap"
-                      >
-                        Importer en organisation
-                      </button>
-                      <button
-                        type="button"
-                        disabled
-                        title="Disponible une fois la base de données connectée (Phase 1)"
-                        className="text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200 text-slate-400 bg-slate-50 cursor-not-allowed whitespace-nowrap"
-                      >
-                        Ignorer
-                      </button>
-                    </div>
+                    <SourcingRowActions id={r.id} statut={r.statut} hasEmail={!!r.email} hasSite={!!r.site} />
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-slate-400">Aucun résultat ne correspond à ces filtres.</td></tr>
+                <tr><td colSpan={11} className="px-4 py-6 text-center text-sm text-slate-400">
+                  {sourcingResults.length === 0
+                    ? 'Aucun résultat — lancez un scan pour alimenter la liste.'
+                    : 'Aucun résultat ne correspond à ces filtres.'}
+                </td></tr>
               )}
             </tbody>
           </table>
@@ -169,7 +131,9 @@ export default async function SourcingPage({ searchParams }: { searchParams: Pro
             {scanRuns.map(s => (
               <tr key={s.id} className="hover:bg-[#F8F7F4]/60 transition-colors">
                 <td className="px-4 py-3 text-slate-600">{new Date(s.date).toLocaleString('fr-FR')}</td>
-                <td className="px-4 py-3 text-slate-600">{s.categories.map((c: Segment) => SEGMENT_LABELS[c]).join(', ')}</td>
+                <td className="px-4 py-3 text-slate-600">
+                  {s.categories.length === 0 ? 'Toutes catégories' : s.categories.map((c: Segment) => SEGMENT_LABELS[c]).join(', ')}
+                </td>
                 <td className="px-4 py-3 text-slate-600">{s.zone}</td>
                 <td className="px-4 py-3 text-slate-400 text-xs">{s.sources.join(', ')}</td>
                 <td className="px-4 py-3 text-slate-600">{s.nbResultats}</td>
