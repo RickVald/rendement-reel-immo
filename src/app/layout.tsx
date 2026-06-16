@@ -89,11 +89,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
               ))}
             </nav>
-            <div className="flex items-center gap-1.5 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link href="/cgp-arbitrage-immobilier#demo"
-                className="shrink-0 bg-[#C9A96E] hover:bg-[#b8966a] text-[#0B1B2B] text-xs sm:text-sm font-bold px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
-                <span className="sm:hidden">Cas CGP →</span>
-                <span className="hidden sm:inline">Voir le cas CGP →</span>
+                className="hidden sm:inline-flex items-center bg-[#C9A96E] hover:bg-[#b8966a] text-[#0B1B2B] text-sm font-bold px-5 py-2.5 rounded-lg transition-colors whitespace-nowrap shadow-sm">
+                Voir le cas CGP →
               </Link>
               <MobileNav links={NAV_LINKS} />
             </div>
