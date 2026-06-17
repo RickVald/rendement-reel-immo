@@ -165,26 +165,25 @@ export interface DDGResult {
 }
 
 export async function searchGoogle(query: string): Promise<DDGResult[]> {
-  const apiKey = process.env.GOOGLE_SEARCH_API_KEY
-  const cx = process.env.GOOGLE_SEARCH_CX
-  if (!apiKey || !cx) throw new Error('GOOGLE_SEARCH_API_KEY ou GOOGLE_SEARCH_CX manquant')
+  const apiKey = process.env.SERP_API_KEY
+  if (!apiKey) throw new Error('SERP_API_KEY manquant')
 
-  const url = new URL('https://www.googleapis.com/customsearch/v1')
-  url.searchParams.set('key', apiKey)
-  url.searchParams.set('cx', cx)
+  const url = new URL('https://serpapi.com/search')
+  url.searchParams.set('api_key', apiKey)
   url.searchParams.set('q', query)
-  url.searchParams.set('num', '10')
+  url.searchParams.set('engine', 'google')
   url.searchParams.set('gl', 'fr')
   url.searchParams.set('hl', 'fr')
+  url.searchParams.set('num', '10')
 
   try {
-    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(10000) })
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) })
     if (!res.ok) {
       const txt = await res.text()
-      throw new Error(`Google Search API ${res.status}: ${txt}`)
+      throw new Error(`SerpAPI ${res.status}: ${txt}`)
     }
     const data = await res.json()
-    const items: Array<{ title: string; link: string; snippet: string }> = data.items ?? []
+    const items: Array<{ title: string; link: string; snippet: string }> = data.organic_results ?? []
     return items
       .filter(item => isUsefulUrl(item.link))
       .map(item => ({ titre: item.title, url: item.link, snippet: item.snippet ?? '' }))
