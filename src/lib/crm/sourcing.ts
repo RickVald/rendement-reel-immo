@@ -142,7 +142,7 @@ export function computeScore(r: PappersResultat): number {
 /* ── Requêtes de recherche par segment ──────────────────────────────── */
 
 export const QUERIES_PAR_SEGMENT: Record<string, string[]> = {
-  CGP_IMMOBILIER:        ['cabinet CGP conseiller gestion patrimoine', 'conseiller en investissements financiers CIF', 'gestion de patrimoine indépendant'],
+  CGP_IMMOBILIER:        ['cabinet CGP conseiller gestion patrimoine', 'conseiller en investissements financiers CIF', 'site:experts-du-patrimoine.fr'],
   CHASSEUR_INVESTISSEUR: ['chasseur immobilier investissement locatif', 'chasseur de biens immobilier'],
   COURTIER_INVESTISSEUR: ['courtier crédit immobilier', 'courtier en prêts immobiliers'],
   AGENCE_INVESTISSEUR:   ['agence immobilière investissement locatif', 'agence immobilière patrimoine'],

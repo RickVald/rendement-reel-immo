@@ -312,6 +312,18 @@ export async function assignLeadB2CAction(_prevState: ActionState, formData: For
   return { success: 'Lead associé et transmis.' }
 }
 
+/** Supprime définitivement une organisation et toutes ses données liées. */
+export async function deleteOrganisationAction(orgId: string): Promise<{ error?: string }> {
+  const auth = await requireEditor()
+  if ('error' in auth) return { error: auth.error }
+
+  await prisma.organisation.delete({ where: { id: orgId } })
+
+  revalidatePath('/admin/crm/organisations')
+  revalidatePath('/admin/crm')
+  return {}
+}
+
 /** Enregistre une objection rencontrée. */
 export async function addObjectionAction(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const auth = await requireEditor()

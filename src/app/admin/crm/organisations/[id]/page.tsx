@@ -6,6 +6,7 @@ import {
 } from '@/lib/crm/data'
 import { ACTIVITE_TYPE_LABELS, CONTACT_TYPE_LABELS, PILOTE_STATUT_LABELS, BESOIN_LABELS } from '@/lib/crm/types'
 import { QuickActions } from './QuickActions'
+import { DeleteOrganisationButton } from './DeleteOrganisationButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,10 @@ export default async function OrganisationDetailPage({ params }: { params: Promi
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/admin/crm/organisations" className="text-xs text-[#C9A96E] hover:underline">← Organisations</Link>
+        <div className="flex items-center justify-between">
+          <Link href="/admin/crm/organisations" className="text-xs text-[#C9A96E] hover:underline">← Organisations</Link>
+          <DeleteOrganisationButton orgId={id} orgNom={org.nom} />
+        </div>
         <div className="flex items-start justify-between gap-4 mt-2">
           <div>
             <h1 className="font-playfair text-2xl font-bold text-[#0B1B2B]">{org.nom}</h1>

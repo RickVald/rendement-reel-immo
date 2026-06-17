@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getContacts, getOrganisations } from '@/lib/crm/data'
 import { CONTACT_TYPE_LABELS, type ContactType } from '@/lib/crm/types'
 import { NewContactForm } from './NewContactForm'
+import { DeleteContactButton } from './DeleteContactButton'
 
 export default async function ContactsPage({ searchParams }: { searchParams: Promise<{ type?: string; consentement?: string; statutEmail?: string }> }) {
   const { type = '', consentement = '', statutEmail = '' } = await searchParams
@@ -61,6 +62,7 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
               <th className="px-4 py-3 font-semibold">Séquence</th>
               <th className="px-4 py-3 font-semibold">Consentement</th>
               <th className="px-4 py-3 font-semibold">Statut email</th>
+              <th className="px-4 py-3 font-semibold"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -100,6 +102,9 @@ export default async function ContactsPage({ searchParams }: { searchParams: Pro
                     {c.statutEmail === 'VALIDE' && <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Valide</span>}
                     {c.statutEmail === 'BOUNCE' && <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-600">Bounce</span>}
                     {c.statutEmail === 'OPT_OUT' && <span className="text-[11px] px-1.5 py-0.5 rounded bg-red-100 text-red-600">Opt-out</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <DeleteContactButton contactId={c.id} />
                   </td>
                 </tr>
               )

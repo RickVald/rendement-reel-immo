@@ -43,3 +43,15 @@ export async function createContactAction(_prevState: ActionState, formData: For
   if (organisationId) revalidatePath(`/admin/crm/organisations/${organisationId}`)
   return { success: 'Contact créé.' }
 }
+
+/** Supprime définitivement un contact. */
+export async function deleteContactAction(contactId: string): Promise<{ error?: string }> {
+  const auth = await requireEditor()
+  if ('error' in auth) return { error: auth.error }
+
+  await prisma.contact.delete({ where: { id: contactId } })
+
+  revalidatePath('/admin/crm/contacts')
+  revalidatePath('/admin/crm')
+  return {}
+}
