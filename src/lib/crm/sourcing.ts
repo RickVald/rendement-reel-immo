@@ -151,7 +151,24 @@ export const QUERIES_PAR_SEGMENT: Record<string, string[]> = {
 
 /* ── Recherche Google Custom Search ──────────────────────────────────── */
 
-const ANNUAIRES = ['kompass', 'pages-jaunes', 'pagesjaunes', 'societe.com', 'pappers', 'infogreffe', 'verif.com', 'manageo', 'linkedin', 'facebook', 'instagram', 'twitter', 'youtube', 'leboncoin', 'seloger', 'meilleurtaux', 'empruntis', 'cafpi', 'lafinancepourtous', 'service-public', 'impots.gouv']
+const ANNUAIRES = [
+  // Annuaires et registres
+  'kompass', 'pages-jaunes', 'pagesjaunes', 'societe.com', 'pappers', 'infogreffe', 'verif.com', 'manageo',
+  'cabinet-gestion-patrimoine.fr', 'kg-patrimoine.fr', 'anacofi', 'orias',
+  // Réseaux sociaux
+  'linkedin', 'facebook', 'instagram', 'twitter', 'youtube',
+  // Emploi
+  'indeed', 'welcometothejungle', 'cadremploi', 'apec', 'pole-emploi', 'jobteaser',
+  // Immobilier
+  'leboncoin', 'seloger', 'logic-immo', 'bienici', 'pap.fr',
+  // Finance / assurance génériques
+  'meilleurtaux', 'empruntis', 'cafpi', 'lafinancepourtous', 'monbanker',
+  // Institutionnels / réglementaires
+  'service-public', 'impots.gouv', 'amf-france', 'amf.fr', 'banque-france',
+  'francecompetences', 'legifrance', 'economie.gouv',
+  // Médias / presse
+  'lefigaro', 'lemonde', 'bfmtv', 'leparisien', 'capital.fr', 'challenges',
+]
 
 function isUsefulUrl(url: string): boolean {
   const lower = url.toLowerCase()
